@@ -1,0 +1,32 @@
+{
+  "id": "EXP-20261105-08-train-sample-200",
+  "opened_at": "2026-11-05T15:30:00+07:00",
+  "goal": "Đo agent prompt v9 trên 200 câu ngẫu nhiên của train split theo yêu cầu của Hoài",
+  "hypothesis": "Giả thuyết: PA khoảng 0.60 đến 0.70 trên cả mẫu, khoảng 0.90 trên các shop dựng được lines, vì thư viện sinh từ chính tập này nên có phần lạc quan",
+  "metrics": [
+    "score",
+    "pa",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "pa_shops_with_lines",
+    "pa_in_library",
+    "pa_not_in_library",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261105-08-train-sample-200/inputs/questions.jsonl",
+    "rows": 200,
+    "reference": "gold",
+    "note": "Lấy từ train/split/train_questions.jsonl, seed 20261105. Thư viện ví dụ sinh từ tập này"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261105-07-domain-helpers",
+  "status": "failed",
+  "note": "Dừng ở 197/200 theo yêu cầu của Hoài vì máy lag"
+}

@@ -1,0 +1,43 @@
+run_id: EXP-20261030-02-openrouter-calibration
+dataset_root: ../train
+questions_file: split/train_questions.jsonl
+truth_file: split/train_answers.jsonl
+output_dir: ../experiments/EXP-20261030-02-openrouter-calibration
+clean_root: ../experiments/normalized-train/clean
+
+shops: [biz_112]
+
+model:
+  name: qwen/qwen3-14b
+  temperature: 0.0
+  seed: 20261030
+  max_output_tokens: 4096
+
+prompt: vi
+
+executor:
+  kind: docker
+  docker_image: datamate-sandbox:0.1
+  timeout_s: 300
+
+budget:
+  max_total_tokens: 5000000
+  stop_ratio: 0.8
+
+normalize:
+  model:
+    name: qwen/qwen3-14b
+    temperature: 0.0
+    seed: 20261101
+    max_output_tokens: 2048
+    reasoning: false
+  min_parse_ratio: 0.9
+  sample_rows: 5
+  parallel_shops: 3
+
+parallel_shops: 1
+max_turns: 60
+stuck_after: 3
+allow_abstain: false
+context_char_limit: 100000
+tool_output_char_limit: 4000

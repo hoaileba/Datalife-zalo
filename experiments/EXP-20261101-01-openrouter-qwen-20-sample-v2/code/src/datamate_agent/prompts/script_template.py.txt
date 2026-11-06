@@ -1,0 +1,27 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from datamate import Clock, fmt
+
+SHOP_DIR = Path("data/data/{{shop}}")
+QUESTIONS_PATH = Path("work/inputs/{{shop}}-questions.jsonl")
+ANSWERS_PATH = Path("work/out/answers/{{shop}}.jsonl")
+QUESTIONS = {{questions_by_id}}
+
+
+def answer(question: dict[str, Any], clock: Clock) -> tuple[str, Any]:
+    raise ValueError(f"not answered yet: {question['id']}")
+
+
+def main() -> None:
+    lines = []
+    for question in fmt.load_questions(QUESTIONS_PATH):
+        answer_type, value = answer(question, Clock(question["as_of_date"]))
+        lines.append(fmt.answer_line(question["id"], answer_type, value))
+    fmt.write_answers(ANSWERS_PATH, lines)
+
+
+if __name__ == "__main__":
+    main()

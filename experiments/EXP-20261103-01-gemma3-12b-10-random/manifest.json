@@ -1,0 +1,33 @@
+{
+  "id": "EXP-20261103-01-gemma3-12b-10-random",
+  "opened_at": "2026-11-03T09:00:00+07:00",
+  "goal": "Chạy harness của EXP-20261101-02 với google/gemma-3-12b-it thay qwen3-14b trên đúng 10 câu random, so với đáp án Claude coi là đúng 100%; hai nhánh prompt vi và en",
+  "hypothesis": "gemma-3-12b nhanh hơn qwen ít nhất 5 lần mỗi turn (không reasoning), nhưng không đúng hơn qwen: số câu khớp Claude ≤ 2/10 ở mỗi nhánh",
+  "metrics": [
+    "score_vs_claude",
+    "right",
+    "wrong",
+    "blank",
+    "accepted_shops",
+    "turns_per_shop",
+    "submit_rejections",
+    "latency_per_turn_s",
+    "input_tokens",
+    "output_tokens",
+    "cost_usd",
+    "api_errors",
+    "tool_error_rate"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261103-01-gemma3-12b-10-random/inputs/questions.jsonl",
+    "rows": 10,
+    "drawn_from": "nhóm random của experiments/EXP-20261031-01-openrouter-qwen-20-sample/inputs/questions.jsonl",
+    "reference": "experiments/EXP-20261029-01-public-test-submission/out/submission.jsonl (Hoài: coi là đúng 100%)"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "parent": "EXP-20261101-02-qwen-submit-context-10-random",
+  "status": "closed",
+  "closed_at": "2026-11-03T11:30:00+07:00"
+}

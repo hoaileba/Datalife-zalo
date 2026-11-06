@@ -1,0 +1,26 @@
+{
+  "id": "EXP-20261105-01-error-analysis-replay",
+  "opened_at": "2026-11-05T00:00:00+07:00",
+  "goal": "Phân tích 362 câu không đúng của EXP-05 và phát lại nhóm model bỏ ví dụ top-1 với hai cách nhắc",
+  "hypothesis": "Giả thuyết: nhắc lại câu hỏi và ví dụ top-1 sau READ làm giảm tỉ lệ gọi revenue trái ví dụ, không làm tụt nhóm đối chứng",
+  "metrics": [
+    "ignore_rate",
+    "right",
+    "wrong",
+    "blank",
+    "score",
+    "score_vs_baseline"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261105-01-error-analysis-replay/inputs/sample.jsonl",
+    "rows": 192,
+    "reference": "Claude submission",
+    "note": "96 câu model bỏ ví dụ và 96 câu đối chứng ngẫu nhiên seed 20261105. Là chẩn đoán trên public, không phải holdout"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v7, patch trong code/replay.py, không sửa src",
+  "parent": "EXP-20261104-05-public-1000-v7",
+  "status": "closed"
+}

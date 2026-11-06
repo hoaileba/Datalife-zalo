@@ -1,0 +1,32 @@
+{
+  "id": "EXP-20261105-09-train-3000-coverage",
+  "opened_at": "2026-11-05T14:40:00+07:00",
+  "goal": "Chạy agent hiện tại trên đủ 3000 câu train, tổng hợp lỗi trên train split để bổ sung độ phủ",
+  "hypothesis": "Giả thuyết: PA toàn tập khoảng 0.60 đến 0.68, phần lớn câu sai nằm ở 6 shop thiếu lines",
+  "metrics": [
+    "score",
+    "pa",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "pa_shops_with_lines",
+    "pa_not_in_library",
+    "wrong_by_cause",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "train/questions.jsonl",
+    "rows": 3000,
+    "reference": "gold",
+    "note": "2350 câu chạy ở đây, 200 câu từ EXP-08, 450 câu test từ EXP-07 cùng code. Chỉ đọc lỗi trên 2550 câu train split, test split chỉ tính điểm"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261105-08-train-sample-200",
+  "status": "failed",
+  "note": "Dừng ở 38/2350 theo yêu cầu của Hoài vì máy lag, chạy chồng quá nhiều luồng"
+}

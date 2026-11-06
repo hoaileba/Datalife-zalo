@@ -1,0 +1,16 @@
+{{code}}
+
+
+def main() -> None:
+    from datamate import Clock as HarnessClock
+    from datamate import fmt as harness_fmt
+
+    lines = []
+    for question in harness_fmt.load_questions("work/inputs/{{shop}}-questions.jsonl"):
+        answer_type, value = answer(question, HarnessClock(question["as_of_date"]))
+        lines.append(harness_fmt.answer_line(question["id"], answer_type, value))
+    harness_fmt.write_answers("work/out/answers/{{shop}}.jsonl", lines)
+
+
+if __name__ == "__main__":
+    main()

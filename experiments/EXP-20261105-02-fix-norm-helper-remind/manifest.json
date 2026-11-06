@@ -1,0 +1,30 @@
+{
+  "id": "EXP-20261105-02-fix-norm-helper-remind",
+  "opened_at": "2026-11-05T10:00:00+07:00",
+  "goal": "Sửa chuẩn hoá, helper và nhắc lại sau READ theo EXP-20261105-01, đo lại trên test và public",
+  "hypothesis": "Giả thuyết: public từ +292 lên khoảng +380 đến +430, accuracy public trên 0.70, không giảm ở test so với mức +44/100 đã đo",
+  "metrics": [
+    "score",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "score_untouched",
+    "oracle_train_right",
+    "oracle_public_right",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "train/split/test_questions.jsonl và public_test/questions.jsonl",
+    "rows": 1450,
+    "reference": "gold cho test, bản Claude cho public",
+    "note": "450 câu test là holdout: không đọc log trong lúc sửa. Public đã bị dùng để phân tích, chỉ so sánh trực tiếp với EXP-05"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v8",
+  "parent": "EXP-20261105-01-error-analysis-replay",
+  "status": "closed"
+}

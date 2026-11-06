@@ -1,0 +1,35 @@
+{
+  "id": "EXP-20261103-02-gemma3-12b-clean-10-random",
+  "opened_at": "2026-11-03T11:40:00+07:00",
+  "goal": "Đo tác động của tầng chuẩn hoá: cùng gemma-3-12b, cùng 10 câu random như EXP-20261103-01, nhưng agent có bảng sạch, load(), PROFILE trong context và prompt viết theo tên cột chuẩn; so với đáp án Claude coi là đúng 100%",
+  "hypothesis": "Có bảng sạch, số lần submit bị từ chối giảm ít nhất một nửa so với parent (16 vi, 26 en), lỗi nhóm ngày tháng và tên cột gần như hết, và số câu khớp Claude đạt ít nhất 3/10 ở ít nhất một nhánh",
+  "metrics": [
+    "score_vs_claude",
+    "right",
+    "wrong",
+    "blank",
+    "accepted_shops",
+    "turns_per_shop",
+    "submit_rejections",
+    "rejection_types",
+    "latency_per_turn_s",
+    "input_tokens",
+    "output_tokens",
+    "cost_usd",
+    "api_errors",
+    "tool_error_rate"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261103-02-gemma3-12b-clean-10-random/inputs/questions.jsonl",
+    "rows": 10,
+    "drawn_from": "nhóm random của experiments/EXP-20261031-01-openrouter-qwen-20-sample/inputs/questions.jsonl",
+    "reference": "experiments/EXP-20261029-01-public-test-submission/out/submission.jsonl (Hoài: coi là đúng 100%)",
+    "clean_data": "artifacts/normalize-public/clean (normalize-v3.cmd; run-*/clean/ giữ bản copy dùng lúc chạy)"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "parent": "EXP-20261103-01-gemma3-12b-10-random",
+  "status": "failed",
+  "closed_at": "2026-11-03T13:20:00+07:00"
+}

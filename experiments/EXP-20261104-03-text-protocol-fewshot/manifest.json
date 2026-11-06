@@ -1,0 +1,36 @@
+{
+  "id": "EXP-20261104-03-text-protocol-fewshot",
+  "opened_at": "2026-11-04T17:25:00+07:00",
+  "goal": "Đo gemma 12B với giao thức văn bản, thư viện few-shot động từ train và helper mở rộng",
+  "hypothesis": "Giả thuyết: score dương trên cả hai tập, thời gian dưới 1 phút mỗi câu, đa số câu nộp FINAL trong 3 lượt",
+  "metrics": [
+    "score",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "turns_per_question",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "public": {
+      "path": "experiments/EXP-20261104-03-text-protocol-fewshot/inputs/public_questions.jsonl",
+      "rows": 100,
+      "seed": 202611043,
+      "reference": "Claude submission, Hoài coi là đúng 100%"
+    },
+    "train_test": {
+      "path": "experiments/EXP-20261104-03-text-protocol-fewshot/inputs/test_questions.jsonl",
+      "rows": 100,
+      "seed": 202611044,
+      "reference": "train/split/test_answers.jsonl, gold thật"
+    }
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v6",
+  "parent": "EXP-20261104-02-harness-helper-holdout-30",
+  "status": "closed"
+}

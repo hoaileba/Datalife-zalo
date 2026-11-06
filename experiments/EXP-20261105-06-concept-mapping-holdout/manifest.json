@@ -1,0 +1,12 @@
+{
+  "id": "EXP-20261105-06-concept-mapping-holdout",
+  "opened_at": "2026-11-05T15:00:00+07:00",
+  "goal": "Đo rủi ro overfit của helper theo ngành và thử map cột theo mô tả README trên shop train có gold",
+  "hypothesis": "Giả thuyết: viết theo tên cột thì hỏng ở shop khác, map theo mô tả README thì không",
+  "metrics": ["delivery_gold_by_description", "roles_by_source", "column_names_per_concept"],
+  "dataset": {"path": "train/questions.jsonl, biz_117 và biz_118", "rows": 10, "reference": "gold"},
+  "phase": "P0",
+  "model": "không gọi model",
+  "parent": "EXP-20261105-05-root-cause-prototypes",
+  "status": "closed"
+}

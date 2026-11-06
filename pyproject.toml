@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datamate-agent"
+version = "0.1.0"
+description = "Shop agent chạy qua API OpenAI-compatible để trả lời câu hỏi DataMate"
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.40",
+    "pandas>=2.0",
+    "openpyxl>=3.1",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "tqdm>=4.60",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+datamate_agent = ["prompts/*.md", "prompts/*.txt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

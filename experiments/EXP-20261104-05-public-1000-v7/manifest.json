@@ -1,0 +1,30 @@
+{
+  "id": "EXP-20261104-05-public-1000-v7",
+  "opened_at": "2026-11-04T23:00:00+07:00",
+  "goal": "Chạy gemma 12B, prompt v7 trên đủ 1000 câu public theo yêu cầu của Hoài",
+  "hypothesis": "Giả thuyết: score dương. Accuracy trong khoảng 0.60 đến 0.70 như các mẫu 100 câu trước",
+  "metrics": [
+    "score",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "score_untouched",
+    "score_used_before",
+    "turns_per_question",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261104-05-public-1000-v7/inputs/questions.jsonl",
+    "rows": 1000,
+    "reference": "Claude submission, Hoài coi là đúng 100%",
+    "note": "279 câu đã xuất hiện ở EXP trước, chấm tách riêng ở inputs/used_before.json"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v7",
+  "parent": "EXP-20261104-04-fix-harness-helper",
+  "status": "closed"
+}

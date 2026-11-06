@@ -1,0 +1,12 @@
+{
+  "id": "EXP-20261105-05-root-cause-prototypes",
+  "opened_at": "2026-11-05T14:00:00+07:00",
+  "goal": "Tìm nguyên nhân gốc 242 câu public không đúng, viết thử công thức theo rulebook và so với tham chiếu",
+  "hypothesis": "Giả thuyết: nhóm thiếu helper giải được bằng công thức rulebook, nhóm model chọn sai do thư viện ví dụ thiếu",
+  "metrics": ["prototype_match", "library_examples_per_helper", "retrieval_top1"],
+  "dataset": {"path": "experiments/EXP-20261105-04-why-pa-0524/out/bucket3.json", "rows": 242, "reference": "Claude submission"},
+  "phase": "P0",
+  "model": "không gọi model",
+  "parent": "EXP-20261105-04-why-pa-0524",
+  "status": "closed"
+}

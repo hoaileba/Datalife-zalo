@@ -1,0 +1,27 @@
+{
+  "id": "EXP-20261106-01-deterministic-fixes",
+  "opened_at": "2026-11-06T10:00:00+07:00",
+  "goal": "Sửa lỗi tất định nhóm F và E của public: quy đổi nhiều đơn vị lớn, việc sửa xe, loại máy, alias thanh toán, nhận diện kỳ và tên riêng trong câu hỏi",
+  "hypothesis": "Giả thuyết: oracle không có câu nào từ đúng thành sai; agent chạy lại các câu bị ảnh hưởng thêm khoảng 15 câu đúng public (PA local khoảng 0.84)",
+  "metrics": [
+    "oracle_train_right",
+    "oracle_public_right",
+    "oracle_regressions",
+    "probe_cases_right",
+    "pa_public",
+    "score_test",
+    "accuracy",
+    "coverage"
+  ],
+  "dataset": {
+    "path": "train/questions.jsonl (oracle), public_test/questions.jsonl, train/split/test_questions.jsonl",
+    "rows": 4000,
+    "reference": "gold cho train, bản Claude cho public"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261105-07-domain-helpers",
+  "status": "closed"
+}

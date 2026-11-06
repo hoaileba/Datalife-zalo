@@ -1,0 +1,29 @@
+{
+  "id": "EXP-20261104-01-norm-helper-30-public",
+  "opened_at": "2026-11-04T14:20:00+07:00",
+  "goal": "Đo gemma-3-12b với bảng chuẩn hoá bằng tra cứu README, helper theo rulebook và prompt v4, so với đáp án Claude trên 30 câu public ngẫu nhiên",
+  "hypothesis": "Khớp Claude nhiều hơn hẳn mức 2/10 của EXP-20261103-03; đo mốc cho kiến trúc mới, chưa dự đoán ngưỡng 80%",
+  "metrics": [
+    "score_vs_claude",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "turns_per_question",
+    "used_helper",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261104-01-norm-helper-30-public/inputs/questions.jsonl",
+    "rows": 30,
+    "drawn_from": "public_test/questions.jsonl, bỏ 9 câu đã dùng phát triển helper",
+    "seed": 20261104,
+    "reference": "experiments/EXP-20261029-01-public-test-submission/out/submission.jsonl (Hoài: coi là đúng 100%)"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "parent": "EXP-20261103-05-simple-short-error-train-20",
+  "status": "closed"
+}

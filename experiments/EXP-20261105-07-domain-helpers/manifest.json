@@ -1,0 +1,28 @@
+{
+  "id": "EXP-20261105-07-domain-helpers",
+  "opened_at": "2026-11-05T16:00:00+07:00",
+  "goal": "Dựng tầng khái niệm và helper theo ngành, đo trên train có gold, test và public",
+  "hypothesis": "Giả thuyết: PA public từ 0.524 lên khoảng 0.70 đến 0.85, test không giảm so với +271",
+  "metrics": [
+    "pa_public",
+    "score_test",
+    "accuracy",
+    "coverage",
+    "oracle_train_right",
+    "domain_formula_match",
+    "cross_shop_match",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "train/split/test_questions.jsonl và public_test/questions.jsonl",
+    "rows": 1450,
+    "reference": "gold cho test, bản Claude và hệ thống chấm cho public",
+    "note": "Mức public lạc quan vì 3 ngành chỉ có ở public"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261105-06-concept-mapping-holdout",
+  "status": "closed"
+}

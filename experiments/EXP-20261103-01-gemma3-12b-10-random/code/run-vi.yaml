@@ -1,0 +1,35 @@
+run_id: EXP-20261103-01-gemma3-12b-10-random-vi
+dataset_root: ../../../public_test
+questions_file: ../experiments/EXP-20261103-01-gemma3-12b-10-random/inputs/questions.jsonl
+truth_file: ../experiments/EXP-20261103-01-gemma3-12b-10-random/inputs/claude_reference.jsonl
+output_dir: ../run-vi
+
+shops: []
+
+model:
+  name: google/gemma-3-12b-it
+  temperature: 0.0
+  seed: 20261103
+  max_output_tokens: 4096
+  tool_choice: required
+
+prompt: vi
+
+executor:
+  kind: docker
+  docker_image: datamate-sandbox:0.1
+  timeout_s: 300
+  docker_memory: 4g
+  docker_cpus: 2
+
+budget:
+  max_total_tokens: 15000000
+  stop_ratio: 0.8
+  max_tokens_per_shop: 2000000
+
+parallel_shops: 3
+max_turns: 60
+stuck_after: 3
+allow_abstain: false
+context_char_limit: 100000
+tool_output_char_limit: 4000

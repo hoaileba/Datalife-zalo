@@ -1,0 +1,295 @@
+from __future__ import annotations
+
+import argparse
+import ast
+import json
+import os
+import subprocess
+import time
+import traceback
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Sequence, TextIO
+
+from datamate import fmt
+
+from .connectors import ChatClient, OpenRouterClient
+from .models import ConnectorConfig, ExecResult, ModelConfig, RetryConfig
+from .modules.prompts import render
+from .modules.score import is_correct
+from .utils.events import EventLog
+
+PROMPT = Path(__file__).resolve().parent / "prompts" / "simple.md"
+IMAGE = "datamate-sandbox:0.1"
+OUTPUT_LIMIT = 4000
+CODE_TIMEOUT_S = 120
+ANSWER_TYPES = ("number", "percent", "date", "boolean", "string", "list", "table", "unanswerable")
+RUN_PYTHON = {
+    "type": "function",
+    "function": {
+        "name": "run_python",
+        "description": "Chạy code phân tích dữ liệu, trả về stdout và stderr.",
+        "parameters": {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]},
+    },
+}
+CONCLUDE = {
+    "type": "function",
+    "function": {
+        "name": "conclude",
+        "description": "Đưa ra nhận định sau khi phân tích. ok=true thì sang bước viết code tính đáp án; ok=false thì phân tích tiếp.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "findings": {"type": "string", "description": "đã thấy gì: bảng, cột, giá trị thật, khoảng ngày"},
+                "logic": {"type": "string", "description": "sẽ tính thế nào: kỳ từ ngày nào đến ngày nào, lọc gì, công thức"},
+                "answer_type": {"type": "string", "enum": list(ANSWER_TYPES)},
+                "ok": {"type": "boolean", "description": "đã đủ để tính đáp án chưa"},
+            },
+            "required": ["findings", "logic", "answer_type", "ok"],
+        },
+    },
+}
+RUN_FINAL = {
+    "type": "function",
+    "function": {
+        "name": "run_final",
+        "description": "Chạy code hoàn chỉnh tính đáp án theo logic đã nhận định. Dòng cuối cùng code in ra chính là đáp án.",
+        "parameters": {"type": "object", "properties": {"code": {"type": "string"}}, "required": ["code"]},
+    },
+}
+ANALYSIS_TOOLS: tuple[dict[str, Any], ...] = (RUN_PYTHON, CONCLUDE)
+FINAL_TOOLS: tuple[dict[str, Any], ...] = (RUN_FINAL,)
+
+CodeRunner = Callable[[str], ExecResult]
+
+
+def docker_runner(*, clean_dir: Path, raw_dir: Path) -> CodeRunner:
+    command = [
+        "docker", "run", "--rm", "-i", "--network", "none", "--memory", "4g", "--cpus", "2",
+        "-v", f"{clean_dir.resolve()}:/shop/clean:ro", "-v", f"{raw_dir.resolve()}:/shop/raw:ro", "-w", "/shop", IMAGE, "python", "-",
+    ]
+
+    def run(code: str) -> ExecResult:
+        started = time.monotonic()
+        try:
+            done = subprocess.run(command, input=code, capture_output=True, text=True, timeout=CODE_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            return ExecResult(exit_code=None, stdout="", stderr="", timed_out=True, duration_s=round(time.monotonic() - started, 3))
+        return ExecResult(exit_code=done.returncode, stdout=done.stdout, stderr=done.stderr, timed_out=False, duration_s=round(time.monotonic() - started, 3))
+
+    return run
+
+
+def system_prompt(*, rulebook: str, clean_dir: Path, raw_dir: Path, shop: str) -> str:
+    profile = (clean_dir / "PROFILE.md").read_text(encoding="utf-8").replace(f"work/clean/{shop}/", "clean/")
+    readme = (raw_dir / "README.md").read_text(encoding="utf-8")
+    return render(PROMPT.read_text(encoding="utf-8"), {"rulebook": rulebook.strip(), "profile": profile.strip(), "readme": readme.strip()})
+
+
+class AnalysisLoop:
+    """Một câu hỏi: phân tích bằng code → nhận định → sinh code theo logic → lấy đáp án từ output của code."""
+
+    def __init__(self, *, question: dict[str, Any], run_code: CodeRunner, log: TextIO) -> None:
+        self._question = question
+        self._run_code = run_code
+        self._log = log
+        self._analyzed = False
+        self._answer_type: str | None = None
+
+    @property
+    def tools(self) -> tuple[dict[str, Any], ...]:
+        return ANALYSIS_TOOLS if self._answer_type is None else FINAL_TOOLS
+
+    def call(self, name: str, raw: str) -> tuple[str, dict[str, Any] | None]:
+        try:
+            arguments = json.loads(raw or "{}")
+        except json.JSONDecodeError as error:
+            return f"ERROR: tham số không phải JSON: {error}", None
+        if name not in {tool["function"]["name"] for tool in self.tools}:
+            return f"ERROR: lúc này chỉ gọi được {[tool['function']['name'] for tool in self.tools]}", None
+        if name == "run_python":
+            return self._analyze(str(arguments.get("code", ""))), None
+        if name == "conclude":
+            return self._conclude(arguments)
+        return self._final(str(arguments.get("code", "")))
+
+    def _analyze(self, code: str) -> str:
+        _write(self._log, f"PHÂN TÍCH\n{code}")
+        result = self._run_code(code)
+        self._analyzed = self._analyzed or (result.exit_code == 0 and bool(result.stdout.strip()))
+        return _format_exec(result)
+
+    def _conclude(self, arguments: dict[str, Any]) -> tuple[str, dict[str, Any] | None]:
+        _write(self._log, f"NHẬN ĐỊNH {json.dumps(arguments, ensure_ascii=False, indent=2)}")
+        answer_type = str(arguments.get("answer_type"))
+        if answer_type not in ANSWER_TYPES:
+            return f"ERROR: answer_type phải thuộc {list(ANSWER_TYPES)}", None
+        if not self._analyzed:
+            return "ERROR: chưa có lần chạy code phân tích nào in ra kết quả. Hãy gọi run_python trước.", None
+        if not arguments.get("ok"):
+            return "Chưa đủ. Phân tích tiếp bằng run_python.", None
+        if answer_type == "unanswerable":
+            return "", fmt.answer_line(str(self._question["id"]), "unanswerable", reason=str(arguments.get("findings", "")))
+        self._answer_type = answer_type
+        return f"Đã ghi nhận định. Giờ gọi run_final với code hoàn chỉnh theo đúng logic đó; dòng cuối cùng in ra đáp án kiểu {answer_type}, chỉ giá trị, không kèm chữ.", None
+
+    def _final(self, code: str) -> tuple[str, dict[str, Any] | None]:
+        _write(self._log, f"CODE CUỐI\n{code}")
+        result = self._run_code(code)
+        if result.exit_code != 0:
+            return f"ERROR: code lỗi, sửa rồi gọi lại run_final.\n{_format_exec(result)}", None
+        lines = [line for line in result.stdout.splitlines() if line.strip()]
+        if not lines:
+            return "ERROR: code không in gì. Dòng cuối cùng phải print đáp án.", None
+        _write(self._log, f"OUTPUT\n{_format_exec(result)}")
+        try:
+            value = _parse_value(lines[-1].strip(), str(self._answer_type))
+            return "", fmt.answer_line(str(self._question["id"]), str(self._answer_type), value)
+        except (ValueError, TypeError, SyntaxError) as error:
+            return f"ERROR: dòng cuối {lines[-1]!r} không phải đáp án kiểu {self._answer_type}: {error}. Sửa code rồi gọi lại run_final.", None
+
+
+def solve(*, question: dict[str, Any], system: str, client: ChatClient, run_code: CodeRunner, max_turns: int, log: TextIO) -> dict[str, Any] | None:
+    user = f"Hôm nay là {question['as_of_date']}.\nCâu hỏi: {question['question']}"
+    messages: list[dict[str, Any]] = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+    loop = AnalysisLoop(question=question, run_code=run_code, log=log)
+    _write(log, f"=== {question['id']} · {question['business_id']} · {user}")
+    for turn in range(1, max_turns + 1):
+        reply = client.complete(messages, loop.tools, shop=str(question["business_id"]))
+        _write(log, f"\n--- turn {turn} · {reply.usage.prompt_tokens} → {reply.usage.completion_tokens} token")
+        if reply.content:
+            _write(log, f"TEXT\n{reply.content}")
+        if not reply.tool_calls:
+            messages += [{"role": "assistant", "content": reply.content or ""}, {"role": "user", "content": "Hãy gọi tool."}]
+            continue
+        messages.append(
+            {
+                "role": "assistant",
+                "content": reply.content or "",
+                "tool_calls": [{"id": c.id, "type": "function", "function": {"name": c.name, "arguments": c.arguments}} for c in reply.tool_calls],
+            }
+        )
+        for call in reply.tool_calls:
+            result, line = loop.call(call.name, call.arguments)
+            if line is not None:
+                return line
+            _write(log, f"RESULT\n{result}")
+            messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
+    _write(log, f"\n=== hết {max_turns} turn, không có đáp án")
+    return None
+
+
+def _format_exec(result: ExecResult) -> str:
+    status = "timeout" if result.timed_out else f"exit {result.exit_code}"
+    output = result.stdout + (f"\n{result.stderr}" if result.stderr else "")
+    if len(output) > OUTPUT_LIMIT:
+        output = f"{output[:OUTPUT_LIMIT // 2]}\n... [cắt {len(output) - OUTPUT_LIMIT} ký tự] ...\n{output[-OUTPUT_LIMIT // 2:]}"
+    return f"[{status}]\n{output}"
+
+
+def _parse_value(text: str, answer_type: str) -> Any:
+    if answer_type in ("date", "string"):
+        return text.strip().strip("\"'")
+    if answer_type in ("number", "percent"):
+        number = float(text.replace(" ", ""))
+        return fmt.percent(number) if answer_type == "percent" else fmt.quantity(number)
+    if answer_type == "boolean":
+        lowered = text.strip().lower()
+        if lowered not in ("true", "false"):
+            raise ValueError("phải là True hoặc False")
+        return lowered == "true"
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return ast.literal_eval(text)
+
+
+def _write(log: TextIO, text: str) -> None:
+    log.write(text + "\n")
+    log.flush()
+
+
+def _load_env(path: Path) -> None:
+    if not path.exists():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        if "=" in raw and not raw.lstrip().startswith("#"):
+            key, value = raw.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+    if "OPENROUTER_KEY" in os.environ:
+        os.environ.setdefault("OPENROUTER_API_KEY", os.environ["OPENROUTER_KEY"])
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Agent + tool → sinh code → chạy code → kết quả")
+    parser.add_argument("--dataset", type=Path, default=Path("public_test"))
+    parser.add_argument("--clean", type=Path, default=Path("artifacts/normalize-public/clean"))
+    parser.add_argument("--questions", type=Path, default=None, help="mặc định là questions.jsonl của dataset")
+    parser.add_argument("--question", nargs="*", default=None, help="chỉ chạy các id này")
+    parser.add_argument("--reference", type=Path, default=None, help="file đáp án để chấm")
+    parser.add_argument("--model", default="google/gemma-3-12b-it")
+    parser.add_argument("--tool-choice", default="required", choices=["auto", "required"])
+    parser.add_argument("--seed", type=int, default=20261103)
+    parser.add_argument("--max-turns", type=int, default=12)
+    parser.add_argument("--parallel", type=int, default=3)
+    parser.add_argument("--out", type=Path, default=Path("artifacts/simple-runs"))
+    args = parser.parse_args(argv)
+    _load_env(Path(".env"))
+    rows = [json.loads(raw) for raw in (args.questions or args.dataset / "questions.jsonl").read_text(encoding="utf-8").splitlines() if raw.strip()]
+    questions = [q for q in rows if not args.question or q["id"] in args.question]
+    if not questions:
+        raise ValueError(f"no question matches {args.question}")
+    reference = {} if args.reference is None else {r["id"]: r for r in map(json.loads, args.reference.read_text(encoding="utf-8").splitlines())}
+    out = args.out / datetime.now().strftime("%Y%m%d-%H%M%S")
+    out.mkdir(parents=True)
+    rulebook = (args.dataset / "rulebook.md").read_text(encoding="utf-8")
+    client = OpenRouterClient(
+        ConnectorConfig.from_env(),
+        model=ModelConfig(name=args.model, temperature=0.0, seed=args.seed, max_output_tokens=4096, tool_choice=args.tool_choice),
+        retry=RetryConfig(max_attempts=10),
+        events=EventLog(out / "api.jsonl"),
+    )
+
+    def one(question: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None, str | None]:
+        shop = str(question["business_id"])
+        clean_dir, raw_dir = args.clean / shop, args.dataset / "data" / shop
+        system = system_prompt(rulebook=rulebook, clean_dir=clean_dir, raw_dir=raw_dir, shop=shop)
+        with (out / f"{question['id']}.log").open("w", encoding="utf-8") as log:
+            try:
+                line = solve(question=question, system=system, client=client, run_code=docker_runner(clean_dir=clean_dir, raw_dir=raw_dir), max_turns=args.max_turns, log=log)
+            except Exception as error:
+                _write(log, f"\n=== LỖI\n{traceback.format_exc()}")
+                return question, None, f"{type(error).__name__}: {str(error)[:120]}"
+            _write(log, f"\n=== KẾT QUẢ {json.dumps(line, ensure_ascii=False)} · {_verdict(line, reference.get(question['id']))}")
+        print(f"xong {question['id']} {_verdict(line, reference.get(question['id']))}", flush=True)
+        return question, line, None
+
+    with ThreadPoolExecutor(max_workers=args.parallel) as pool:
+        results = list(pool.map(one, questions))
+    right = wrong = blank = failed = 0
+    with (out / "answers.jsonl").open("w", encoding="utf-8") as handle:
+        for question, line, error in results:
+            want = reference.get(question["id"])
+            verdict = "LỖI API" if error is not None else _verdict(line, want)
+            failed += error is not None
+            right += verdict == "ĐÚNG"
+            wrong += verdict == "SAI"
+            blank += line is None and error is None
+            if line is not None:
+                handle.write(json.dumps(line, ensure_ascii=False) + "\n")
+            print(f"{question['id']} {question['business_id']} {verdict:<9} model={None if line is None else line.get('answer')!r} đúng={None if want is None else want.get('answer')!r} | {error or question['question']}")
+    print(f"\nđúng {right} · sai {wrong} · trống {blank} · lỗi {failed} · điểm {right - wrong}/{len(results)} · log: {out}")
+    return 0
+
+
+def _verdict(line: dict[str, Any] | None, want: dict[str, Any] | None) -> str:
+    if line is None:
+        return "TRỐNG"
+    if want is None:
+        return "chưa chấm"
+    return "ĐÚNG" if is_correct(line, want) else "SAI"
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

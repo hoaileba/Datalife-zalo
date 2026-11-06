@@ -1,0 +1,13 @@
+{
+  "id": "EXP-20261029-01-public-test-submission",
+  "opened_at": "2026-10-29T11:40:00+07:00",
+  "goal": "Sinh submission.jsonl cho 1000 cau public_test bang 14 shop agent dung chung mot toolkit deterministic",
+  "hypothesis": null,
+  "metrics": ["score", "accuracy", "coverage", "coverage_per_shop", "coverage_per_type", "calibration_accuracy_biz_112"],
+  "dataset": {"path": "public_test/questions.jsonl", "n": 1000},
+  "phase": "P0",
+  "model": "claude-opus-5 (subagent per shop)",
+  "seed": 42,
+  "parent": null,
+  "status": "open"
+}

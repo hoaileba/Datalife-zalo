@@ -1,0 +1,32 @@
+run_id: EXP-20261101-01-openrouter-qwen-20-sample-v2
+dataset_root: ../../../public_test
+questions_file: ../experiments/EXP-20261101-01-openrouter-qwen-20-sample-v2/inputs/questions.jsonl
+truth_file: null
+output_dir: ../run
+
+shops: []
+
+model:
+  name: qwen/qwen3-14b
+  temperature: 0.0
+  seed: 20261031
+  max_output_tokens: 4096
+
+executor:
+  kind: docker
+  docker_image: datamate-sandbox:0.1
+  timeout_s: 300
+  docker_memory: 4g
+  docker_cpus: 2
+
+budget:
+  max_total_tokens: 15000000
+  stop_ratio: 0.8
+  max_tokens_per_shop: 2000000
+
+parallel_shops: 3
+stuck_after: 3
+max_turns: 60
+allow_abstain: false
+context_char_limit: 60000
+tool_output_char_limit: 4000

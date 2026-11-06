@@ -1,0 +1,33 @@
+{
+  "id": "EXP-20261101-01-openrouter-qwen-20-sample-v2",
+  "opened_at": "2026-11-01T13:00:00+07:00",
+  "goal": "Chạy lại đúng 20 câu của EXP-20261031-01 bằng qwen/qwen3-14b với harness v2 (Verifier sửa, khung script, đường dẫn chung, pool, phát hiện kẹt, log từng turn) và so với đáp án Claude",
+  "hypothesis": "So với parent: thời gian chạy giảm còn khoảng 40 phút (replay ước 37,3), không còn shop verified nhờ viết tay, số lượt phí giảm; đồng ý với Claude tăng nhưng vẫn dưới 50%",
+  "metrics": [
+    "agreement_with_claude_overall",
+    "agreement_with_claude_multi_table",
+    "agreement_with_claude_random",
+    "coverage",
+    "verified_shops",
+    "stuck_shops",
+    "turns_per_shop",
+    "wall_minutes",
+    "input_tokens",
+    "output_tokens",
+    "cost_usd",
+    "api_errors",
+    "tool_error_rate"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261101-01-openrouter-qwen-20-sample-v2/inputs/questions.jsonl",
+    "rows": 20,
+    "copied_from": "EXP-20261031-01-openrouter-qwen-20-sample",
+    "seed": 20261031
+  },
+  "phase": "P0",
+  "model": "qwen/qwen3-14b",
+  "seed": 20261031,
+  "parent": "EXP-20261031-01-openrouter-qwen-20-sample",
+  "status": "closed",
+  "closed_at": "2026-11-01T13:50:00+07:00"
+}

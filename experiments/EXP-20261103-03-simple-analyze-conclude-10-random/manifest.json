@@ -1,0 +1,33 @@
+{
+  "id": "EXP-20261103-03-simple-analyze-conclude-10-random",
+  "opened_at": "2026-11-03T13:20:00+07:00",
+  "goal": "Đo luồng đơn giản simple.py: agent chạy code phân tích → đưa ra nhận định (conclude) → sinh code theo logic (run_final) → đáp án là dòng in cuối của code; gemma-3-12b trên bảng sạch, cùng 10 câu random; so với đáp án Claude coi là đúng 100%",
+  "hypothesis": "Không còn câu kẹt hay lỗi nộp bài (mọi câu ra đáp án), và khớp Claude ít nhất 2/10 — mức đã thấy ở 2 lần chạy thử trước khi mở thực nghiệm, tức chỉ là mốc, không phải dự đoán mù",
+  "metrics": [
+    "score_vs_claude",
+    "right",
+    "wrong",
+    "blank",
+    "api_failed",
+    "turns_per_question",
+    "code_failures",
+    "input_tokens",
+    "output_tokens",
+    "cost_usd",
+    "api_retries",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261103-03-simple-analyze-conclude-10-random/inputs/questions.jsonl",
+    "rows": 10,
+    "drawn_from": "nhóm random của experiments/EXP-20261031-01-openrouter-qwen-20-sample/inputs/questions.jsonl",
+    "reference": "experiments/EXP-20261029-01-public-test-submission/out/submission.jsonl (Hoài: coi là đúng 100%)",
+    "clean_data": "artifacts/normalize-public/clean (logs/00-normalize.cmd; mapping và PROFILE copy ở out/clean-mappings)"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "parent": "EXP-20261103-02-gemma3-12b-clean-10-random",
+  "status": "closed",
+  "closed_at": "2026-11-03T14:00:00+07:00"
+}

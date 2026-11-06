@@ -1,0 +1,32 @@
+{
+  "id": "EXP-20261105-10-train-5-folds",
+  "opened_at": "2026-11-05T15:00:00+07:00",
+  "goal": "Eval agent hiện tại trên 5 tập 600 câu của train, phân tích lỗi, đề xuất hướng đi cho Hoài quyết định",
+  "hypothesis": "Giả thuyết: PA mỗi tập khoảng 0.60 đến 0.70 và chênh nhau dưới 0.05; phần lớn câu sai nằm ở 6 shop thiếu lines",
+  "metrics": [
+    "score",
+    "pa",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "pa_shops_with_lines",
+    "pa_not_in_library",
+    "wrong_by_cause",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261105-10-train-5-folds/inputs",
+    "rows": 3000,
+    "reference": "gold",
+    "note": "Chia theo shop và loại đáp án, seed 20261105. Thư viện ví dụ sinh từ train split nên câu có trong thư viện lạc quan"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261105-09-train-3000-coverage",
+  "status": "closed",
+  "note": "Dừng ở 1358/3000 theo yêu cầu để phân tích"
+}

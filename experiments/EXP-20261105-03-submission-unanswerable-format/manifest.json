@@ -1,0 +1,22 @@
+{
+  "id": "EXP-20261105-03-submission-unanswerable-format",
+  "opened_at": "2026-11-05T12:00:00+07:00",
+  "goal": "Tạo lại file nộp, dòng unanswerable theo đúng format rulebook, reason không chứa văn bản suy luận của model",
+  "hypothesis": "Giả thuyết: điểm không đổi vì rulebook dòng 136 ghi reason không chấm tự động",
+  "metrics": [
+    "rows",
+    "rows_changed",
+    "non_unanswerable_rows_changed",
+    "score_local"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261105-02-fix-norm-helper-remind/run/public",
+    "rows": 1000,
+    "reference": "Claude submission"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "prompt": "v8",
+  "parent": "EXP-20261105-02-fix-norm-helper-remind",
+  "status": "closed"
+}

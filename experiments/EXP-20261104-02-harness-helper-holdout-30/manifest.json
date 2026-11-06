@@ -1,0 +1,30 @@
+{
+  "id": "EXP-20261104-02-harness-helper-holdout-30",
+  "opened_at": "2026-11-04T16:00:00+07:00",
+  "goal": "Đo gemma 12B sau khi sửa harness, chuẩn hoá, helper, prompt v5 trên 30 câu public chưa từng dùng phát triển",
+  "hypothesis": "Giả thuyết: score_vs_claude dương, coverage trên 0.8, phần lớn câu gọi helper",
+  "metrics": [
+    "score_vs_claude",
+    "right",
+    "wrong",
+    "blank",
+    "accuracy",
+    "coverage",
+    "turns_per_question",
+    "used_helper",
+    "wall_minutes"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261104-02-harness-helper-holdout-30/inputs/questions.jsonl",
+    "rows": 30,
+    "drawn_from": "public_test/questions.jsonl, bỏ 39 câu đã dùng phát triển hoặc đo trước",
+    "seed": 202611042,
+    "reference": "experiments/EXP-20261029-01-public-test-submission/out/submission.jsonl (Hoài: coi là đúng 100%)"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "parent": "EXP-20261104-01-norm-helper-30-public",
+  "status": "abandoned",
+  "closed_note": "dừng sau 10/30 câu vì endpoint tools bị 429 upstream"
+}

@@ -1,0 +1,51 @@
+run_id: EXP-20261030-01-openrouter-public
+dataset_root: ../public_test
+questions_file: questions.jsonl
+truth_file: null
+output_dir: ../experiments/EXP-20261030-01-openrouter-public
+clean_root: ../experiments/normalized-public/clean
+
+shops: []
+
+model:
+  name: qwen/qwen3-14b
+  temperature: 0.0
+  seed: 20261030
+  max_output_tokens: 4096
+
+prompt: vi
+
+executor:
+  kind: docker
+  docker_image: datamate-sandbox:0.1
+  timeout_s: 300
+  docker_memory: 4g
+  docker_cpus: 2
+
+budget:
+  max_total_tokens: 20000000
+  stop_ratio: 0.8
+  max_tokens_per_shop: 3000000
+
+normalize:
+  model:
+    name: qwen/qwen3-14b
+    temperature: 0.0
+    seed: 20261101
+    max_output_tokens: 2048
+    reasoning: false
+  min_parse_ratio: 0.9
+  sample_rows: 5
+  parallel_shops: 3
+
+retry:
+  max_attempts: 6
+  base_delay_s: 2
+  max_delay_s: 60
+
+parallel_shops: 3
+max_turns: 60
+stuck_after: 3
+allow_abstain: false
+context_char_limit: 100000
+tool_output_char_limit: 4000
