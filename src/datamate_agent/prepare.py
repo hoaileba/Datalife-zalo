@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict
 
 from .column_roles import ReadmeMapper
 from .concepts import write_concepts
+from .llm import BACKENDS, openai_client
 from .normalize import ColumnMapper, normalize_shop
 from .normalize_models import ShopMapping
 
@@ -45,9 +46,9 @@ class Reply(BaseModel):
 class MapperClient:
     """Client có tool calling, chỉ dùng khi map cột bằng LLM thay vì ReadmeMapper."""
 
-    def __init__(self, *, model: str) -> None:
+    def __init__(self, *, backend: str, model: str) -> None:
         self._model = model
-        self._client = openai.OpenAI(base_url=os.environ["OPENROUTER_BASE_URL"], api_key=os.environ["OPENROUTER_API_KEY"], timeout=300, max_retries=2)
+        self._client = openai_client(backend=backend, timeout=300, max_retries=2)
 
     def complete(self, messages: Sequence[dict[str, Any]], tools: Sequence[dict[str, Any]], *, shop: str) -> Reply:
         try:
@@ -69,12 +70,12 @@ def write_readme_conversions(readme: str, target: Path) -> None:
         pd.DataFrame(rows, columns=["item_name", "Quy đổi"]).to_csv(target / "catalog_readme_conversions.csv", index=False, encoding="utf-8")
 
 
-def prepare_shop(shop: str, dataset: Path, out: Path, mappings: Path | None, model: str) -> tuple[str, tuple[str, ...]]:
+def prepare_shop(shop: str, dataset: Path, out: Path, mappings: Path | None, model: str, backend: str | None) -> tuple[str, tuple[str, ...]]:
     shop_dir = dataset / "data" / shop
     target = out / shop
     cached = ShopMapping.model_validate_json((mappings / shop / "mapping.json").read_text(encoding="utf-8")) if mappings else None
     readme = (shop_dir / "README.md").read_text(encoding="utf-8")
-    mapper = None if cached else ReadmeMapper(readme) if model == "readme" else ColumnMapper(MapperClient(model=model), shop=shop, readme=readme)
+    mapper = None if cached else ReadmeMapper(readme) if model == "readme" else ColumnMapper(MapperClient(backend=backend or "", model=model), shop=shop, readme=readme)
     if target.exists():
         shutil.rmtree(target)
     reports = normalize_shop(shop=shop, shop_dir=shop_dir, out_dir=target, mapper=mapper, cached=cached, model=model, min_ratio=MIN_PARSE_RATIO, sample_rows=SAMPLE_ROWS, strict=False)
@@ -88,12 +89,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--dataset", type=Path, default=Path("public_test"))
     parser.add_argument("--mappings", type=Path, default=None)
     parser.add_argument("--model", default="readme", help="readme là tra cứu tất định, còn lại là tên model để map cột")
+    parser.add_argument("--backend", choices=sorted(BACKENDS), default=os.environ.get("LLM_BACKEND"), help="chỉ cần khi --model không phải readme")
     parser.add_argument("--out", type=Path, default=Path("artifacts/norm/public_test"))
     parser.add_argument("--shops", nargs="*", default=None)
     args = parser.parse_args(argv)
     shops = args.shops or sorted(path.name for path in (args.dataset / "data").iterdir() if path.is_dir())
     with ProcessPoolExecutor(max_workers=MAX_WORKERS) as pool:
-        futures = [pool.submit(prepare_shop, shop, args.dataset, args.out, args.mappings, args.model) for shop in shops]
+        futures = [pool.submit(prepare_shop, shop, args.dataset, args.out, args.mappings, args.model, args.backend) for shop in shops]
         for future in futures:
             print(*future.result(), flush=True)
     return 0

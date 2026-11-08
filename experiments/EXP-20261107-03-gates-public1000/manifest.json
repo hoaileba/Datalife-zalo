@@ -1,0 +1,14 @@
+{
+  "id": "EXP-20261107-03-gates-public1000",
+  "opened_at": "2026-11-07T15:20:00+07:00",
+  "goal": "Sửa chỗ hở của bước chuẩn hoá, thêm cổng không trả lời được theo dữ liệu và hợp đồng dạng đáp án; đo trên 1000 câu public và 1000 câu train_* chưa từng chạy, model gemma",
+  "hypothesis": "Giả thuyết: public tăng so với 0,849 local; train_* mới đạt gần test_* 0,920; số câu bị -1 vì unanswerable sau lỗi code giảm",
+  "metrics": ["pa_public1000", "pa_train1000_unseen", "shape_refusals", "period_gate_hits", "abstain_after_code_error", "rewrite_valid_rate"],
+  "dataset": {"path": "public_test/questions.jsonl; out/train1000.jsonl", "rows": 2000, "reference": "Claude cho public, gold cho train"},
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v10",
+  "parent": "EXP-20261107-02-question-rewrite",
+  "status": "open"
+}

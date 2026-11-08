@@ -1,0 +1,23 @@
+{
+  "id": "EXP-20261107-04-example-selection",
+  "opened_at": "2026-11-07T17:40:00+07:00",
+  "goal": "Chọn ví dụ tốt hơn: thư viện dựng lại từ train_* (ADR 015), gemma xếp lại khi TF-IDF không chắc (ADR 014), prompt v11 không ép chép ví dụ đầu (ADR 016); đo trên 1000 câu public",
+  "hypothesis": "Giả thuyết: nhóm chọn sai hàm giảm; public tăng so với 0,859 local",
+  "metrics": [
+    "retrieval_top1_function",
+    "pa_public1000",
+    "rerank_calls"
+  ],
+  "dataset": {
+    "path": "public_test/questions.jsonl",
+    "rows": 1000,
+    "reference": "Claude"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v10",
+  "parent": "EXP-20261107-03-gates-public1000",
+  "status": "closed",
+  "closed_at": "2026-11-07T21:30:00+07:00"
+}

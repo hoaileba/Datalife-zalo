@@ -212,6 +212,8 @@ def _add_base_quantity(lines: pd.DataFrame, tables: dict[str, pd.DataFrame]) -> 
 
 
 def _mark_returns(lines: pd.DataFrame, tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    if "order_id" not in lines.columns:
+        return lines
     returned: set[Any] = set()
     if "quantity" in lines.columns:
         returned |= set(lines.loc[pd.to_numeric(lines["quantity"], errors="coerce") < 0, "order_id"])
@@ -309,7 +311,19 @@ class Shop(*DOMAIN_MIXINS):
             lines = _mark_returns(_add_keys(_add_catalog_attributes(_add_staff(_add_customers(_add_catalog(_split_addons(picked), loaded), loaded), loaded), loaded, self._concepts), loaded), self.tables)
             visible = pd.to_datetime(lines["order_date"]).dt.normalize() <= pd.Timestamp(self.clock.as_of)
             self.lines = lines[visible].reset_index(drop=True)
-            self.orders = self._orders()
+            self.orders = self._orders() if "order_id" in self.lines.columns else None
+
+    def _require_period(self, period: Period) -> None:
+        """Kỳ hỏi nằm hẳn ngoài khoảng ngày có dữ liệu bán thì shop không có dữ liệu cho kỳ đó."""
+        if self.lines is None or not len(self.lines):
+            return
+        first = pd.to_datetime(self.lines["order_date"]).min().date()
+        if period.end < first or period.start > self.clock.as_of:
+            raise ValueError(f"shop has no sales data in {period.start}..{period.end}, data runs {first}..{self.clock.as_of}: check the period matches the question, answer is unanswerable only if the question asks exactly this period")
+
+    def _require_orders(self) -> None:
+        if self.lines is not None and "order_id" not in self.lines.columns:
+            raise ValueError("shop has no order id: answer is unanswerable if the question needs it")
 
     def _orders(self) -> pd.DataFrame:
         kept = [column for column in ORDER_COLUMNS if column in self.lines.columns]
@@ -390,6 +404,7 @@ class Shop(*DOMAIN_MIXINS):
             raise ValueError(f"unknown filters {sorted(unknown)}, allowed {sorted(FILTER_COLUMNS)}, size, prescription, min_amount and shift")
         out = frame
         if period is not None:
+            self._require_period(period)
             days = pd.to_datetime(out["order_date"]).dt.normalize()
             out = out[(days >= pd.Timestamp(period.start)) & (days <= pd.Timestamp(period.end))]
         if shift is not None:
@@ -424,6 +439,7 @@ class Shop(*DOMAIN_MIXINS):
         return int(self._sold(period, shift, filters)["line_amount"].sum())
 
     def order_count(self, period: Period | None = None, *, shift: str | None = None, **filters: Any) -> int:
+        self._require_orders()
         return int(self._sold(period, shift, filters)["order_id"].nunique())
 
     def quantity(self, period: Period | None = None, *, shift: str | None = None, **filters: Any) -> float:
@@ -438,6 +454,7 @@ class Shop(*DOMAIN_MIXINS):
         return int(self.revenue(period, shift=shift, **filters) / count + 0.5)
 
     def cancel_rate(self, period: Period | None = None) -> float:
+        self._require_orders()
         rows = self._select(self._rows(), period=period, shift=None, filters={}).drop_duplicates("order_id")
         return round(100 * float((rows["status_norm"] == "huỷ").sum()) / len(rows), 2) if len(rows) else 0.0
 
@@ -447,6 +464,8 @@ class Shop(*DOMAIN_MIXINS):
         if by not in ("day",) and by not in FILTER_COLUMNS:
             raise ValueError(f"unknown by {by!r}, allowed day and {sorted(FILTER_COLUMNS)}")
         column = "order_date" if by == "day" else "item_key" if by == "item" else FILTER_COLUMNS[by]
+        if metric in ("orders", "cancelled", "average_order"):
+            self._require_orders()
         if metric == "cancelled":
             lines = self._rows()
             rows = self._select(lines[lines["status_norm"] == "huỷ"], period=period, shift=shift, filters=filters)
@@ -498,6 +517,7 @@ class Shop(*DOMAIN_MIXINS):
 
     def cancelled_orders(self, period: Period | None = None) -> int:
         """Số đơn trạng thái huỷ đặt trong kỳ."""
+        self._require_orders()
         rows = self._select(self._rows(), period=period, shift=None, filters={})
         return int(rows.loc[rows["status_norm"] == "huỷ", "order_id"].nunique())
 
@@ -544,11 +564,13 @@ class Shop(*DOMAIN_MIXINS):
 
     def customer_count(self, period: Period | None = None, *, min_orders: int = 1, **filters: Any) -> int:
         """Số khách có ít nhất min_orders đơn tính doanh thu trong kỳ, không tính khách lẻ."""
+        self._require_orders()
         rows = self._sold(period, None, filters).dropna(subset=["customer_key"])
         return int((rows.groupby("customer_key")["order_id"].nunique() >= min_orders).sum())
 
     def item_count(self, period: Period | None = None, *, min_orders: int = 1, **filters: Any) -> int:
         """Số mặt hàng có mặt trong ít nhất min_orders đơn tính doanh thu của kỳ."""
+        self._require_orders()
         rows = self._sold(period, None, filters)
         rows = rows[~self._service_fee(rows)]
         return int((rows.groupby("item_name")["order_id"].nunique() >= min_orders).sum())
@@ -754,6 +776,7 @@ class Shop(*DOMAIN_MIXINS):
 
     def sold_orders(self, period: Period | None = None, *, shift: str | None = None, **filters: Any) -> pd.DataFrame:
         """Các đơn tính vào doanh thu trong kỳ, mỗi dòng một đơn, có cột revenue của cả đơn."""
+        self._require_orders()
         return self.orders[self.orders["order_id"].isin(self._sold(period, shift, filters)["order_id"])].reset_index(drop=True)
 
     def _receipts(self) -> pd.DataFrame:

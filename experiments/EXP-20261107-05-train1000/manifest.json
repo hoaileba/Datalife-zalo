@@ -1,0 +1,22 @@
+{
+  "id": "EXP-20261107-05-train1000",
+  "opened_at": "2026-11-07T21:45:00+07:00",
+  "goal": "Chạy cấu hình tốt nhất (v10 + gemma xếp lại ví dụ + thư viện train_*) trên 1000 câu train chưa từng chạy, ví dụ chỉ lấy từ shop khác; phân tích lỗi sai",
+  "hypothesis": "Giả thuyết: điểm train gần public (+0,876); lỗi tập trung ở chọn ví dụ, tham số và câu không trả lời được",
+  "metrics": [
+    "pa_train1000",
+    "errors_by_stage"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261107-03-gates-public1000/out/train1000.jsonl",
+    "rows": 1000,
+    "reference": "train/answers.jsonl",
+    "seed": 20261107
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v10",
+  "parent": "EXP-20261107-04-example-selection",
+  "status": "paused"
+}

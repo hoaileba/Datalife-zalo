@@ -1,0 +1,24 @@
+{
+  "id": "EXP-20261106-03-optional-order-id",
+  "opened_at": "2026-11-06T16:00:00+07:00",
+  "goal": "Bảng có ngày, tiền, tên hàng mà không có mã đơn vẫn là bảng bán hàng; hàm cần đơn báo shop has no order id",
+  "hypothesis": "Giả thuyết: oracle 3 shop biz_107/113/126 tăng gần 101/101; shop khác không đổi loại bảng, 0 câu từ đúng thành sai",
+  "metrics": [
+    "tables_kind_changed",
+    "oracle_train_right",
+    "oracle_public_right",
+    "oracle_regressions",
+    "agent_three_shops_pa"
+  ],
+  "dataset": {
+    "path": "train/questions.jsonl, public_test/questions.jsonl",
+    "rows": 4000,
+    "reference": "gold cho train, bản Claude cho public"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261106-02-display-diacritics",
+  "status": "closed"
+}

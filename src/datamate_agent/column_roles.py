@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any, Sequence
 
-from datamate.norm import fold_key
+from datamate.norm import accent_count, fold_key, name_key
 
 from .normalize_models import ColumnRole, OrderStatus, TableKind
 
@@ -16,8 +17,16 @@ def _keys(table: dict[str, Sequence[str]]) -> dict[str, str]:
     return {_description_key(text): role for role, texts in table.items() for text in texts}
 
 
-def _header_keys(table: dict[str, Sequence[str]]) -> dict[str, str]:
-    return {fold_key(text): role for role, texts in table.items() for text in texts}
+def _spelling(text: str) -> str:
+    return " ".join("".join(sorted(unicodedata.normalize("NFD", word))) for word in name_key(text).split())
+
+
+def _header_keys(table: dict[str, Sequence[str]]) -> dict[str, tuple[tuple[str, str], ...]]:
+    out: dict[str, list[tuple[str, str]]] = {}
+    for role, texts in table.items():
+        for text in texts:
+            out.setdefault(fold_key(text), []).append((_spelling(text) if accent_count(text) else "", role))
+    return {key: tuple(found) for key, found in out.items()}
 
 
 DESCRIPTION_ROLES = _keys({
@@ -65,46 +74,46 @@ DESCRIPTION_ROLES = _keys({
 })
 
 HEADER_ROLES = _header_keys({
-    "order_id": ("Đơn số", "Ma don", "MaHoaDon", "STT"),
-    "order_date": ("Ngày HĐ", "NgayLap"),
+    "order_id": ("Đơn số", "Ma don", "MaHoaDon", "Mã hóa đơn", "Mã bill", "Mã giao dịch", "Order ID"),
+    "order_date": ("Ngày HĐ", "NgayLap", "Ngày bán"),
     "order_time": ("Giờ tạo đơn", "ThoiGianLap"),
     "status": ("Trạng thái giao", "TinhTrang"),
-    "customer_name": ("Khách hàng (tên)", "Khách hàng mua", "Khách"),
-    "customer_code": ("Mã khách", "Mã KH mua", "MaKhachHang"),
-    "customer_phone": ("SĐT", "SoDienThoai"),
-    "customer_group": ("Kiểu khách", "LoaiKhachHang"),
-    "staff": ("Mã NV bán", "MaNhanVien", "Mã NV"),
-    "payment_method": ("Hình thức thanh toán", "PTTT", "PhuongThucTT", "PhuongThuc"),
-    "channel": ("Nguồn", "KenhBanHang"),
+    "customer_name": ("Khách hàng (tên)", "Khách hàng mua", "Khách", "Khách hàng", "Tên khách hàng", "Tên KH", "ten_kh"),
+    "customer_code": ("Mã khách", "Mã KH mua", "MaKhachHang", "Mã KH", "Mã khách hàng", "Customer ID"),
+    "customer_phone": ("SĐT", "SoDienThoai", "Điện thoại", "Số điện thoại"),
+    "customer_group": ("Kiểu khách", "LoaiKhachHang", "Nhóm khách hàng", "Hạng"),
+    "staff": ("Mã NV bán", "MaNhanVien", "Mã NV", "Người bán"),
+    "payment_method": ("Hình thức thanh toán", "PTTT", "PhuongThucTT", "PhuongThuc", "Phương thức thanh toán", "Phương thức TT"),
+    "channel": ("Nguồn", "KenhBanHang", "Kênh bán", "Nguồn đơn"),
     "order_discount": ("Bớt", "ChietKhau"),
     "shipping_fee": ("Phí ship", "PhiVanChuyen"),
-    "order_total": ("Tổng thanh toán", "TongThanhToan"),
-    "paid_amount": ("Da tra", "KhachDaTra", "Khách trả", "Đã trả"),
-    "debt_amount": ("Công nợ", "ConPhaiThu", "Nợ"),
+    "order_total": ("Tổng thanh toán", "TongThanhToan", "Tổng sau giảm giá"),
+    "paid_amount": ("Da tra", "KhachDaTra", "Khách trả", "Đã trả", "Khách đã trả", "Đã thu"),
+    "debt_amount": ("Công nợ", "ConPhaiThu", "Nợ", "Còn nợ"),
     "note": ("Ghi chú", "Lưu ý", "DienGiai"),
-    "line_no": ("Dòng", "SoThuTu"),
-    "item_code": ("Barcode", "Mã H.hóa", "Mã vạch", "ma_sp", "MaHangHoa"),
-    "item_name": ("Hàng hóa", "Tên hàng hóa", "ten_hang", "Product", "Item", "Hàng", "Tên hàng", "Máy"),
-    "item_group": ("Nhóm hàng", "Loại", "DanhMuc"),
+    "line_no": ("Dòng", "SoThuTu", "TT dòng"),
+    "item_code": ("Barcode", "Mã H.hóa", "Mã vạch", "ma_sp", "MaHangHoa", "Mã hàng", "Mã HH", "ID SP", "Mã món"),
+    "item_name": ("Hàng hóa", "Tên hàng hóa", "ten_hang", "Product", "Item", "Hàng", "Tên hàng", "Máy", "Chi tiết hàng", "Món"),
+    "item_group": ("Nhóm hàng", "Loại", "DanhMuc", "Nhóm hàng(3 Cấp)", "Phân loại"),
     "item_alias": ("Ghi tắt",),
     "unit": ("ĐV", "ĐVT nhập", "DonViTinh"),
-    "base_unit": ("DVT", "ĐVT", "DonViCoSo"),
+    "base_unit": ("DonViCoSo",),
     "unit_factor": ("Bằng", "HeSoQuyDoi"),
-    "quantity": ("S.L", "SL", "SL nhập"),
-    "base_quantity": ("SL (ĐV cơ bản)", "SLQuyDoi"),
-    "unit_price": ("Giá 1 đv", "Giá lẻ", "GiaDonVi", "GiaBanLe", "Giá"),
-    "line_discount": ("Giảm (đ)",),
+    "quantity": ("S.L", "SL", "SL nhập", "Slg"),
+    "base_quantity": ("SL (ĐV cơ bản)", "SLQuyDoi", "Số lượng quy đổi", "SL cơ bản"),
+    "unit_price": ("Giá 1 đv", "Giá lẻ", "GiaDonVi", "GiaBanLe", "Giá", "Giá bán", "Giá niêm yết"),
+    "line_discount": ("Giảm (đ)", "Khuyến mãi"),
     "line_amount": ("Thành tiền (đ)", "TriGia", "Thành tiền"),
-    "unit_cost": ("Giá vốn lúc bán", "Giá vốn hiện tại", "GiaVonLucBan", "GiaVonHang", "Giá nhập", "DonGiaNhap"),
-    "document_id": ("Mã thanh toán", "Số phiếu", "MaPhieuThu", "MaPhieuNhap"),
-    "record_date": ("Ngày TT", "Ngày nhập", "NgayGioThu", "NgayNhapKho", "Ngày nhận"),
-    "amount": ("Tiền thu", "SoTienThu", "Tiền chi", "TongGiaTriNhap", "Giá thu"),
-    "supplier": ("Nhà cung cấp", "MaNhaCungCap"),
-    "stock": ("Ton kho", "TonCuoi"),
+    "unit_cost": ("Giá vốn lúc bán", "Giá vốn hiện tại", "GiaVonLucBan", "GiaVonHang", "Giá nhập", "DonGiaNhap", "Giá vốn"),
+    "document_id": ("Mã thanh toán", "Số phiếu", "MaPhieuThu", "MaPhieuNhap", "Mã nhập hàng", "Mã phiếu nhập", "Mã phiếu", "Phiếu thu"),
+    "record_date": ("Ngày TT", "Ngày nhập", "NgayGioThu", "NgayNhapKho", "Ngày nhận", "Thời gian thu", "Ngày chi"),
+    "amount": ("Tiền thu", "SoTienThu", "Tiền chi", "TongGiaTriNhap", "Giá thu", "Cần trả NCC", "Giá trị", "Số tiền thu", "So tien"),
+    "supplier": ("Nhà cung cấp", "MaNhaCungCap", "Mã NCC"),
+    "stock": ("Ton kho", "TonCuoi", "Tồn cuối kỳ"),
     "lot_id": ("MaLo",),
     "expiry_date": ("HanSuDung",),
-    "active_ingredient": ("ThanhPhanChinh",),
-    "is_prescription": ("BanTheoDon",),
+    "active_ingredient": ("ThanhPhanChinh", "Hoạt chất"),
+    "is_prescription": ("BanTheoDon", "Kê đơn"),
 })
 
 STATUS_RULES: tuple[tuple[re.Pattern[str], OrderStatus], ...] = (
@@ -113,7 +122,19 @@ STATUS_RULES: tuple[tuple[re.Pattern[str], OrderStatus], ...] = (
     (re.compile(r"\btra\b|\bhoan\b|return"), "trả hàng"),
     (re.compile(r"\bdang\b|cho giao|chua giao|xu ly|ship"), "đang giao"),
 )
-DATE_HEADER = fold_key("Ngày")
+DATE_HEADERS = frozenset(fold_key(text) for text in ("Ngày", "Thời gian"))
+UNIT_HEADERS = frozenset(fold_key(text) for text in ("ĐVT", "Đơn vị tính", "Đơn vị", "Đ.vị"))
+LINE_ID_HEADER = fold_key("STT")
+DISCOUNT_HEADERS = frozenset(fold_key(text) for text in ("Giảm giá", "CK"))
+TOTAL_HEADER = fold_key("Tổng tiền")
+PRICE_HEADER = fold_key("Đơn giá")
+FACTOR_HEADER = fold_key("Quy đổi")
+STATUS_HEADER = fold_key("Trạng thái")
+CREATED_HEADER = fold_key("Thời gian tạo")
+QUANTITY_HEADER = fold_key("Số lượng")
+CONTEXT_FIRST = {LINE_ID_HEADER: 0, QUANTITY_HEADER: 1}
+ITEM_ROLES = frozenset({"item_name", "item_code"})
+NUMBER = re.compile(r"^\s*[\d.,]+\s*$")
 NAME_HEADER = fold_key("TenGoi")
 REPAIR_HEADERS = {fold_key("Xe"), fold_key("Làm gì")}
 SECTION = re.compile(r"^## Cột trong (.+)$", re.M)
@@ -135,6 +156,8 @@ def table_kind(roles: set[str], *, name: str) -> TableKind:
     folded = fold_key(name)
     if "order_id" in roles and "document_id" not in roles and roles & {"order_date", "order_time", "line_amount", "quantity", "base_quantity", "item_code", "item_name", "order_total"}:
         return "sales"
+    if not roles & {"order_id", "document_id", "supplier"} and "nhap" not in folded and {"order_date", "item_name"} <= roles and roles & {"line_amount", "quantity"}:
+        return "sales"
     if "order_id" in roles and "document_id" in roles and "amount" in roles:
         return "receipts"
     if "document_id" in roles or "supplier" in roles or "nhap" in folded:
@@ -152,8 +175,43 @@ def table_kind(roles: set[str], *, name: str) -> TableKind:
     return "other"
 
 
+def header_role(column: str) -> str | None:
+    """Vai trò theo tên cột: hai cách ghi có dấu phải khớp dấu, chỉ bỏ qua dấu khi một bên viết không dấu; `Hạng` không phải `Hàng`."""
+    known = HEADER_ROLES.get(fold_key(column), ())
+    written = _spelling(column) if accent_count(column) else ""
+    exact = {role for spelling, role in known if written and spelling == written}
+    found = exact or {role for spelling, role in known if not spelling or not written}
+    return next(iter(found)) if len(found) == 1 else None
+
+
+def context_role(key: str, given: set[str], *, purchase: bool, numbers: bool) -> str | None:
+    """Vai trò của tên cột mơ hồ, đọc theo các vai trò khác trong cùng bảng."""
+    order_table = "order_id" in given and not given & {"document_id", "supplier"}
+    if key == LINE_ID_HEADER:
+        return "line_no" if given & {"order_id", "document_id"} else "order_id"
+    if key == STATUS_HEADER:
+        return "status" if given & {"order_id", "document_id"} else None
+    if key == CREATED_HEADER:
+        return "order_time" if order_table else None
+    if key == QUANTITY_HEADER:
+        return None if "lot_id" in given else "quantity"
+    if key in DATE_HEADERS:
+        return None if given & {"order_date", "record_date"} else "order_date" if order_table else "record_date"
+    if key in UNIT_HEADERS:
+        return "unit" if given & {"quantity", "unit_factor"} else "base_unit"
+    if key in DISCOUNT_HEADERS:
+        return "line_discount" if given & ITEM_ROLES else "order_discount"
+    if key == TOTAL_HEADER:
+        return "line_amount" if given & ITEM_ROLES else "order_total" if order_table else "amount"
+    if key == PRICE_HEADER:
+        return "unit_cost" if purchase else "unit_price"
+    if key == FACTOR_HEADER:
+        return "unit_factor" if numbers else None
+    return None
+
+
 class ReadmeMapper:
-    """Map cột bằng tra cứu tất định: mô tả ở README trước, tên cột sau; cùng giao diện với ColumnMapper."""
+    """Map cột bằng tra cứu deterministic: mô tả ở README trước, tên cột sau, rồi tên cột mơ hồ theo ngữ cảnh bảng; cùng giao diện với ColumnMapper."""
 
     def __init__(self, readme: str) -> None:
         self._sections = readme_columns(readme)
@@ -169,7 +227,7 @@ class ReadmeMapper:
         roles: list[ColumnRole] = []
         for column in group.columns:
             key = fold_key(column)
-            role = DESCRIPTION_ROLES.get(section.get(key, "")) or HEADER_ROLES.get(key)
+            role = DESCRIPTION_ROLES.get(section.get(key, "")) or header_role(column)
             if role == "item_name" and customers:
                 role = "customer_name"
             if key == NAME_HEADER:
@@ -177,10 +235,16 @@ class ReadmeMapper:
             if role is not None:
                 roles.append(ColumnRole(column=column, role=role))
         given = {item.role for item in roles}
-        if DATE_HEADER in folded and not given & {"order_date", "record_date"}:
-            date_role = "order_date" if "order_id" in given else "record_date"
-            roles.append(ColumnRole(column=next(column for column in group.columns if fold_key(column) == DATE_HEADER), role=date_role))
-            given.add(date_role)
+        mapped = {item.column for item in roles}
+        purchase = "nhap" in where or bool(given & {"document_id", "supplier"})
+        for index, column in sorted(enumerate(group.columns), key=lambda pair: CONTEXT_FIRST.get(fold_key(pair[1]), len(CONTEXT_FIRST))):
+            if column in mapped:
+                continue
+            cells = [row[index] for row in group.sample if index < len(row) and row[index].strip()]
+            role = context_role(fold_key(column), given, purchase=purchase, numbers=bool(cells) and all(NUMBER.match(cell) for cell in cells))
+            if role is not None and role not in given:
+                roles.append(ColumnRole(column=column, role=role))
+                given.add(role)
         kind = "repairs" if REPAIR_HEADERS <= folded else table_kind(given, name=f"{source.file} {source.sheet}")
         return MappingProposal(kind=kind, columns=tuple(roles))
 

@@ -3,12 +3,23 @@
   "opened_at": "2026-11-06T14:10:00+07:00",
   "goal": "Tên trong đáp án giữ đúng dấu và cách ghi của dữ liệu khi một tên có nhiều cách ghi",
   "hypothesis": "Giả thuyết: oracle không có câu từ đúng thành sai; 2 câu train biz_119 (q_3d58d5, q_8d6f15) và câu dòng xe dev_012 ra đúng cách ghi có dấu",
-  "metrics": ["oracle_train_right", "oracle_public_right", "oracle_regressions", "accent_lost_cells", "pa_public", "score_test"],
-  "dataset": {"path": "train/questions.jsonl, public_test/questions.jsonl, train/split/test_questions.jsonl", "rows": 4000, "reference": "gold cho train, bản Claude cho public"},
+  "metrics": [
+    "oracle_train_right",
+    "oracle_public_right",
+    "oracle_regressions",
+    "accent_lost_cells",
+    "pa_public",
+    "score_test"
+  ],
+  "dataset": {
+    "path": "train/questions.jsonl, public_test/questions.jsonl, train/split/test_questions.jsonl",
+    "rows": 4000,
+    "reference": "gold cho train, bản Claude cho public"
+  },
   "phase": "P0",
   "model": "google/gemma-3-12b-it",
   "seed": 20261103,
   "prompt": "v9",
   "parent": "EXP-20261106-01-deterministic-fixes",
-  "status": "open"
+  "status": "closed"
 }

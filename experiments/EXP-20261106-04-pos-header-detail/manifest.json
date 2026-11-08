@@ -1,0 +1,24 @@
+{
+  "id": "EXP-20261106-04-pos-header-detail",
+  "opened_at": "2026-11-06T17:45:00+07:00",
+  "goal": "Shop xuất từ máy POS tách đầu đơn và chi tiết (biz_106/109/124): map đúng cột để join_order_fields nối được ngày, trạng thái vào dòng hàng",
+  "hypothesis": "Giả thuyết: oracle 3 shop tăng mạnh từ 0/355; shop khác không đổi file, 0 câu từ đúng thành sai; public 570 không đổi",
+  "metrics": [
+    "tables_changed",
+    "oracle_train_right",
+    "oracle_public_right",
+    "oracle_regressions",
+    "agent_three_shops_pa"
+  ],
+  "dataset": {
+    "path": "train/questions.jsonl, public_test/questions.jsonl",
+    "rows": 4000,
+    "reference": "gold cho train, bản Claude cho public"
+  },
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261106-03-optional-order-id",
+  "status": "closed"
+}

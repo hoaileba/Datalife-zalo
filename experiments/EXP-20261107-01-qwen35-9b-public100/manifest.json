@@ -1,0 +1,14 @@
+{
+  "id": "EXP-20261107-01-qwen35-9b-public100",
+  "opened_at": "2026-11-07T09:00:00+07:00",
+  "goal": "Đổi model agent từ google/gemma-3-12b-it sang qwen/qwen3.5-9b, giữ nguyên pipeline, đo trên 100 câu public",
+  "hypothesis": "Giả thuyết: chưa có, đo để biết qwen3.5-9b hơn hay kém gemma trên cùng 100 câu",
+  "metrics": ["pa_public100", "pa_gemma_same100", "api_errors", "mean_seconds_per_question", "cost_usd"],
+  "dataset": {"path": "experiments/EXP-20261107-01-qwen35-9b-public100/out/public100.jsonl", "rows": 100, "reference": "experiments/EXP-20261104-05-public-1000-v7/inputs/claude_reference.jsonl"},
+  "phase": "P0",
+  "model": "qwen/qwen3.5-9b",
+  "seed": 20261103,
+  "prompt": "v9",
+  "parent": "EXP-20261106-01-deterministic-fixes",
+  "status": "open"
+}

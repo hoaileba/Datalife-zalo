@@ -1,0 +1,22 @@
+{
+  "id": "EXP-20261108-01-gemma4-vllm",
+  "opened_at": "2026-11-08T10:00:00+07:00",
+  "goal": "Chạy pipeline (v10 + gemma xếp lại ví dụ + thư viện train_*) với google/gemma-4-12B-it trên server vLLM, client chỉ đọc VLLM_*; đo điểm và thời gian trên 100 câu public",
+  "hypothesis": "Giả thuyết: gemma-4 không kém gemma-3 trên cùng 100 câu; thời gian mỗi câu đủ cho giới hạn 6 giờ",
+  "metrics": [
+    "pa_public100",
+    "seconds_per_question",
+    "tokens_per_question"
+  ],
+  "dataset": {
+    "path": "experiments/EXP-20261107-04-example-selection/out/public100.jsonl",
+    "rows": 100,
+    "reference": "Claude"
+  },
+  "phase": "P0",
+  "model": "google/gemma-4-12B-it (served as gemma-12b)",
+  "seed": 20261103,
+  "prompt": "v10",
+  "parent": "EXP-20261107-04-example-selection",
+  "status": "closed"
+}

@@ -40,6 +40,11 @@ class Example(BaseModel):
     code: str
     intent: str
     requires: str | None = None
+    shops: tuple[str, ...] = ()
+
+
+LINKED_LABELS = {"item": "mặt hàng", "group": "nhóm", "customer": "khách", "ingredient": "hoạt chất"}
+LINKED_KEYS = frozenset(LINKED_LABELS)
 
 
 def entities_of(shop: Any) -> dict[str, dict[str, str]]:
@@ -141,31 +146,44 @@ class Library:
         size = math.sqrt(sum(weight * weight for weight in weights.values())) or 1.0
         return {term: weight / size for term, weight in weights.items()}
 
-    def nearest(self, masked: str, *, count: int = DEFAULT_NEIGHBORS, domains: tuple[str, ...] | None = None) -> tuple[Example, ...]:
+    def scored(self, masked: str, *, count: int = DEFAULT_NEIGHBORS, domains: tuple[str, ...] | None = None, exclude: str | None = None, shop: str | None = None) -> tuple[tuple[float, Example], ...]:
+        """Ví dụ gần nhất kèm điểm cosine, mỗi loại câu một ví dụ, chỉ lấy câu của shop khác."""
         query = self._vector(masked)
-        scored = sorted(range(len(self.examples)), key=lambda index: -sum(weight * self._vectors[index].get(term, 0.0) for term, weight in query.items()))
-        picked: dict[str, Example] = {}
-        for index in scored:
+        scores = [sum(weight * vector.get(term, 0.0) for term, weight in query.items()) for vector in self._vectors]
+        picked: dict[str, tuple[float, Example]] = {}
+        for index in sorted(range(len(self.examples)), key=lambda index: -scores[index]):
             example = self.examples[index]
+            if exclude is not None and example.question == exclude:
+                continue
+            if shop is not None and shop in example.shops:
+                continue
             if example.requires is not None and domains is not None and example.requires not in domains:
                 continue
-            picked.setdefault(example.intent, example)
+            picked.setdefault(example.intent, (scores[index], example))
             if len(picked) == count:
                 break
         return tuple(picked.values())
 
+    def nearest(self, masked: str, *, count: int = DEFAULT_NEIGHBORS, domains: tuple[str, ...] | None = None, exclude: str | None = None) -> tuple[Example, ...]:
+        return tuple(example for _, example in self.scored(masked, count=count, domains=domains, exclude=exclude))
 
-@lru_cache(maxsize=1)
+
 def load_library(path: Path = LIBRARY_PATH) -> Library:
     sources = (path, CURATED_PATH) if CURATED_PATH.exists() else (path,)
     rows = [json.loads(raw) for source in sources for raw in source.read_text(encoding="utf-8").splitlines() if raw.strip()]
     return Library(tuple(Example(**row) for row in rows))
 
 
+def linked_names(question: str, entities: dict[str, dict[str, str]]) -> tuple[str, ...]:
+    """Tên mặt hàng, nhóm, khách, hoạt chất mà câu hỏi nhắc tới, viết như trong dữ liệu."""
+    text = normalize(question)
+    return tuple(match for key, names in entities.items() if key in LINKED_KEYS and (match := linked_match(question, text, names)))
+
+
 def question_hints(question: str, entities: dict[str, dict[str, str]], *, as_of: date | None = None) -> str:
     """Tên riêng, hình thức thanh toán, kỳ và kỳ đem ra so nhận ra trong câu hỏi, viết đúng như trong dữ liệu."""
     text = normalize(question)
-    labels = {"item": "mặt hàng", "group": "nhóm", "customer": "khách", "ingredient": "hoạt chất"}
+    labels = LINKED_LABELS
     parts = [f"{labels[key]} {match!r}" for key, names in entities.items() if key in labels and (match := linked_match(question, text, names))]
     payments = payments_in(text, entities.get("payment", {}))
     if payments:

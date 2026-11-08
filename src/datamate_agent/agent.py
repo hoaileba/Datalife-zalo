@@ -24,12 +24,15 @@ from pydantic import BaseModel, ConfigDict
 from datamate.domains import domains_of
 from datamate.shop import Shop
 
-from .fewshot import entities_of, format_examples, load_library, mask_question, question_hints, shop_values
+from .fewshot import Example, entities_of, format_examples, load_library, mask_question, question_hints, shop_values
 from .question_norm import normalize
+from .question_rewrite import load_rewrites
+from .example_rerank import rerank
+from .llm import BACKENDS, openai_client, resolve_model
 
 PROMPT_DIR = Path(__file__).resolve().parent / "prompts"
 SRC_DIR = Path(__file__).resolve().parents[1]
-NORM_ROOT = Path("artifacts/norm")
+NORM_ROOT = Path(os.environ.get("DATAMATE_NORM_ROOT", "artifacts/norm"))
 PREAMBLE = """import pandas as pd
 from datamate.shop import HELPERS, Shop, increasing, pct_change
 shop = Shop("norm", as_of="{{as_of}}", calendar="calendar.csv")
@@ -62,6 +65,9 @@ CELL_LIMIT = 30
 MAX_READ_ROWS = 10
 SEPARATOR = "--------"
 NO_DATA_ERROR = "shop has no"
+RERANK_CANDIDATES = 8
+RERANK_MARGIN = 0.05
+DEFAULT_SHOWN = 4
 NO_DATA_REASON = "dữ liệu phát hành không đủ để trả lời"
 NO_MATCH_ERROR = "matches"
 PERCENT_QUESTION = re.compile(r"%|phan tram")
@@ -101,6 +107,8 @@ class RunState:
         self.no_match_seen = False
         self.failed_final: str | None = None
         self.outputs: list[str] = []
+        self.code_failed = False
+        self.shape_refused = False
 
 
 class CodeResult(BaseModel):
@@ -117,8 +125,8 @@ Complete = Callable[[Sequence[dict[str, Any]]], str]
 RunCode = Callable[[str], CodeResult]
 
 
-def openrouter_client(*, model: str, seed: int) -> Complete:
-    client = openai.OpenAI(base_url=os.environ["OPENROUTER_BASE_URL"], api_key=os.environ["OPENROUTER_API_KEY"], timeout=READ_TIMEOUT_S, max_retries=0)
+def llm_client(*, backend: str, model: str, seed: int) -> Complete:
+    client = openai_client(backend=backend, timeout=READ_TIMEOUT_S, max_retries=0)
 
     def stream_reply(messages: Sequence[dict[str, Any]]) -> str:
         started = time.monotonic()
@@ -254,7 +262,8 @@ def solve(*, question: dict[str, Any], system: str, hints: str, complete: Comple
 def _reminder(question: dict[str, Any], hints: str) -> str:
     example = TOP_EXAMPLE.search(hints)
     top = f"\nVí dụ giống nhất:\n- {example.group(1)}\n  {example.group(2)}" if example else ""
-    return f"\n\nNhắc lại câu hỏi: {question['question']}{top}"
+    standard = f"\nCâu hỏi viết chuẩn: {question['rewritten']}" if question.get("rewritten") else ""
+    return f"\n\nNhắc lại câu hỏi: {question['question']}{standard}{top}"
 
 
 def _write(log: TextIO, text: str) -> None:
@@ -294,6 +303,7 @@ def _remember(result: CodeResult, state: RunState) -> None:
     state.ran_code = state.ran_code or result.exit_code == 0
     state.helper_refused = state.helper_refused or NO_DATA_ERROR in result.stderr
     state.no_match_seen = state.no_match_seen or NO_MATCH_ERROR in result.stderr
+    state.code_failed = state.code_failed or (result.exit_code != 0 and NO_DATA_ERROR not in result.stderr and NO_MATCH_ERROR not in result.stderr)
     state.outputs.extend(text.strip() for text in result.stdout.splitlines() if text.strip())
 
 
@@ -337,10 +347,35 @@ def _final(action: Action, *, question: dict[str, Any], run_code: RunCode, log: 
     if answer_type == "number" and (PERCENT_QUESTION.search(normalize(str(question["question"]))) or PERCENT_CODE.search(action.code)):
         answer_type = "percent"
     try:
-        return "", {"id": question["id"], "type": answer_type, "answer": parse_answer(value, answer_type)}
+        answer = parse_answer(value, answer_type)
     except (ValueError, SyntaxError) as error:
         state.failed_final = action.code
         return f"ERROR: dòng cuối {lines[-1]!r} không phải đáp án kiểu {answer_type}: {error}", None
+    mismatch = shape_mismatch(answer, shape=question.get("shape"), count=question.get("count"))
+    if mismatch is not None and not state.shape_refused and not forced:
+        state.shape_refused = True
+        return f"ERROR: {mismatch}. Sửa code cho đúng dạng câu hỏi cần rồi FINAL lại.", None
+    try:
+        return "", {"id": question["id"], "type": answer_type, "answer": answer}
+    except (ValueError, SyntaxError) as error:
+        state.failed_final = action.code
+        return f"ERROR: dòng cuối {lines[-1]!r} không phải đáp án kiểu {answer_type}: {error}", None
+
+
+def shape_mismatch(answer: Any, *, shape: str | None, count: int | None) -> str | None:
+    """Đáp án lệch hẳn dạng câu hỏi cần: cần nhiều phần tử mà ra một, cần tên mà ra số, cần một số mà ra danh sách."""
+    if shape is None:
+        return None
+    if isinstance(answer, dict) and isinstance(answer.get("rows"), list):
+        answer = answer["rows"]
+    many = isinstance(answer, (list, tuple))
+    if count is not None and count >= 2 and (not many or len(answer) != count):
+        return f"câu hỏi cần danh sách {count} phần tử, code trả {len(answer) if many else 1}"
+    if shape in ("string", "date", "month") and isinstance(answer, (int, float)) and not isinstance(answer, bool):
+        return f"câu hỏi cần một {'tên' if shape == 'string' else 'ngày' if shape == 'date' else 'tháng'}, code trả một con số"
+    if shape == "boolean" and not isinstance(answer, bool):
+        return "câu hỏi cần đúng hoặc sai (True/False)"
+    return None
 
 
 def _final_unanswerable(action: Action, *, question: dict[str, Any], state: RunState, forced: bool) -> tuple[str, dict[str, Any] | None]:
@@ -351,6 +386,8 @@ def _final_unanswerable(action: Action, *, question: dict[str, Any], state: RunS
         if state.no_match_seen:
             return "ERROR: lỗi `no ... matches` nghĩa là viết sai tên, không phải thiếu dữ liệu. Chọn tên trong `closest are` rồi gọi lại.", None
         return "ERROR: chưa có code nào chạy được. Thử hàm có sẵn trước, chỉ FINAL unanswerable nếu hàm báo `shop has no`.", None
+    if state.code_failed and not state.helper_refused:
+        return "", {"id": question["id"], "type": "abstain", "answer": None, "reason": "code lỗi, không có bằng chứng dữ liệu thiếu"}
     return "", {"id": question["id"], "type": "unanswerable", "reason": NO_DATA_REASON}
 
 
@@ -445,13 +482,38 @@ def build_system(*, dataset: Path, shop: str, prompt: str, language: str) -> str
     return template.replace("{{rulebook}}", rulebook).replace("{{context}}", context).replace("{{domain_helpers}}", domain_text)
 
 
-def user_hints(question: dict[str, Any], *, norm_dir: Path, calendar: Path) -> str:
+SHAPE_WORDS = {"number": "một con số", "percent": "một phần trăm", "string": "một tên", "list": "danh sách", "date": "một ngày", "month": "một tháng (YYYY-MM)", "boolean": "đúng hoặc sai", "table": "một bảng"}
+
+
+def analysis_hint(question: dict[str, Any]) -> str:
+    """Dạng đáp án và thông tin câu hỏi cần, do bước phân tích câu hỏi đưa ra."""
+    if not question.get("shape"):
+        return ""
+    count = f" {question['count']} phần tử" if question.get("count") else ""
+    return f"\nĐáp án cần: {SHAPE_WORDS.get(question['shape'], question['shape'])}{count}."
+
+
+def pick_examples(question: dict[str, Any], masked: str, *, domains: tuple[str, ...], complete: Complete | None, holdout: bool = False) -> tuple[Example, ...]:
+    """Ví dụ cho câu hỏi: TF-IDF; khi ví dụ đầu không chắc hơn hẳn ví dụ kế thì LLM chọn lại trong các ứng viên."""
+    scored = load_library().scored(masked, count=RERANK_CANDIDATES, domains=domains, exclude=str(question["question"]) if holdout else None, shop=str(question["business_id"]) if holdout else None)
+    found = tuple(example for _, example in scored)
+    if complete is None or len(scored) < 2 or scored[0][0] - scored[1][0] >= RERANK_MARGIN:
+        return found[:DEFAULT_SHOWN]
+    try:
+        return rerank(str(question["question"]), found, complete=complete, rewritten=question.get("rewritten"))[:DEFAULT_SHOWN]
+    except (openai.OpenAIError, httpx.HTTPError, ValueError):
+        return found[:DEFAULT_SHOWN]
+
+
+def user_hints(question: dict[str, Any], *, norm_dir: Path, calendar: Path, complete: Complete | None = None, holdout: bool = False) -> str:
     """Ví dụ gần nhất từ thư viện và tên riêng, kỳ nhận ra trong câu hỏi."""
     shop = Shop(norm_dir, as_of=str(question["as_of_date"]), calendar=str(calendar))
     entities = entities_of(shop)
-    examples = format_examples(load_library().nearest(mask_question(str(question["question"]), entities), domains=shop.domains()))
+    examples = format_examples(pick_examples(question, mask_question(str(question["question"]), entities), domains=shop.domains(), complete=complete, holdout=holdout))
     linked = question_hints(str(question["question"]), entities, as_of=date.fromisoformat(str(question["as_of_date"])))
-    recognised = f"\nNhận ra trong câu: {linked}" if linked else ""
+    standard = f"\nCâu hỏi viết chuẩn: {question['rewritten']}" if question.get("rewritten") else ""
+    needed = analysis_hint(question)
+    recognised = f"{standard}{needed}\nNhận ra trong câu: {linked}" if linked else f"{standard}{needed}"
     tables = sorted(path.name for path in norm_dir.glob("*.csv") if not path.name.endswith(".dropped.csv"))
     return f"{recognised}{shop_values(shop)}\n\nCâu tương tự đã làm đúng ở shop khác, câu đầu giống nhất (đổi kỳ, tên cho đúng câu hỏi của bạn, giữ nguyên tham số khác):\n{examples}\n\nLượt này chỉ viết đúng một dòng `READ norm/<bảng>.csv`, chưa viết FINAL. Bảng có thật: {tables}"
 
@@ -463,19 +525,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--questions", type=Path, default=None, help="file jsonl thay cho questions.jsonl của dataset")
     parser.add_argument("--parallel", type=int, default=1)
     parser.add_argument("--prompt", default="v9", help="thư mục version trong prompts/")
-    parser.add_argument("--model", default="google/gemma-3-12b-it")
+    parser.add_argument("--backend", choices=sorted(BACKENDS), default=os.environ.get("LLM_BACKEND"), required=os.environ.get("LLM_BACKEND") is None, help="một backend cho cả lần chạy, không tự chuyển")
+    parser.add_argument("--model", default=None, help="mặc định <BACKEND>_MODEL")
     parser.add_argument("--language", default="vi", choices=["vi", "en"])
     parser.add_argument("--seed", type=int, default=20261103)
     parser.add_argument("--out", type=Path, default=Path("logs/agent"))
+    parser.add_argument("--holdout", action="store_true", help="chỉ khi đo trên train: bỏ ví dụ của chính câu hỏi và của cùng shop")
+    parser.add_argument("--rewrites", type=Path, default=None, help="cache jsonl của question_rewrite; câu viết lại hợp lệ dùng để tìm ví dụ và làm gợi ý")
     args = parser.parse_args(argv)
     source = args.questions or args.dataset / "questions.jsonl"
     rows = [json.loads(raw) for raw in source.read_text(encoding="utf-8").splitlines() if raw.strip()]
-    questions = [row for row in rows if not args.question or row["id"] in args.question]
+    rewrites = load_rewrites(args.rewrites) if args.rewrites is not None else {}
+    questions = [row | ({"rewritten": rewrites[row["id"]].rewritten, "shape": rewrites[row["id"]].shape, "count": rewrites[row["id"]].count, "needs": list(rewrites[row["id"]].needs)} if row["id"] in rewrites and rewrites[row["id"]].problem is None else {}) for row in rows if not args.question or row["id"] in args.question]
     if not questions:
         raise ValueError(f"no question matches {args.question}")
     out = args.out / f"{args.prompt}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     out.mkdir(parents=True)
-    complete = openrouter_client(model=args.model, seed=args.seed)
+    complete = llm_client(backend=args.backend, model=resolve_model(backend=args.backend, model=args.model), seed=args.seed)
 
     def answer(question: dict[str, Any]) -> dict[str, Any] | None:
         shop = str(question["business_id"])
@@ -485,7 +551,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         with (out / f"{question['id']}.log").open("w", encoding="utf-8") as log:
             system = build_system(dataset=args.dataset, shop=shop, prompt=args.prompt, language=args.language)
             try:
-                hints = user_hints(question, norm_dir=norm_dir, calendar=args.dataset / "calendar.csv")
+                hints = user_hints(question, norm_dir=norm_dir, calendar=args.dataset / "calendar.csv", complete=complete, holdout=args.holdout)
                 return solve(question=question, system=system, hints=hints, complete=complete, run_code=local_runner(work_dir.resolve(), as_of=str(question["as_of_date"])), shop_dir=work_dir, log=log)
             except (openai.OpenAIError, httpx.HTTPError, ValueError, TypeError, AttributeError) as error:
                 _write(log, f"{SEPARATOR}\nFINAL:\nnull\nLỖI API: {type(error).__name__}: {str(error)[:200]}")

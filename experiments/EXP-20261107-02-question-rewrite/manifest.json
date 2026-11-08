@@ -1,0 +1,14 @@
+{
+  "id": "EXP-20261107-02-question-rewrite",
+  "opened_at": "2026-11-07T14:00:00+07:00",
+  "goal": "Chống bịa tham số lọc bằng luật ở prompt v10, và chuẩn hoá câu hỏi bằng LLM theo hướng B (câu chuẩn chỉ để tìm ví dụ và gợi ý; tên, số, ngày lấy từ câu gốc)",
+  "hypothesis": "Giả thuyết: v10 giảm số câu bịa tham số; chuẩn hoá giúp chọn đúng ví dụ ở câu viết lóng, địa phương; gemma và qwen cùng tăng, qwen tăng nhiều hơn vì yếu chính ở bịa tham số",
+  "metrics": ["pa_lenient_100", "ungrounded_filters", "rewrite_valid_rate", "rewrite_rejected_by_rule"],
+  "dataset": {"path": "experiments/EXP-20261107-02-question-rewrite/out/public100.jsonl", "rows": 100, "reference": "experiments/EXP-20261104-05-public-1000-v7/inputs/claude_reference.jsonl"},
+  "phase": "P0",
+  "model": "google/gemma-3-12b-it, qwen/qwen3.5-9b",
+  "seed": 20261103,
+  "prompt": "v9, v10",
+  "parent": "EXP-20261107-01-qwen35-9b-public100",
+  "status": "open"
+}

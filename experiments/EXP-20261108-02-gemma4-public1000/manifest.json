@@ -1,0 +1,22 @@
+{
+  "id": "EXP-20261108-02-gemma4-public1000",
+  "opened_at": "2026-11-08T19:15:00+07:00",
+  "goal": "gemma-4-12B-it qua vLLM trên đủ 1000 câu public, cùng pipeline với file nộp +0,878; 100 câu lấy từ EXP-20261108-01, chạy thêm 900 câu",
+  "hypothesis": "Giả thuyết: ngang gemma-3 (+0,876) nếu không tính câu lỗi do trả lời không dừng",
+  "metrics": [
+    "pa_public1000",
+    "api_errors",
+    "seconds_per_question"
+  ],
+  "dataset": {
+    "path": "public_test/questions.jsonl",
+    "rows": 1000,
+    "reference": "Claude"
+  },
+  "phase": "P0",
+  "model": "google/gemma-4-12B-it (served as gemma-12b)",
+  "seed": 20261103,
+  "prompt": "v10",
+  "parent": "EXP-20261108-01-gemma4-vllm",
+  "status": "closed"
+}
