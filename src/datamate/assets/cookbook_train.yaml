@@ -1,0 +1,407 @@
+# The STANDARD rules: every line of the train rulebook, and the cookbook recipe (prompt section 4) that carries it.
+# A split whose rulebook changes or drops a line loses that recipe from its system prompt (prompt.cookbook);
+# its new and edited lines go to catalog.rulebook_changes. Edit recipes here; keep `rules` = train lines as written.
+preamble: |
+  # 4. Cookbook: one entry per standard rule (title = the rule's Vietnamese name in the rulebook)
+  These are the STANDARD rules turned into code. If this set's rulebook or rulebook_changes says something else, follow them.
+  Names in <...> are placeholders: take the real table, column and label names from the shop data.
+  Short names in the recipes (orders, lines, pay, items, lots, sold, conv, df; s = lot-sale rows, g = the delivery table) are tables you load first, e.g. orders = tables['<order table>']; every table is also available under its own name.
+rulebook_only:
+- '# DataMate — Rulebook (bộ train)'
+- Mọi đáp án chuẩn tính theo các luật dưới đây. Câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây.
+- '**Hôm nay** của mỗi câu là trường `as_of_date` trong `questions.jsonl`. Mọi cách nói tương đối tính theo ngày này. File có thể có bản ghi ngày sau hôm nay: với câu hỏi theo hôm nay, những bản ghi đó coi như chưa xảy ra. Riêng trạng thái huỷ, trả hàng của đơn lấy theo trạng thái ghi trên đơn, kể cả khi phiếu trả ghi ngày sau hôm nay.'
+sections:
+- title: '## §1 Orders and revenue'
+  heading: '## 1. Đơn hàng và doanh thu'
+  rulebook_only:
+  - '| Luật | Mặc định |'
+  entries:
+  - rules:
+    - '| Đơn tính vào doanh thu | đơn **không huỷ** và **không trả hàng**. Đơn có trả hàng, **kể cả chỉ trả một phần**, là đơn trả hàng: bỏ **cả đơn**. Đơn đang giao vẫn tính |'
+    recipe: |
+      - [Đơn tính vào doanh thu] Keep orders that are not cancelled and not returned. Any return line, even partial, makes the whole order returned. Orders in delivery count. One status often has several labels (see dm.values(df, '<status>') in an explore program, or the column's values in the shop data).
+        lines = dm.dedup(lines)   (only a table with an order id: identical lines of one order are an export error, §8; a table without order ids keeps them)
+        No order id (each row is its own sale): drop the cancelled and returned rows: df = df[~df['<status>'].isin(<cancelled labels> + <returned labels>)]
+        excluded = df['<status>'].isin(<all cancelled labels> + <all returned labels>); df = dm.drop_groups(df, '<order id>', excluded)
+  - rules:
+    - '| Bán được bao nhiêu tiền, thu về bao nhiêu tiền | là **doanh thu** theo mục này, không phải tiền khách đã trả |'
+    recipe: |
+      - [Bán được bao nhiêu tiền, thu về bao nhiêu tiền] = revenue (the line amounts), not the money customers paid.
+  - rules:
+    - '| Đơn thuộc kỳ nào | theo **ngày đặt**, không theo ngày giao hay ngày thu tiền |'
+    recipe: |
+      - [Đơn thuộc kỳ nào] An order belongs to the period of its ORDER date: dm.between(df, '<order date>', start, end). Not the delivery date, not the payment date. If return lines carry their own (later) date (see the README), the order date is the earliest sale-line date of the order: df['order_day'] = df.groupby('<order id>')['<date>'].transform('min').
+  - rules:
+    - '| Đơn bị huỷ | đơn có trạng thái huỷ. Đơn trả hàng **không** phải đơn huỷ |'
+    recipe: |
+      - [Đơn bị huỷ] Only the cancelled labels. A returned order is not a cancelled order.
+  - rules:
+    - '| Số đơn | chỉ tính đơn không huỷ, không trả; cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ |'
+    recipe: |
+      - [Số đơn] Orders that count (above), counted once: df['<order id>'].nunique(). "Orders with item X" = orders that count and have a line of X. "Customers who bought" = customers with at least one order that counts.
+  - rules:
+    - '| Doanh thu một đơn | tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu |'
+    recipe: |
+      - [Doanh thu một đơn] Sum of the line amounts after each line's own discount. Do not subtract order-level discounts or vouchers, do not add VAT or shipping. Tiền hàng, tiền bán = revenue.
+        per_order = df.groupby('<order id>')['<line amount>'].sum()
+  - rules:
+    - '| Doanh thu theo hình thức thanh toán | theo hình thức **ghi trên đơn**, không theo lần trả nợ về sau: đơn ghi nợ không tính vào tiền mặt hay chuyển khoản. Đơn **COD** là hình thức riêng, không tính vào tiền mặt |'
+    recipe: |
+      - [Doanh thu theo hình thức thanh toán] Use the method written on the order. A credit order (ghi nợ) is neither cash nor transfer. COD is its own method, not cash.
+  - rules:
+    - '| Doanh thu theo nhóm khách | nhóm theo cột nhóm khách. Đơn không ghi khách (khách vãng lai) **không thuộc nhóm nào**, kể cả nhóm `lẻ`. Tỉ trọng của nhóm chia cho doanh thu **cả shop** cùng kỳ, tính cả đơn vãng lai |'
+    recipe: |
+      - [Doanh thu theo nhóm khách] Take the group from the customer-group column (merge the customer table on the customer code). Orders without customer (walk-in) belong to no group. Share of a group = group revenue / revenue of the WHOLE shop in the period (walk-in included) * 100.
+  - rules:
+    - '| Tỉ lệ đơn huỷ trong kỳ | phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao). Làm tròn 2 chữ số thập phân. |'
+    recipe: |
+      - [Tỉ lệ đơn huỷ trong kỳ] cancelled orders / ALL orders placed in the period (every status) * 100, round 2.
+        all_o = df['<order id>'].nunique(); canc = df[df['<status>'].isin(<cancelled labels>)]['<order id>'].nunique(); result = round_decimal(canc * 100 / all_o, 2)
+  - rules:
+    - '| Phần trăm thay đổi, tăng trưởng | so với **kỳ trước**; giảm thì ra **số âm** |'
+    recipe: |
+      - [Phần trăm thay đổi, tăng trưởng] (asked - earlier) / earlier * 100; a fall is negative; round 2.
+  - rules:
+    - '| Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %) | **kỳ hỏi − kỳ so**: ít hơn ra số âm, giữ đơn vị của số đo |'
+    recipe: |
+      - [Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %)] asked period - compared period (a number in the measure's unit; less = negative).
+- title: '## §2 Time (as_of = today; every helper returns the pair start, end)'
+  heading: '## 2. Thời gian'
+  rulebook_only:
+  - '| Cách nói | Nghĩa |'
+  entries:
+  - rules:
+    - '| Ngày X, hôm nay, hôm qua | hỏi số phát sinh (doanh thu, số đơn, giá bán…): chỉ **trong** ngày đó |'
+    recipe: |
+      - [Ngày X, hôm nay, hôm qua] Events of that day only: start, end = dm.day_range(pd.Timestamp('<X>')) / dm.day_range(as_of) / dm.day_range(as_of, offset=-1)
+  - rules:
+    - '| Đến hết ngày X, tính đến hôm nay | hỏi số còn lại (còn nợ, còn tồn, còn hàng…): **tình trạng lúc hết ngày đó**, tính mọi phát sinh **từ đầu dữ liệu** đến hết ngày đó; không phải kỳ **tháng này** |'
+    recipe: |
+      - [Đến hết ngày X, tính đến hôm nay] A state (debt left, stock left): every event from the START of the data to the END of day X.
+        cut = pd.Timestamp('<X>') + pd.Timedelta(days=1); df = df[df['<date>'] < cut]   (a datetime may have a time of day: never use <= '<X>')
+        A column that stores the state at the last data day (còn nợ, công nợ, tồn cuối) is right only when X is that day; otherwise compute from the events.
+  - rules:
+    - '| Từ X đến Y, nhóm X–Y | gồm cả X và Y |'
+    recipe: |
+      - [Từ X đến Y, nhóm X–Y] Both ends included: start, end = pd.Timestamp('<X>'), pd.Timestamp('<Y>'); df = dm.between(df, '<date>', start, end)
+  - rules:
+    - '| N ngày gần nhất | N ngày liền nhau **kể cả hôm nay**, ngày cuối là hôm nay |'
+    recipe: |
+      - [N ngày gần nhất] N days ending today, today included: start, end = dm.days_back(as_of, N)
+  - rules:
+    - '| Quá N, hơn N, trên N, dưới N | **không** gồm N. **Từ N trở lên** thì gồm N |'
+    recipe: |
+      - [Quá N, hơn N, trên N, dưới N] Strict: > N or < N. [Từ N trở lên] >= N.
+  - rules:
+    - '| Tuần | bắt đầu **thứ Hai**. **Tuần này**: từ thứ Hai của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, thứ Hai đến Chủ nhật |'
+    recipe: |
+      - [Tuần] Weeks start on Monday. This week: dm.week_range(as_of, 0, until=as_of). Last week (whole, Monday to Sunday): dm.week_range(as_of, 0, offset=-1)
+  - rules:
+    - '| Tháng M/Y | cả tháng, từ ngày 1 đến hết ngày cuối tháng |'
+    recipe: |
+      - [Tháng M/Y] The whole month: start, end = dm.month_range(pd.Timestamp('<Y>-<MM>-01')). A month written with its year, "M/YY" or "M/YYYY" where YY/YYYY is a year of the data's date range (3/26, 11/2025, with or without "tháng"/"th"), is month M of that year, not a day; a day comes as D/M/Y, or with "ngày".
+  - rules:
+    - '| Tháng này | từ ngày 1 đến **hết hôm nay**. So với tháng trước thì lấy **cùng số ngày** của tháng trước: từ ngày 1 đến hết ngày trùng số với hôm nay; tháng trước không có ngày đó thì đến hết tháng trước |'
+    recipe: |
+      - [Tháng này] Day 1 to today: start, end = dm.month_range(as_of, until=as_of). Compared with last month: day 1 to the same day number of last month (or to its end):
+        p_start, p_full_end = dm.month_range(as_of, offset=-1); p_end = min(p_start + pd.Timedelta(days=as_of.day - 1), p_full_end)
+  - rules:
+    - '| Từ đầu năm, từ đầu năm tới nay | từ 01/01 của năm nay đến **hết hôm nay** |'
+    recipe: |
+      - [Từ đầu năm, từ đầu năm tới nay] start, end = dm.year_range(as_of, until=as_of)
+  - rules:
+    - '| Tháng M, quý Q không ghi năm | của **năm nay** nếu không sau hôm nay; sau hôm nay thì của **năm trước**. Quý theo dương lịch, mỗi quý 3 tháng tính từ tháng 1 |'
+    recipe: |
+      - [Tháng M, quý Q không ghi năm] This year if that month or quarter does not start after today, else last year.
+        Month M: y = as_of.year if pd.Timestamp(as_of.year, <M>, 1) <= as_of else as_of.year - 1; start, end = dm.month_range(pd.Timestamp(y, <M>, 1))
+        Quarter Q: m1 = 3 * <Q> - 2; y = as_of.year if pd.Timestamp(as_of.year, m1, 1) <= as_of else as_of.year - 1; start, end = dm.quarter_range(pd.Timestamp(y, m1, 1))
+  - rules:
+    - '| Tết năm Y, dịp Tết, mùa Tết | từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |'
+    recipe: |
+      - [Tết năm Y, dịp Tết, mùa Tết] From the solar date of 23 tháng Chạp (lunar 12/23 of lunar year Y-1) to the end of mùng 10 tháng Giêng (lunar 1/10 of year Y). Use tables['calendar'] (columns date, lunar_day, lunar_month, lunar_year, lunar_leap):
+        cal = tables['calendar']; start = cal[(cal['lunar_year'] == <Y> - 1) & (cal['lunar_month'] == 12) & (cal['lunar_day'] == 23) & (~cal['lunar_leap'])]['date'].iloc[0]
+        end = cal[(cal['lunar_year'] == <Y>) & (cal['lunar_month'] == 1) & (cal['lunar_day'] == 10) & (~cal['lunar_leap'])]['date'].iloc[0]
+        "So với trước Tết" = the same number of days right before start: n = (end - start).days + 1; b_start, b_end = start - pd.Timedelta(days=n), start - pd.Timedelta(days=1)
+  - rules:
+    - '| Ca sáng, ca chiều | theo giờ tạo đơn: ca sáng 06:00–13:59, ca chiều 14:00–21:59. So ca chiều với ca sáng: mốc là **ca sáng** |'
+    recipe: |
+      - [Ca sáng, ca chiều] By order creation time: morning 06:00-13:59 (hour 6..13), afternoon 14:00-21:59 (hour 14..21). Comparing afternoon with morning: the base is the morning.
+        h = df['<creation datetime>'].dt.hour; morning = df[(h >= 6) & (h <= 13)]
+- title: '## §3 Rankings'
+  heading: '## 3. Xếp hạng'
+  rulebook_only:
+  - '| Luật | Mặc định |'
+  entries:
+  - rules:
+    - '| Mặt hàng | **Món**, hàng, sản phẩm cùng nghĩa với mặt hàng. Dòng **Phí phục vụ** không phải mặt hàng: không xếp hạng, không đếm. Vẫn tính vào doanh thu, kể cả mẫu số tỉ trọng nhóm hàng |'
+    recipe: |
+      - [Mặt hàng] Món, hàng, sản phẩm = item. A "Phí phục vụ" (service charge) line is not an item: never rank or count it as an item, but keep it in revenue (also in the denominator of shares).
+  - rules:
+    - '| Nhóm hàng | theo cột nhóm hàng, đúng tên nhóm câu hỏi nêu; không gộp nhóm khác tên dù tên gần nhau |'
+    recipe: |
+      - [Nhóm hàng] Use the item-group column with exactly the group name of the question (merge the item table if the group is there). Never merge groups with different names.
+  - rules:
+    - '| Bán chạy | theo **số lượng quy về đơn vị cơ bản**, không theo số dòng hay số tiền; bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** |'
+    recipe: |
+      - [Bán chạy] Rank by quantity in BASE units (see §10), orders that count only (§1), identical lines of one order counted once (§8). Items with different base units are still ranked together. Bán nhiều nhất, hot nhất = bán chạy nhất. Group by the item CODE only, never by code + name: one item can be written several ways on sales lines (case, spaces, abbreviations); take the answer name from the item list. Sales lines without a code: key = dm.name_key(lines['<name>'], items['<name>']), joined to the item list on dm.name_key(items['<name>'], lines['<name>']) (also for the unit conversion).
+        per = df.groupby('<item code>')['base_qty'].sum(); top = dm.top(per, k=<k>)
+        names = items.set_index('<item code>')['<item name>']; result = [names[c] for c in top.index]
+  - rules:
+    - '| Bán được bao nhiêu <đơn vị> | cộng số lượng quy về đơn vị cơ bản của các mặt hàng **có đơn vị cơ bản là <đơn vị>**, kể cả dòng bán theo đơn vị lớn; mặt hàng có đơn vị cơ bản khác không tính |'
+    recipe: |
+      - [Bán được bao nhiêu <đơn vị>] Sum base_qty (§10) of the items whose BASE unit is <đơn vị>, including lines sold in a larger unit. Items with another base unit are not counted.
+  - rules:
+    - '| Hàng lời nhất | theo **tổng lãi gộp** của mặt hàng (§5) |'
+    recipe: |
+      - [Hàng lời nhất] Rank items by total gross profit (§5 Lãi gộp), grouped by item CODE only (names on sales lines vary); answer name from the item list.
+        df['profit'] = df['<line amount>'] - df['<qty>'] * df['<line cost>']; top = dm.top(df.groupby('<item code>')['profit'].sum(), k=<k>)
+  - rules:
+    - '| Xác định khách | Shop có mã khách: mỗi **mã khách** là một khách, hai mã trùng tên là hai khách; đơn không ghi mã (**khách lẻ**) không phải khách, không đếm và không xếp hạng. Shop không có mã khách: xác định khách theo **tên ghi trên đơn**: hai tên **chỉ khác cách viết** là cùng một khách, hai tên **khác chữ hoặc khác số** là hai khách; đơn **khách lẻ** không tính. Khách mua **nhiều tiền** nhất xếp theo doanh thu (§1). |'
+    recipe: |
+      - [Xác định khách] With customer codes: one code = one customer (two codes with the same name are two customers); group by the code and take the name from the customer list (names written on orders vary). Rows without code (khách lẻ) are not customers: drop them before counting or ranking. Without codes: the name on the order, grouped by dm.name_key (case, spaces, or a name written without accents next to its one accented form = one customer; different accents = different customers). Khách lẻ is not counted, and it is often written several ways in one file (full label, lower case, short forms such as 'lẻ', 'kl'): list the most frequent names with dm.values(df, '<customer name>') in an explore program (or read them in the shop data) and drop every walk-in placeholder, not just one spelling. "Spent the most" = revenue (§1).
+  - rules:
+    - '| Nhân viên bán giỏi nhất | theo **doanh thu** (§1) của nhân viên trong kỳ, không theo số đơn |'
+    recipe: |
+      - [Nhân viên bán giỏi nhất] Rank employees by revenue (§1) in the period, not by number of orders.
+  - rules:
+    - '| Giá trị trung bình một đơn | làm tròn về đồng, nửa đồng làm tròn lên |'
+    recipe: |
+      - [Giá trị trung bình một đơn] revenue / number of orders (§1), rounded to the đồng, half up: round_decimal(rev / n, 0)
+- title: '## §4 Debt (công nợ)'
+  heading: '## 4. Công nợ'
+  rulebook_only:
+  - '| Luật | Mặc định |'
+  entries:
+  - rules:
+    - '| Đơn được tính vào nợ | đơn không huỷ; **đơn trả hàng vẫn tính** nếu còn nợ |'
+    recipe: |
+      - [Đơn được tính vào nợ] Orders not cancelled. Returned orders still count if money is still owed.
+  - rules:
+    - '| Nợ một đơn tại ngày X | phần chưa trả của **tổng đơn** (số khách phải trả cả đơn: đã trừ giảm giá trên cả đơn, **gồm phí giao**), tính các khoản trả đến hết ngày X. Còn nợ = cộng các đơn **còn nợ > 0** |'
+    recipe: |
+      - [Nợ một đơn tại ngày X] Order total to pay for the whole order (after order discounts, WITH shipping) minus the payments made up to the END of day X. Outstanding debt (còn nợ) = sum over orders with debt > 0.
+        cut = pd.Timestamp('<X>') + pd.Timedelta(days=1); o = orders[orders['<order date>'] < cut].copy()
+        paid = pay[pay['<pay date>'] < cut].groupby('<pay order id>')['<pay amount>'].sum()
+        o['debt'] = o['<order total to pay>'] - o['<order id>'].map(paid).fillna(0); owing = o[o['debt'] > 0]
+        "How many customers still owe" = owing['<customer code>'].dropna().nunique()  (a count, not money)
+  - rules:
+    - '| Nợ theo khách | xác định khách như §3. Đơn **khách lẻ** vẫn tính vào **tổng nợ**, nhưng không có dòng trong bảng nợ theo khách |'
+    recipe: |
+      - [Nợ theo khách] Customers as in §3. Walk-in orders count in TOTAL debt but have no row in a per-customer table.
+  - rules:
+    - '| Đơn COD, đơn bán qua sàn TMĐT | **không phải khách nợ**, kể cả khi chưa thu được tiền; bỏ khỏi công nợ và tuổi nợ |'
+    recipe: |
+      - [Đơn COD, đơn bán qua sàn TMĐT] Never customer debt, even if unpaid: drop them from debt and debt age (use the payment-method / channel labels from the column's values).
+  - rules:
+    - '| Tuổi nợ | số ngày tính từ **ngày đặt**, không từ hạn thanh toán. Đơn đặt hôm nay có tuổi nợ **0** ngày, đơn đặt hôm qua **1** ngày |'
+    recipe: |
+      - [Tuổi nợ] Days from the ORDER date: (pd.Timestamp('<X>') - o['<order date>'].dt.normalize()).dt.days; today = 0 days, yesterday = 1.
+  - rules:
+    - '| Nợ thêm, trả nợ, thu nợ trong kỳ | chỉ đơn **ghi nợ**, không huỷ. **Nợ thêm**: phần tổng đơn chưa trả ngay trong ngày mua, của đơn đặt trong kỳ. **Trả nợ / thu nợ**: các khoản trả **sau ngày mua** có ngày trả trong kỳ, của mọi đơn ghi nợ (kể cả đơn kỳ trước, đơn trả hàng). Tiền trả cùng ngày mua là trả lúc mua. Hoàn tiền trả hàng không trừ |'
+    recipe: |
+      - [Nợ thêm, trả nợ, thu nợ trong kỳ] Credit orders only (ghi nợ), not cancelled. New debt = for orders placed in the period, the part of the total NOT paid on the purchase day. Repaid = payments made AFTER the purchase day whose payment date is in the period, for any credit order (older orders and returned orders too). Refunds are not subtracted.
+        day_paid = pay[pay['<pay date>'].dt.normalize() == pay['<pay order id>'].map(order_day)]  (order_day = credit orders' order date per id)
+- title: '## §5 Stock, purchases, cost'
+  heading: '## 5. Kho, nhập hàng, giá vốn'
+  rulebook_only:
+  - '| Luật | Mặc định |'
+  entries:
+  - rules:
+    - '| Tiền nhập hàng trong kỳ | tổng tiền các phiếu nhập có **ngày phiếu** trong kỳ, bỏ phiếu huỷ. Phiếu, dòng ghi **nhập đầu kỳ** là phiếu nhập như mọi phiếu khác: có ngày phiếu trong kỳ thì tính. Nhà cung cấp nhập nhiều nhất = nhà cung cấp có tiền nhập cao nhất |'
+    recipe: |
+      - [Tiền nhập hàng trong kỳ] Sum of the purchase slips whose SLIP date is in the period, cancelled slips excluded. Opening-stock slips (nhập đầu kỳ) count like any slip. Main supplier by money = highest purchase amount.
+  - rules:
+    - '| Nhập trừ bán, chênh nhập và bán | phần **bán** là số lượng của đơn tính vào doanh thu (§1), quy về cùng đơn vị với phần nhập |'
+    recipe: |
+      - [Nhập trừ bán, chênh nhập và bán] Sold part = quantity of orders that count (§1), converted to the same unit as the purchased part.
+  - rules:
+    - '| Giá nhập bình quân một mặt hàng trong tháng | bình quân **theo số lượng nhập**, **không** phải trung bình cộng các mức giá nhập; theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ |'
+    recipe: |
+      - [Giá nhập bình quân một mặt hàng trong tháng] Weighted by purchased quantity, in the purchase unit, slips dated in the month, not cancelled: (qty * price).sum() / qty.sum(). Not the mean of prices.
+  - rules:
+    - '| Tồn theo đơn vị lớn | list 2 số `[số đơn vị lớn nguyên, số đơn vị cơ bản lẻ]`; không có phần lẻ thì số thứ hai là 0. Hàng nhiều cấp: phần lẻ vẫn tính bằng đơn vị cơ bản, không đổi sang đơn vị ở giữa |'
+    recipe: |
+      - [Tồn theo đơn vị lớn] A list [whole larger units, remaining base units]. The larger unit is the one the QUESTION names (it can be a middle unit, e.g. the strip, not the box); f = that unit's factor to the base unit (§10). result = [int(stock // f), int(stock % f)] (second number 0 if no remainder); the remainder is always in base units, never in a middle unit.
+        Stock of an item at the end of day D (base units), first source that exists:
+        (a) a stock table that the README describes as stock at the end of the last data day, and D is that day: read it (it already counts returned goods the order files may not show).
+        (b) a stock card with a running balance per movement: the balance on the item's last row up to the end of D.
+        (c) otherwise, from the start of the data to the end of D: stock = purchased - taken out + returned.
+            purchased = sum of purchase qty * factor of the purchase unit (slips not cancelled; lot tables already in base units).
+            taken out = base qty of the lines of EVERY order not cancelled: completed, in delivery AND returned orders (do not drop returned orders here, unlike §1). dm.dedup the lines first.
+            returned = the returned base quantity (return-quantity column of the lot/line table, mapped lot -> item); negative return lines are already added back by a signed sum.
+        stock = buy.sub(out, fill_value=0).add(back, fill_value=0)   (buy, out, back = purchased, taken out, returned base qty per item)
+  - rules:
+    - '| Giá trị hàng tồn kho | tồn **hết hôm nay** của từng mặt hàng nhân **giá vốn một đơn vị cơ bản ghi trong danh mục hàng**; chỉ tính hàng còn tồn |'
+    recipe: |
+      - [Giá trị hàng tồn kho] For each item: stock at the end of today (base units, as in [Tồn theo đơn vị lớn]) * cost of one base unit from the item list; only items with stock > 0.
+  - rules:
+    - '| Mặt hàng hết hàng cuối ngày | mặt hàng **mua về để bán** (không tính món pha chế, chế biến tại chỗ) mà lúc **hết ngày** đó tồn kho bằng 0; hết giữa ngày nhưng nhập thêm trước cuối ngày thì không tính |'
+    recipe: |
+      - [Mặt hàng hết hàng cuối ngày] Items bought for resale (not dishes or drinks made on site) whose stock at the END of that day is 0, stock as in [Tồn theo đơn vị lớn] (a)/(b)/(c). result = int((stock == 0).sum()) over those items. Do not use only §1 orders as "sold": returned orders took goods out too, and only their returned quantity comes back.
+  - rules:
+    - '| Mặt hàng không bán được trong kỳ (ế) | mặt hàng cửa hàng **đã từng bán trước kỳ** (có trong đơn §1, không tính đơn huỷ, đơn trả) nhưng trong kỳ không có đơn nào (§1) mua mặt hàng đó |'
+    recipe: |
+      - [Mặt hàng không bán được trong kỳ (ế)] Items sold BEFORE the period (from the start of the data to the day before the period, orders that count) with no order that counts in the period. Identify the item by its code; with no code, by dm.name_key(name) (the same item is written several ways).
+        sold = sold.assign(k=sold['<item code>'])   (no code: k=dm.name_key(sold['<item name>']))
+        before = set(sold[sold['<date>'] < start]['k']); during = set(dm.between(sold, '<date>', start, end)['k']); result = len(before - during)
+  - rules:
+    - '| Giá bán X ngày D | đơn giá ghi trên dòng bán X của các đơn đặt ngày D, cho **một đơn vị cơ bản**, **trước** chiết khấu dòng; tính cả dòng của đơn huỷ, đơn trả |'
+    recipe: |
+      - [Giá bán X ngày D] Unit price on the sales lines of X in orders placed on day D, per ONE base unit (price / factor of the line unit), BEFORE line discount; lines of cancelled and returned orders included.
+  - rules:
+    - '| Hiệu ứng tăng giá | lần tăng giá = ngày D giá mới cao hơn giá liền trước (theo bảng giá); tăng lên cùng một giá nhiều lần thì lấy lần đầu. So số lượng (đơn vị cơ bản) **N ngày kể từ D** (tính cả D) với **N ngày ngay trước D**; cả hai khoảng bỏ đơn huỷ và đơn trả |'
+    recipe: |
+      - [Hiệu ứng tăng giá] A price increase = a day D whose new price (price list) is higher than the previous price; several increases to the same price: the first. Compare base quantity in the N days from D (D included) with the N days just before D; both without cancelled and returned orders.
+  - rules:
+    - '| Giá vốn | bình quân gia quyền theo lô nhập, tại thời điểm bán; không theo FIFO, không theo giá nhập lần cuối |'
+    recipe: |
+      - [Giá vốn] Weighted average over purchase lots at the time of sale (not FIFO, not the last price).
+  - rules:
+    - '| Lãi gộp | doanh thu (§1) trừ giá vốn của hàng đã bán. Giá vốn của mỗi dòng bán bằng số lượng nhân với **giá vốn ghi trên dòng bán** (cho **một đơn vị bán**, cùng đơn vị với đơn giá). Không tự tính lại giá vốn từ phiếu nhập hay từ lô |'
+    recipe: |
+      - [Lãi gộp] Revenue (§1) - cost of goods sold. Cost of a sales line = quantity * the cost written on the sales line (per sales unit). Never recompute cost from purchase slips.
+        profit = (df['<line amount>'] - df['<qty>'] * df['<line cost>']).sum()
+  - rules:
+    - '| Lãi ròng một tháng | lãi gộp của tháng trừ **mọi khoản** ghi trong sổ chi phí của tháng đó, kể cả sửa chữa, thay thiết bị |'
+    recipe: |
+      - [Lãi ròng một tháng] Gross profit of the month - EVERY expense of that month in the expense book (repairs and equipment included).
+- title: '## §6 Industries (an industry rule beats a general rule)'
+  heading: '## 6. Theo ngành'
+  rulebook_only:
+  - Luật riêng của từng ngành, dùng cùng với luật chung ở các mục trên. Khi luật ngành khác luật chung, theo **luật ngành**.
+  - '### Cà phê'
+  - '| Luật | Mặc định |'
+  - '### Nhà thuốc'
+  - '| Luật | Mặc định |'
+  - '### Vật liệu xây dựng'
+  - '| Luật | Mặc định |'
+  entries:
+  - rules:
+    - '| Size M, size L | món có tên kết thúc bằng `(M)` hoặc `(L)`, **không phân biệt hoa thường** |'
+    recipe: |
+      - [Size M, size L] (coffee) Items whose name ends with "(M)" or "(L)", case-insensitive: df['<item>'].str.strip().str.upper().str.endswith('(M)')
+  - rules:
+    - '| Thuốc kê đơn | **Thuốc kê đơn** = sản phẩm ghi kê đơn trong danh mục thuốc; mọi sản phẩm còn lại là **hàng không kê đơn**. Tỉ lệ kê đơn tính theo doanh thu |'
+    recipe: |
+      - [Thuốc kê đơn] (pharmacy) Prescription = the drug list marks it prescription (flag may be True/1/"TRUE"). Join lines to the drug list on the item code; if the line table has only names, map names to codes via dm.name_key (lines are often spelled differently from the drug list). Left merge: products not in the drug list or not flagged are non-prescription. Share = revenue (§1) of prescription lines / revenue of all lines in the period * 100, round_decimal(x, 2).
+  - rules:
+    - '| Hàng hết hạn trong N ngày tới | tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản, không theo giá vốn bình quân |'
+    recipe: |
+      - [Hàng hết hạn trong N ngày tới] At today D: lots imported on or before D, remaining > 0, expiry from D to the end of D + N. remaining = lot's imported base qty - (sold base qty - returned base qty) over the lot-sale rows of orders dated <= D (cancelled orders dropped):
+        used = (s['<qty>'] - s['<returned qty>']).groupby(s['<lot>']).sum(); lots['left'] = lots['<imported base qty>'] - lots['<lot>'].map(used).fillna(0)
+        Tiền vốn = sum of left * that lot's own purchase price per base unit (the lot's import line price / factor of its import unit), round_decimal(x, 0). A list of items: each item once, ordered by its earliest such expiry, ties by code.
+  - rules:
+    - '| Doanh thu theo hoạt chất | doanh thu (§1) các thuốc có hoạt chất ghi **đúng như vậy** trong danh mục thuốc. Thuốc phối hợp nhiều hoạt chất là **một loại riêng**, không tính vào từng hoạt chất trong đó |'
+    recipe: |
+      - [Doanh thu theo hoạt chất] Revenue (§1) of drugs whose active-ingredient cell equals the asked text as a whole: dm.norm(df['<ingredient>']) == dm.norm('<asked>'). Never str.contains: a combination ("A + B") is its own category and does not count for A or for B.
+  - rules:
+    - '| Lô gần hết hạn nhất của một thuốc | trong các lô còn tồn chưa quá hạn tại hôm nay, lô có hạn sớm nhất |'
+    recipe: |
+      - [Lô gần hết hạn nhất của một thuốc] Among that item's lots with remaining > 0 at today (recipe above) and expiry >= today: the earliest expiry, as "YYYY-MM-DD".
+  - rules:
+    - '| Giao nhiều đợt | **Số đợt giao trong tháng X** = số đợt có ngày giao trong tháng X; **mỗi đợt của mỗi đơn tính một đợt**, kể cả đợt của đơn sau đó trả hàng |'
+    recipe: |
+      - [Giao nhiều đợt] (building materials) Deliveries in month X = distinct (<order>, <batch no.>) pairs in the delivery table whose delivery date is in X: len(dm.between(g, '<delivery date>', start, end)[['<order>', '<batch>']].drop_duplicates()). No status filter (batches of orders returned later count). "Tháng này" ends today.
+- title: '## §7 Unanswerable'
+  heading: '## 7. Không trả lời được'
+  rulebook_only:
+  - 'Câu **không trả lời được** khi dữ liệu phát hành không đủ để trả lời. Đáp án chỉ lấy từ dữ liệu phát hành, không lấy từ hiểu biết bên ngoài. Nộp `{"type": "unanswerable", "reason": "…"}`.'
+  - Trường `reason` không bắt buộc và không chấm tự động. Nếu có, `reason` phải là chuỗi; dòng có `reason` không phải chuỗi không đọc được và tính như bỏ trống.
+  entries:
+  - rules:
+    - '- Thông tin file không ghi thì không suy ra từ cột khác, trừ khi rulebook ghi cách lấy.'
+    recipe: |
+      - [Thông tin file không ghi] Never infer what the files do not record from other columns (unless the rulebook says how).
+  - rules:
+    - '- Không có dữ liệu khác với bằng 0: kỳ nằm **hoàn toàn** ngoài khoảng ngày có dữ liệu của shop, hoặc shop không ghi loại thông tin câu hỏi cần, thì không trả lời được, không phải 0.'
+    recipe: |
+      - [Không có dữ liệu khác với bằng 0] Unanswerable, not 0, when (a) the asked period, or in a comparison either period (e.g. the previous month), lies wholly before the first or after the last date of the relevant table (sales for sales questions, purchases for purchase questions): check the table's date range first; or (b) no table has the column the question needs: stock, purchase price, cost, payments/debt, lots/expiry, customer id/name, customer gender/address/group, payment method, channel, cancel/return reason, item group. A nearby column does not count (a due-date table is not payments, a customer-type column is not a group, a name does not give gender, words in item names do not make an item group); or (c) the question is an opinion or needs outside knowledge (staff attitude/skill, dosage): a judging word about a person or a supplier that neither the rulebook nor rulebook_changes defines is such an opinion, even when a defined term looks close: never swap the question's word for a defined one.
+  - rules:
+    - '- Kỳ chỉ có một phần nằm trong khoảng ngày có dữ liệu thì tính trên phần có dữ liệu.'
+    recipe: |
+      - [Kỳ chỉ có một phần nằm trong dữ liệu] Compute on the part that has data.
+- title: '## §8 How files are written'
+  heading: '## 8. Cách ghi trong file'
+  rulebook_only:
+  - '| Cách ghi | Hiểu là |'
+  entries:
+  - rules:
+    - '| Tên gọi, nhãn | các tên cùng chỉ một thứ, trong file hay trong câu hỏi, là cùng một thứ. File có mã thì theo mã |'
+    recipe: |
+      - [Tên gọi, nhãn] One name written several ways is one thing: case, extra spaces, punctuation, or a spelling without accents next to its ONE accented form. Different accents (Bạch / Bách) are different names. When the file has codes, group and rank by the codes. Without codes, match names with dm.name_key on both sides, e.g. code = dict(zip(dm.name_key(cat['<name>'], df['<name>']), cat['<code>'])); df['code'] = dm.name_key(df['<name>'], cat['<name>']).map(code); assert df['code'].notna().all(), 'names not in the list'.
+  - rules:
+    - '| Ô để trống ở các dòng sau của cùng một nhóm dòng | giống ô đó ở dòng đầu nhóm: khách, ghi chú, trạng thái của đơn áp cho mọi dòng của đơn. Không phải thiếu dữ liệu, không có nghĩa là khách lẻ hay đơn hoàn thành |'
+    recipe: |
+      - [Ô để trống ở các dòng sau của cùng một nhóm dòng] Same as the group's first row. The host already fills these cells (see the column notes).
+  - rules:
+    - '| Trạng thái đơn | mỗi đơn có đúng một trong bốn trạng thái: **hoàn thành**, **huỷ**, **trả hàng**, **đang giao** |'
+    recipe: |
+      - [Trạng thái đơn] Every order has exactly one of: completed, cancelled, returned, in delivery. Map each exact label of the column's values (isin, never substring: "hoàn" is in both completed and returned labels). A delivery that failed or could not be made (e.g. "Không giao được") = cancelled; a delivery that is pending (not made yet) or under way (e.g. "Chờ giao", "Đang giao") = in delivery, and it counts; exchange/return labels = returned. If the README says a negative-quantity line marks a return, that order is returned: drop it whole with dm.drop_groups.
+  - rules:
+    - '| Hai dòng của **cùng một đơn** giống nhau ở mọi ô | lỗi xuất file, tính một lần. Hai dòng giống nhau của hai đơn khác nhau là hai lần bán, tính cả hai |'
+    recipe: |
+      - [Hai dòng của cùng một đơn giống nhau ở mọi ô] Export error: df = dm.dedup(df) on every order table you use that has an order id (the line table too).
+  - rules:
+    - '| Bảng không ghi theo đơn | mỗi dòng là một lần ghi; hai dòng giống nhau trong cùng file vẫn tính cả hai |'
+    recipe: |
+      - [Bảng không ghi theo đơn] Each row is one record: keep identical rows (no dm.dedup).
+  - rules:
+    - '| Ngày không ghi năm | năm của sheet chứa dòng đó |'
+    recipe: |
+      - [Ngày không ghi năm] The year of the sheet of the row (the host already parsed these dates; see the column notes).
+- title: '## §9 Answers (the host writes the file; you give the value)'
+  heading: '## 9. Đáp án và chấm điểm'
+  rulebook_only:
+  - 'Mỗi dòng `submission.jsonl`: `{"id": "...", "type": "...", "answer": ...}`. Đúng **+1**, sai **−1**, bỏ trống (`{"type": "abstain"}` hoặc không có dòng) **0**.'
+  - '**Mỗi type có một format duy nhất; sai format là sai.** Đáp án chỉ ghi **giá trị**: số không kèm chữ đơn vị hay ký hiệu %; tên lấy nguyên từ dữ liệu, không kèm tên cột hay nhãn nhóm. Câu hỏi nhiều số thì ghi list theo đúng thứ tự câu hỏi nêu.'
+  - '| type | Format | Đúng | Sai |'
+  - '| number | JSON number, không đơn vị, không dấu phân cách nghìn. Tiền là số nguyên VND | `4820000`, `18.6` | `"4,82 triệu"`, `"4.820.000"`, `"4820K"`, `"4820000"` |'
+  - '| percent | JSON number là **số phần trăm**: 12,4 % ghi `12.4`, không kèm ký hiệu % | `12.4` | `"12,4%"`, `0.124` |'
+  - '| date | `"YYYY-MM-DD"`; câu hỏi theo tháng: `"YYYY-MM"` | `"2026-08-15"`, `"2025-09"` | `"15/08/2026"`, `"tháng 9/2025"` |'
+  - '| boolean | `true` / `false` | `true` | `"có"`, `1` |'
+  - '| string | tên như trong dữ liệu, đủ dấu tiếng Việt | `"Sting dâu 330ml"` | `"Sting dầu 330ml"` (sai dấu, file không có cách viết này), `["Sting dâu 330ml"]` |'
+  - '| list | mảng JSON, có thứ tự; một phần tử vẫn là mảng | `["Cà phê sữa"]`, `[3, 10]` | `"Cà phê sữa, Bạc xỉu"`, `"3 thùng 10 chai"` |'
+  - '| table | `{"columns": [...], "rows": [[...], ...]}`, ô số là JSON number | `{"columns": ["khach_hang", "so_tien_no"], "rows": [["Chị Lan", 3200000]]}` | ô `"3.200.000đ"` |'
+  - '| unanswerable | `{"type": "unanswerable", "reason": "..."}` | | |'
+  - 'Đúng format rồi mới so giá trị:'
+  - '- **Số, phần trăm:** khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 2 chữ số thập phân. Chỉ bỏ qua sai số dấu phẩy động.'
+  entries:
+  - rules: []
+    recipe: |
+      - [Format] number/percent = a number (percent 12.4 means 12.4 %); date "YYYY-MM-DD", month "YYYY-MM"; list = Python list; table = DataFrame; string = the name as in the data.
+  - rules:
+    - '- **Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm và số trung bình khác làm tròn 2 chữ số thập phân, trừ khi một luật khác trong rulebook ghi khác.'
+    recipe: |
+      - [Làm tròn] Money with a fraction (sums, averages per order, debts): round_decimal(x, 0) yourself; the host would submit 522915.37 as is. Percentages and other averages: round_decimal(x, 2). Never Python round() (banker's rounding).
+  - rules:
+    - '- **Chuỗi:** không phân biệt hoa thường, khoảng trắng, dấu câu. Nhận **mọi cách viết** tên có trong file của shop, hoặc **mã**. Tên khách chép kèm số điện thoại như trong file cũng được nhận. Ngoài các cách viết đó, dấu tiếng Việt phải đúng.'
+    recipe: |
+      - [Chuỗi] Give the name exactly as stored in the master list (item list, customer list), never the code.
+  - rules:
+    - '- **Danh sách:** đúng cả tập và thứ tự. Top k xếp theo tiêu chí câu hỏi, giảm dần. Câu "liệt kê": có số đo thì số đo giảm dần, cùng số đo thì theo **mã** tăng dần; liệt kê hàng theo hạn dùng thì hạn sớm nhất của mặt hàng trước, cùng hạn thì theo mã; còn lại (chỉ lọc theo điều kiện, không có số đo) theo mã tăng dần.'
+    recipe: |
+      - [Danh sách] Top k ordered by the criterion, descending. "Liệt kê" with a measure: measure descending, ties by code ascending; by expiry: each item's earliest expiry first, ties by code; without a measure: by code ascending. Several numbers asked: a list in exactly the order the question names them (e.g. [<first asked>, <second asked>]).
+  - rules:
+    - '- **Bằng nhau:** hai đối tượng bằng nhau ở tiêu chí câu hỏi thì xếp theo mã tăng dần (không có mã thì theo tên). Câu hỏi một đối tượng lấy đối tượng đứng đầu theo thứ tự đó.'
+    recipe: |
+      - [Bằng nhau] Ties ordered by code ascending (by name only if the shop has no code). Group by the code so dm.top(series, k=...) breaks ties by code, then map codes to names. One object asked: the first in that order.
+  - rules:
+    - '- **Bảng:** mỗi dòng một đối tượng; cột **đầu** là tên đối tượng, các cột **sau** là số đo theo **đúng thứ tự câu hỏi nêu**. Cột so theo tên; tên không khớp thì so theo vị trí, nên ghi đúng thứ tự cột. Thứ tự các dòng không ảnh hưởng kết quả chấm.'
+    recipe: |
+      - [Bảng] One row per object; first column = the object's name, then the measures in exactly the order of the question.
+- title: '## §10 Units'
+  heading: '## 10. Từ ngữ'
+  rulebook_only:
+  - '| Từ | Nghĩa |'
+  entries:
+  - rules:
+    - '| Đơn vị cơ bản, đơn vị lớn | mỗi mặt hàng có một **đơn vị cơ bản** (đơn vị nhỏ nhất shop đếm) và có thể có **đơn vị lớn**. Hệ số quy đổi khác nhau theo shop và theo mặt hàng, luôn đọc ở bảng quy đổi hoặc README của shop; đơn vị không có dòng quy đổi nào là đơn vị cơ bản, hệ số 1 |'
+    recipe: |
+      - [Đơn vị cơ bản, đơn vị lớn] Each item has one base unit (the unit in the item list or stock list; it can be e.g. a strip, do not guess it from the item name) and maybe larger units. Factor = base units in 1 larger unit, from the shop's conversion table, or from the README list "<item>: 1 <unit> = <n> <base unit>" when there is no table; rules written as text (a column or the README) are read with dm.factors(text), e.g. dm.factors(readme). A unit with no conversion row for that item is the base unit (factor 1).
+        If the line table already has a base-quantity column (README or column name: quantity converted to the base unit), use it.
+        Otherwise join on the item CODE when both tables have it. When the join is by name, join on dm.name_key: names on lines vary in case, accents and spacing, and an exact join silently leaves factor 1 on those lines. Units too: join on dm.norm(unit) ('Hộp' = 'hộp').
+        conv = tables['<conversion table>']; conv = conv.assign(k=dm.name_key(conv['<item>'], df['<item>']), u=dm.norm(conv['<unit>']))
+        df = df.assign(k=dm.name_key(df['<item>'], conv['<item>']), u=dm.norm(df['<line unit>'])).merge(conv[['k', 'u', '<factor>']], on=['k', 'u'], how='left')
+        df['base_qty'] = df['<qty>'] * df['<factor>'].fillna(1)
+        assert that every line left without a factor is in the item's base unit.
+        Purchase lines carry units too (the purchase unit is often a larger unit): convert them the same way before combining with sales. An amount per <larger unit> = amount per base unit * factor.

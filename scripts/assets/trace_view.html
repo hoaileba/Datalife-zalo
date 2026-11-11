@@ -1,0 +1,168 @@
+<!doctype html><html><head><meta charset="utf-8"><title>DataMate trace</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--fg:#1f2328;--mut:#6e7781;--line:#e1e4e8;--card:#fff;--code:#f6f8fa;--ok:#1a7f37;--bad:#cf222e;--warn:#9a6700;--sel:#e8f0fe;--acc:#0969da}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mut:#8b949e;--line:#30363d;--card:#161b22;--code:#0d1117;--ok:#3fb950;--bad:#f85149;--warn:#d29922;--sel:#1f2d45;--acc:#58a6ff}}
+*{box-sizing:border-box}
+body{margin:0;font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);display:grid;grid-template-columns:190px 360px 1fr;height:100vh}
+.col{overflow:auto;border-right:1px solid var(--line)}
+h3{margin:10px 12px 6px;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.it{padding:7px 12px;border-bottom:1px solid var(--line);cursor:pointer}.it:hover,.it.on{background:var(--sel)}
+.mut{color:var(--mut);font-size:11.5px}.ok{color:var(--ok)}.wrong{color:var(--bad)}.abstain{color:var(--warn)}
+.b{display:inline-block;padding:0 6px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid currentColor;margin-right:4px}
+#d{padding:14px 18px;border:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+.card>summary{padding:8px 12px;cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card>summary::before{content:"▸";color:var(--mut)}.card[open]>summary::before{content:"▾"}
+.card>.body{padding:0 12px 10px}
+.ev{font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.04em}
+.ev.model{color:var(--acc)}.ev.execution{color:var(--ok)}.ev.observation{color:var(--warn)}
+pre{margin:4px 0;white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);border:1px solid var(--line);padding:8px 10px;border-radius:6px;max-height:600px;overflow:auto}
+pre code.hljs{padding:0;background:none}
+.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;align-items:start}
+.kv>.k{color:var(--mut);font-size:11.5px;font-weight:600;padding-top:2px}
+.kv>.v{min-width:0}
+.md>*:first-child{margin-top:0}.md>*:last-child{margin-bottom:0}.md p{margin:4px 0}.md ul,.md ol{margin:4px 0;padding-left:20px}
+.md code{background:var(--code);padding:0 4px;border-radius:3px;font-size:12px}
+ul.arr{margin:0;padding-left:18px}ul.arr>li{margin:2px 0}
+table.t{border-collapse:collapse;font-size:12px;margin:2px 0}table.t th,table.t td{border:1px solid var(--line);padding:3px 8px;text-align:left}
+table.t th{background:var(--code)}table.t td.n{text-align:right;font-variant-numeric:tabular-nums}
+.str{white-space:pre-wrap}.num{color:var(--acc);font-variant-numeric:tabular-nums}.nil{color:var(--mut);font-style:italic}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:12px}.ans>div>.mut{margin-bottom:2px}
+.qt{font-size:16px;font-weight:600;margin-bottom:8px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:5px;animation:p 1s infinite alternate}@keyframes p{to{opacity:.2}}
+select{margin:0 12px 6px;font-size:12px;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:4px}
+.inbtn{margin-left:auto;font-size:11px;color:var(--acc);cursor:pointer;border:1px solid var(--line);border-radius:4px;padding:0 6px}
+.inwrap{border-left:3px solid var(--acc);padding:4px 0 4px 10px;margin:4px 0 10px}
+details.sub{margin:4px 0}details.sub>summary{cursor:pointer;padding:2px 0}details.sub>div{padding:2px 0 4px 14px}
+.role{font-weight:700;text-transform:uppercase;font-size:11px;color:var(--acc)}
+.tool{float:right;font-size:11px}.tool a{color:var(--acc);cursor:pointer;margin-left:8px}
+</style></head><body>
+<div class="col"><h3>Runs</h3><div id="r"></div></div>
+<div class="col"><h3 id="rt">Questions</h3>
+<select id="flt"><option value="">tất cả</option><option>wrong</option><option>ok</option><option>abstain</option><option value="err">có lỗi</option></select>
+<div id="s" class="mut" style="padding:0 12px 8px"></div><div id="q"></div></div>
+<div class="col" id="d"><span class="mut">Chọn run → câu hỏi</span></div>
+<script>
+let R=null,Q=null,lastQ='';const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const get=u=>fetch(u).then(r=>r.json());
+if(window.marked)marked.use({gfm:true,breaks:true,renderer:{html:t=>esc(typeof t=='string'?t:t.text)}});
+
+// ---------- value renderer: JSON -> HTML, markdown inside strings, python code highlighted ----------
+const CODE_KEYS=new Set(['code','code_lines']),PRE_KEYS=new Set(['stdout','error','traceback','output']),RAW_KEYS=new Set(['rulebook_changes']);
+function hl(code){return window.hljs?`<pre><code class="hljs language-python">${hljs.highlight(code,{language:'python'}).value}</code></pre>`:`<pre>${esc(code)}</pre>`}
+function md(s){return window.marked?`<div class="md">${marked.parse(s)}</div>`:`<div class="str">${esc(s)}</div>`}
+const looksMd=s=>/(^|\n)\s*([-*]|\d+\.|#{1,4})\s|\*\*|`/.test(s);
+const isTable=v=>v&&typeof v=='object'&&Array.isArray(v.columns)&&Array.isArray(v.rows);
+function table(cols,rows){return `<table class="t"><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}</tr>${rows.map(r=>`<tr>${(Array.isArray(r)?r:[r]).map(c=>`<td class="${typeof c=='number'?'n':''}">${scalar(c)??esc(typeof c=='string'?c:JSON.stringify(c))}</td>`).join('')}</tr>`).join('')}</table>`}
+function scalar(v){if(v===null||v===undefined)return '<span class="nil">null</span>';if(typeof v=='number')return `<span class="num">${v.toLocaleString('en-US',{maximumFractionDigits:6})}</span>`;
+if(typeof v=='boolean')return `<span class="num">${v}</span>`;if(typeof v=='object'&&v.$date)return esc(v.$date);return null}
+function V(v,key=''){
+  const s=scalar(v);if(s!==null&&typeof v!='string')return s;
+  if(typeof v=='string'){
+    if(CODE_KEYS.has(key))return hl(v);
+    if(PRE_KEYS.has(key))return `<pre>${esc(v)}</pre>`;
+    if(RAW_KEYS.has(key))return `<span class="str">${esc(v)}</span>`;
+    if(v.includes('\n')||looksMd(v))return md(v);
+    return `<span class="str">${esc(v)}</span>`}
+  if(Array.isArray(v)){
+    if(CODE_KEYS.has(key)&&v.every(x=>typeof x=='string'))return hl(v.join('\n'));
+    if(!v.length)return '<span class="nil">[]</span>';
+    if(v.every(x=>Array.isArray(x)))return table(key=='all_values'&&v[0].length==2?['value','rows']:v[0].map((_,i)=>i),v);
+    if(v.every(x=>x===null||typeof x!='object')&&v.length<=40&&v.every(x=>String(x).length<60))return v.map(x=>scalar(x)??`<span class="str">${esc(x)}</span>`).join('<span class="mut"> · </span>');
+    return `<ul class="arr">${v.map(x=>`<li>${V(x,key)}</li>`).join('')}</ul>`}
+  if(isTable(v))return table(v.columns,v.rows);
+  const ks=Object.keys(v);if(!ks.length)return '<span class="nil">{}</span>';
+  return `<div class="kv">${ks.map(k=>`<div class="k">${esc(k)}</div><div class="v">${V(v[k],k)}</div>`).join('')}</div>`}
+
+// ---------- trace events ----------
+function parseJSON(t){try{return JSON.parse(t)}catch(e){return null}}
+function ev(e,i){
+  const t=e.event;let head=`<span class="ev ${t}">${t}</span><span class="mut">turn ${e.turn??'–'}</span>`,body='';
+  if(t=='model'){
+    head+=`<span class="mut">finish=${esc(e.finish)} · ${e.seconds}s · ${esc(e.usage?`${e.usage.prompt_tokens??'?'}→${e.usage.completion_tokens??'?'} tok`:'')}</span>`;
+    head+=`<a class="inbtn" onclick="event.preventDefault();event.stopPropagation();showInput(this,${e.turn})">⇢ input</a>`;
+    const a=parseJSON(e.output);
+    if(a){const {action,answer_type,diagnosis,plan,rules,code_lines,code,...rest}=a;
+      if(action)head+=`<span class="b">${esc(action)}</span>`;if(answer_type)head+=`<span class="b">${esc(answer_type)}</span>`;
+      body=V(Object.fromEntries(Object.entries({diagnosis,plan,rules,...rest,code:code_lines??code}).filter(([,x])=>x!==undefined)));
+    }else{const o=e.output||'',f=o.search(/```[ \t]*(?:python|py)?[ \t]*\n/i),txt=f<0?o:o.slice(0,f);
+      const tl=[...txt.matchAll(/^[ \t>*_#`-]*answer[ _]?type[ *_`]*:[ *_`"]*([a-z]+)/gim)];
+      if(tl.length){const kind=tl[tl.length-1][1];head+=`<span class="b">${f<0?'answer':'python'}</span><span class="b">${esc(kind)}</span>`;
+        const code=f<0?null:o.slice(f).replace(/^```[^\n]*\n/,'').replace(/\n?```[\s\S]*$/,'');
+        body=md(txt.replace(/^[ \t>*_#`-]*answer[ _]?type.*$/gim,'').trim())+(code!==null?hl(code):'');}
+      else body=`<div class="mut">output không đúng dạng</div><pre>${esc(o)}</pre>`;}
+    if(e.reasoning){head+=`<span class="b">thinking ${e.reasoning.length} ký tự</span>`;
+      body=`<details><summary class="mut">thinking (${e.reasoning.length} ký tự)</summary><pre>${esc(e.reasoning)}</pre></details>`+body;}
+  }else if(t=='execution'){
+    const failed=e.explore?!!e.failed:!e.ok;
+    head+=e.explore?(failed?'<span class="b wrong">explore · error</span>':'<span class="b ok">explore</span>')
+                   :(failed?'<span class="b wrong">error</span>':'<span class="b ok">ok</span>');
+    if(e.issues&&e.issues.length)head+=`<span class="abstain">⚠ ${esc(e.issues.join('; '))}</span>`;
+    body=V(Object.fromEntries(Object.entries({error:e.error,stdout:e.stdout||undefined,code:e.code}).filter(([,x])=>x!==undefined)));
+  }else if(t=='observation'){const o=e.observation||{};const bad=o.status=='error'||(o.status=='explored'&&o.error);
+    head+=`<span class="b ${bad?'wrong':o.status=='explored'?'ok':'abstain'}">${esc(o.status)}${o.status=='explored'&&o.error?' · error':''}</span>`;
+    const {status,...rest}=o;if(typeof rest.result=='string'){const r=parseJSON(rest.result);if(r!==null)rest.result=r}body=V(rest);
+  }else body=V(e);
+  const open=t!='execution'||(e.explore?!!e.failed:!e.ok)||!!(e.issues&&e.issues.length);
+  return `<details class="card" ${open?'open':''}><summary>${head}</summary><div class="body">${t=='model'?'<div class="input"></div>':''}${body}</div></details>`}
+
+// ---------- reconstructed model input ----------
+function sub(title,html,open){return `<details class="sub" ${open?'open':''}><summary>${title}</summary><div>${html}</div></details>`}
+function tagBlocks(t,depth){           // <tag attrs>\nbody\n</tag> blocks as collapsible parts (inner ones too)
+  const re=/<([a-z_]+)((?: [a-z_]+="[^"]*")*)>\n([\s\S]*?)\n<\/\1>/g;let out='',last=0,m;
+  while((m=re.exec(t))){if(m.index>last&&t.slice(last,m.index).trim())out+=`<pre>${esc(t.slice(last,m.index).trim())}</pre>`;
+    const inner=depth<1&&/^<[a-z_]+[ >]/m.test(m[3])?tagBlocks(m[3],depth+1):`<pre>${esc(m[3])}</pre>`;
+    out+=sub(`<b>&lt;${esc(m[1])}&gt;</b> <span class="mut">${esc(m[2])} · ${m[3].length.toLocaleString()} ký tự</span>`,inner,depth==0&&m[1]!='shop');last=re.lastIndex}
+  if(t.slice(last).trim())out+=`<pre>${esc(t.slice(last).trim())}</pre>`;return out}
+function renderMsg(m,i,n){
+  if(m.role=='system')return sub('<span class="role">system</span> <span class="mut">prompt.md</span>',tagBlocks(m.content,1),false);
+  if(m.role=='user'&&/^<[a-z_]+/.test(m.content))return sub(`<span class="role">user</span> <span class="mut">#${i} · ${m.content.length.toLocaleString()} ký tự</span>`,tagBlocks(m.content,0),i==n-1||i==1);
+  if(m.role=='assistant')return sub(`<span class="role">assistant</span> <span class="mut">#${i}</span>`,`<pre>${esc(m.content)}</pre>`,i==n-1);
+  const o=parseJSON(m.content);let html;
+  if(o&&o.catalog){const {catalog,...rest}=o;const {documents,...cat}=catalog;
+    html=V(rest)+sub('<b>documents</b> <span class="mut">README, rulebook</span>',(documents||[]).map(d=>sub(esc(d.name),md(d.text||''),false)).join(''),false)
+      +sub('<b>catalog</b> <span class="mut">schemas…</span>',V(cat),false);}
+  else html=o?V(o):`<pre>${esc(m.content)}</pre>`;
+  return sub(`<span class="role">${m.role}</span> <span class="mut">#${i} · ${m.content.length.toLocaleString()} ký tự</span>`,html,i==n-1||(m.role=='user'&&i==1));
+}
+async function showInput(a,turn){
+  const box=a.closest('details').querySelector('.input');a.closest('details').open=true;
+  if(box.innerHTML){box.innerHTML='';return}
+  box.innerHTML='<span class="mut">đang dựng input…</span>';
+  const d=await get(`/api/input?run=${encodeURIComponent(R)}&id=${encodeURIComponent(Q)}&turn=${turn}`);
+  if(d.error){box.innerHTML=`<pre class="wrong">${esc(d.error)}</pre>`;return}
+  const n=d.messages.length;
+  box.innerHTML=`<div class="inwrap"><div class="mut">Input lượt ${turn}: ${n} message, dựng lại từ trace với code hiện tại; system prompt là bản lượt chạy đã lưu</div>${d.messages.map((m,i)=>renderMsg(m,i,n)).join('')}</div>`}
+
+// ---------- panes ----------
+async function loadRuns(){const rs=await get('/api/runs');$('r').innerHTML=rs.map(x=>`<div class="it ${x.name==R?'on':''}" onclick="pickRun('${esc(x.name)}')">
+${x.running?'<span class="dot"></span>':''}<b>${esc(x.name)}</b><div class="mut">${x.done} câu${x.score?` · PA <b>${x.score.pa}</b><br><span class="ok">✓${x.score.correct}</span> <span class="wrong">✗${x.score.wrong}</span> <span class="abstain">∅${x.score.abstain}</span>`:x.running?' · đang chạy':''}</div></div>`).join('')}
+function pickRun(n){R=n;Q=null;lastQ='';location.hash=n;loadRuns();loadRun();$('d').innerHTML='<span class="mut">Chọn câu hỏi</span>'}
+async function loadRun(){if(!R)return;const d=await get('/api/run?name='+encodeURIComponent(R));$('rt').textContent=R;
+  const s=d.summary,h=s&&s.health;
+  $('s').innerHTML=s?`${s.n} câu · ${s.seconds}s${s.score?` · PA <b>${s.score.pa}</b>`:''}${h?`<br>calls ${h.calls} · lỗi ${h.failed_programs} · cut ${h.cut} · ${esc(Object.entries(h.reasons||{}).map(([k,v])=>k+' '+v).join(', '))}`:''}`:`<span class="dot"></span>đang chạy… ${d.rows.length} câu xong`;
+  const f=$('flt').value;
+  $('q').innerHTML=d.rows.filter(x=>!f||(f=='err'?x.errors:x.mark==f)).map(x=>`<div class="it ${x.id==Q?'on':''}" onclick="pickQ('${esc(x.id)}')">
+${x.mark?`<span class="b ${x.mark}">${x.mark}</span>`:''}<span class="mut">${esc(x.reason)} · ${x.calls} call · ${x.seconds}s${x.errors?` · <span class="wrong">${x.errors} lỗi</span>`:''}</span>
+<div>${esc(x.question)}</div><div class="mut">${esc(x.type)}: ${esc(JSON.stringify(x.answer)).slice(0,110)}</div></div>`).join('')}
+function pickQ(id){Q=id;lastQ='';location.hash=R+'/'+id;loadRun();loadQ()}
+function setAll(open){document.querySelectorAll('#d details').forEach(d=>d.open=open)}
+async function loadQ(){if(!R||!Q)return;const d=await get(`/api/q?run=${encodeURIComponent(R)}&id=${encodeURIComponent(Q)}`);
+  const k=JSON.stringify(d);if(k==lastQ)return;lastQ=k;const l=d.log||{},q=d.q||{},g=d.gold;
+  $('d').innerHTML=`<div class="card"><div class="body" style="padding-top:10px">
+<span class="tool"><a onclick="setAll(true)">mở hết</a><a onclick="setAll(false)">đóng hết</a></span>
+<div class="qt">${esc(q.question)}</div>
+<div class="mut" style="margin-bottom:8px">${esc(Q)} · ${esc(q.business_id)} · as_of ${esc(q.as_of_date)} · ${d.mark?`<span class="b ${d.mark}">${d.mark}</span>`:''}${esc(l.reason)} · ${l.calls} call · ${l.seconds}s</div>
+<div class="ans"><div><div class="mut">trả lời · <b>${esc(l.type)}</b></div>${V(l.answer)}</div>
+${g?`<div><div class="mut">đáp án · <b>${esc(g.type)}</b>${g.alias&&g.alias.length?' · alias '+esc(JSON.stringify(g.alias)):''}</div>${V(g.answer)}</div>`:''}</div>
+</div></div>`+(l.trace||[]).map(ev).join('')}
+$('flt').onchange=loadRun;
+const st=location.hash.slice(1).split('/');if(st[0])R=decodeURIComponent(st[0]);if(st[1])Q=decodeURIComponent(st[1]);
+loadRuns();loadRun();loadQ();setInterval(()=>{loadRuns();loadRun();loadQ()},2000);
+</script></body></html>

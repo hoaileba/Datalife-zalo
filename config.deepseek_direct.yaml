@@ -1,0 +1,28 @@
+# Dev / teacher config: DeepSeek v4.1 flash via the DeepSeek API directly, thinking on (logged as trace "reasoning").
+# Submission uses config.yaml. Needs DEEKSEEK_API_KEY (.env) and DEEPSEEK_BASE_URL=https://api.deepseek.com.
+llm:
+  model: deepseek-flash
+  base_url_env: DEEPSEEK_BASE_URL
+  api_key_env: DEEKSEEK_API_KEY
+  max_tokens: 32768
+  seed: 0
+  temperature: 0
+  timeout_seconds: 400
+  retries: 2
+  max_concurrency: 8
+  max_comment_lines: 40                # comments are harmless; only a flood of them is stopped
+  extra_body:
+    thinking:
+      type: enabled
+agent:
+  max_calls: 3                     # program, then up to two repairs or a confirmation (user, 11/11)
+  question_seconds: 900
+sandbox:
+  memory_gib: 4
+  cpu_seconds: 60
+  wall_seconds: 30
+run:
+  workers: 8
+  total_seconds: 20700
+  cache_dir: outputs/cache
+  dev_limit: 6

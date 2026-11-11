@@ -1,0 +1,189 @@
+# Industries absent from the train shops (the private test has new business types). Hand-written, plausible
+# Vietnamese retail items. unit = base unit; units = [larger unit, base units in it]; kind made = prepared on the spot.
+cosmetics:
+  meta: {shop_word: cửa hàng, label: mỹ phẩm, tet: 1.6, orders: [25, 70], lines: 1.6}
+  items:
+    - {name: Sữa rửa mặt Cetaphil 125ml, group: chăm sóc da, unit: chai, price: 215000}
+    - {name: Sữa rửa mặt Senka Perfect Whip 120g, group: chăm sóc da, unit: tuýp, price: 89000}
+    - {name: Nước tẩy trang Bioderma 500ml, group: chăm sóc da, unit: chai, price: 435000}
+    - {name: Nước tẩy trang Garnier Micellar 400ml, group: chăm sóc da, unit: chai, price: 159000}
+    - {name: Kem chống nắng Anessa 60ml, group: chống nắng, unit: chai, price: 545000}
+    - {name: Kem chống nắng La Roche-Posay Anthelios 50ml, group: chống nắng, unit: tuýp, price: 465000}
+    - {name: Kem chống nắng Sunplay Skin Aqua 25g, group: chống nắng, unit: tuýp, price: 98000}
+    - {name: Toner Klairs không mùi 180ml, group: chăm sóc da, unit: chai, price: 310000}
+    - {name: Serum Vitamin C Melano CC 20ml, group: serum, unit: chai, price: 255000}
+    - {name: Serum The Ordinary Niacinamide 30ml, group: serum, unit: chai, price: 290000}
+    - {name: Kem dưỡng ẩm Neutrogena Hydro Boost 50g, group: chăm sóc da, unit: hũ, price: 385000}
+    - {name: Mặt nạ giấy Mediheal Tea Tree, group: mặt nạ, unit: miếng, price: 25000, units: [[hộp, 10]]}
+    - {name: Mặt nạ giấy Innisfree trà xanh, group: mặt nạ, unit: miếng, price: 22000, units: [[hộp, 10]]}
+    - {name: Son kem 3CE Velvet Lip Tint, group: trang điểm, unit: cây, price: 320000}
+    - {name: Son dưỡng DHC Lip Cream 1.5g, group: trang điểm, unit: cây, price: 125000}
+    - {name: Phấn phủ Innisfree No Sebum 5g, group: trang điểm, unit: hộp, price: 175000}
+    - {name: Kem nền Maybelline Fit Me 30ml, group: trang điểm, unit: chai, price: 235000}
+    - {name: Mascara Maybelline Hypercurl, group: trang điểm, unit: cây, price: 165000}
+    - {name: Dầu gội TRESemmé 640g, group: chăm sóc tóc, unit: chai, price: 165000, units: [[thùng, 12]]}
+    - {name: Dầu xả Pantene 300ml, group: chăm sóc tóc, unit: chai, price: 95000, units: [[thùng, 12]]}
+    - {name: Sữa tắm Dove 900g, group: chăm sóc cơ thể, unit: chai, price: 185000, units: [[thùng, 8]]}
+    - {name: Lăn khử mùi Nivea 50ml, group: chăm sóc cơ thể, unit: chai, price: 72000}
+    - {name: Bông tẩy trang Ipek 150 miếng, group: phụ kiện, unit: gói, price: 35000, units: [[thùng, 40]]}
+    - {name: Nước hoa hồng Thayers 355ml, group: chăm sóc da, unit: chai, price: 279000}
+    - {name: Tẩy tế bào chết Cocoon cà phê 200ml, group: chăm sóc cơ thể, unit: hũ, price: 145000}
+    - {name: Gel trị mụn Some By Mi 50ml, group: serum, unit: tuýp, price: 199000}
+mother_baby:
+  meta: {shop_word: cửa hàng, label: mẹ và bé, tet: 1.4, orders: [30, 80], lines: 2.0}
+  items:
+    - {name: Sữa Meiji số 0 800g, group: sữa bột, unit: lon, price: 520000, units: [[thùng, 8]]}
+    - {name: Sữa Aptamil Úc số 1 900g, group: sữa bột, unit: lon, price: 610000, units: [[thùng, 6]]}
+    - {name: Sữa Similac IQ số 2 900g, group: sữa bột, unit: lon, price: 495000, units: [[thùng, 6]]}
+    - {name: Sữa Friso Gold số 3 850g, group: sữa bột, unit: lon, price: 455000, units: [[thùng, 6]]}
+    - {name: Sữa Vinamilk Optimum Gold 4 850g, group: sữa bột, unit: lon, price: 325000, units: [[thùng, 12]]}
+    - {name: Sữa nước Kun 180ml, group: sữa nước, unit: hộp, price: 7500, units: [[lốc, 4], [thùng, 48]]}
+    - {name: Sữa Pediasure 237ml, group: sữa nước, unit: chai, price: 52000, units: [[lốc, 6], [thùng, 24]]}
+    - {name: Tã quần Bobby size M 76 miếng, group: bỉm tã, unit: bịch, price: 335000, units: [[thùng, 3]]}
+    - {name: Tã quần Huggies size L 68 miếng, group: bỉm tã, unit: bịch, price: 349000, units: [[thùng, 3]]}
+    - {name: Tã dán Merries size S 82 miếng, group: bỉm tã, unit: bịch, price: 399000, units: [[thùng, 4]]}
+    - {name: Tã quần Moony size XL 38 miếng, group: bỉm tã, unit: bịch, price: 375000, units: [[thùng, 4]]}
+    - {name: Khăn ướt Bobby không mùi 100 tờ, group: vệ sinh, unit: gói, price: 32000, units: [[thùng, 24]]}
+    - {name: Khăn sữa cotton Mipbi, group: vệ sinh, unit: cái, price: 18000, units: [[gói, 10]]}
+    - {name: Bình sữa Pigeon 160ml, group: đồ dùng, unit: cái, price: 185000}
+    - {name: Núm ti Comotomo size M, group: đồ dùng, unit: cái, price: 160000, units: [[hộp, 2]]}
+    - {name: Bột ăn dặm Ridielac gạo sữa 200g, group: ăn dặm, unit: hộp, price: 52000, units: [[thùng, 24]]}
+    - {name: Cháo tươi Cây Thị gà ác 240g, group: ăn dặm, unit: gói, price: 29000, units: [[thùng, 30]]}
+    - {name: Bánh ăn dặm Gerber 42g, group: ăn dặm, unit: hộp, price: 68000}
+    - {name: Sữa tắm gội Lactacyd Baby 250ml, group: vệ sinh, unit: chai, price: 98000}
+    - {name: Phấn rôm Johnson's Baby 200g, group: vệ sinh, unit: hộp, price: 55000}
+    - {name: Nước giặt Dnee 3000ml, group: vệ sinh, unit: can, price: 255000, units: [[thùng, 4]]}
+    - {name: Áo sơ sinh cotton cài lệch, group: quần áo, unit: cái, price: 45000}
+    - {name: Body suit bé trai Nous, group: quần áo, unit: bộ, price: 239000}
+    - {name: Yếm ăn silicon, group: đồ dùng, unit: cái, price: 65000}
+    - {name: Vitamin D3 BioGaia 5ml, group: dinh dưỡng, unit: lọ, price: 285000}
+    - {name: Siro Fitobimbi Ferro C 200ml, group: dinh dưỡng, unit: chai, price: 245000}
+stationery:
+  meta: {shop_word: cửa hàng, label: văn phòng phẩm, tet: 0.6, orders: [40, 110], lines: 2.4}
+  items:
+    - {name: Bút bi Thiên Long TL-027, group: bút viết, unit: cây, price: 4000, units: [[hộp, 20]]}
+    - {name: Bút bi Bến Nghé B26, group: bút viết, unit: cây, price: 3500, units: [[hộp, 20]]}
+    - {name: Bút gel Thiên Long GEL-08, group: bút viết, unit: cây, price: 6000, units: [[hộp, 20]]}
+    - {name: Bút chì 2B Steadtler, group: bút viết, unit: cây, price: 7000, units: [[hộp, 12]]}
+    - {name: Bút dạ quang Stabilo Boss, group: bút viết, unit: cây, price: 18000, units: [[hộp, 10]]}
+    - {name: Bút lông bảng Thiên Long WB-03, group: bút viết, unit: cây, price: 9000, units: [[hộp, 10]]}
+    - {name: Vở Campus 120 trang, group: giấy vở, unit: quyển, price: 15000, units: [[lốc, 10]]}
+    - {name: Vở Hồng Hà 96 trang, group: giấy vở, unit: quyển, price: 9500, units: [[lốc, 10]]}
+    - {name: Giấy A4 Double A 70gsm, group: giấy vở, unit: ram, price: 82000, units: [[thùng, 5]]}
+    - {name: Giấy A4 IK Plus 70gsm, group: giấy vở, unit: ram, price: 72000, units: [[thùng, 5]]}
+    - {name: Giấy note 3x3 Pronoti, group: giấy vở, unit: xấp, price: 9000}
+    - {name: Bìa còng 7cm Kingjim, group: lưu trữ, unit: cái, price: 58000}
+    - {name: Bìa lá A4 Plus, group: lưu trữ, unit: cái, price: 3000, units: [[xấp, 12]]}
+    - {name: Kẹp giấy 32mm, group: dụng cụ, unit: hộp, price: 12000}
+    - {name: Ghim bấm số 10 Plus, group: dụng cụ, unit: hộp, price: 6000, units: [[lốc, 20]]}
+    - {name: Dập ghim Deli 0.5mm, group: dụng cụ, unit: cái, price: 48000}
+    - {name: Kéo văn phòng Deli 17.5cm, group: dụng cụ, unit: cái, price: 25000}
+    - {name: Băng keo trong 5cm, group: dụng cụ, unit: cuộn, price: 15000, units: [[cây, 6]]}
+    - {name: Thước kẻ 30cm, group: dụng cụ, unit: cây, price: 6000}
+    - {name: Gôm tẩy Pentel, group: dụng cụ, unit: cục, price: 5000, units: [[hộp, 20]]}
+    - {name: Hồ dán Thiên Long G-08, group: dụng cụ, unit: chai, price: 5000, units: [[hộp, 12]]}
+    - {name: Máy tính Casio FX-580VN X, group: thiết bị, unit: cái, price: 715000}
+    - {name: Mực in Canon 2900 tương thích, group: thiết bị, unit: hộp, price: 320000}
+    - {name: Bút xóa Thiên Long CP-02, group: bút viết, unit: cây, price: 15000, units: [[hộp, 12]]}
+    - {name: Sổ da A5 Klong, group: giấy vở, unit: quyển, price: 65000}
+    - {name: Bảng trắng mini 30x40, group: thiết bị, unit: cái, price: 85000}
+bakery:
+  meta: {shop_word: tiệm, label: tiệm bánh, tet: 0.9, orders: [60, 160], lines: 1.9}
+  items:
+    - {name: Bánh mì thịt, group: bánh mì, unit: ổ, price: 25000, kind: made}
+    - {name: Bánh mì chà bông, group: bánh mì, unit: ổ, price: 20000, kind: made}
+    - {name: Bánh mì bơ tỏi, group: bánh mì, unit: ổ, price: 18000, kind: made}
+    - {name: Bánh mì sandwich, group: bánh mì, unit: ổ, price: 30000, kind: made}
+    - {name: Bánh bông lan trứng muối, group: bánh ngọt, unit: hộp, price: 85000, kind: made}
+    - {name: Bánh su kem, group: bánh ngọt, unit: cái, price: 8000, kind: made, units: [[hộp, 10]]}
+    - {name: Bánh tiramisu ly, group: bánh ngọt, unit: ly, price: 35000, kind: made}
+    - {name: Bánh flan, group: bánh ngọt, unit: hũ, price: 12000, kind: made}
+    - {name: Bánh croissant bơ, group: bánh ngọt, unit: cái, price: 28000, kind: made, units: [[hộp, 6]]}
+    - {name: Bánh tart trứng, group: bánh ngọt, unit: cái, price: 15000, kind: made, units: [[hộp, 6]]}
+    - {name: Bánh kem sinh nhật 16cm, group: bánh kem, unit: cái, price: 250000, kind: made}
+    - {name: Bánh kem sinh nhật 20cm, group: bánh kem, unit: cái, price: 350000, kind: made}
+    - {name: Bánh kem bắp, group: bánh kem, unit: cái, price: 180000, kind: made}
+    - {name: Bánh pía đậu xanh sầu riêng, group: bánh truyền thống, unit: cái, price: 22000, units: [[hộp, 4]]}
+    - {name: Bánh trung thu nhân thập cẩm 150g, group: bánh truyền thống, unit: cái, price: 65000, units: [[hộp, 4]]}
+    - {name: Bánh trung thu đậu xanh 150g, group: bánh truyền thống, unit: cái, price: 55000, units: [[hộp, 4]]}
+    - {name: Bánh quy bơ hộp thiếc, group: bánh khô, unit: hộp, price: 120000}
+    - {name: Bánh mì hoa cúc Pháp, group: bánh khô, unit: cái, price: 95000}
+    - {name: Cà phê sữa đá, group: đồ uống, unit: ly, price: 20000, kind: made}
+    - {name: Trà đào, group: đồ uống, unit: ly, price: 30000, kind: made}
+    - {name: Sữa tươi Vinamilk 180ml, group: đồ uống, unit: hộp, price: 9000, units: [[lốc, 4], [thùng, 48]]}
+    - {name: Nước suối Aquafina 500ml, group: đồ uống, unit: chai, price: 7000, units: [[thùng, 24]]}
+motorbike_repair:
+  meta: {shop_word: tiệm, label: sửa xe máy, tet: 0.7, orders: [15, 45], lines: 2.2}
+  items:
+    - {name: Nhớt Castrol Power1 0.8L, group: dầu nhớt, unit: chai, price: 115000, units: [[thùng, 24]]}
+    - {name: Nhớt Motul 3000 Plus 0.8L, group: dầu nhớt, unit: chai, price: 105000, units: [[thùng, 20]]}
+    - {name: Nhớt Shell Advance AX7 1L, group: dầu nhớt, unit: chai, price: 135000, units: [[thùng, 12]]}
+    - {name: Nhớt hộp số Honda 120ml, group: dầu nhớt, unit: chai, price: 35000, units: [[thùng, 48]]}
+    - {name: Bugi NGK CPR6EA-9, group: phụ tùng, unit: cái, price: 55000, units: [[hộp, 10]]}
+    - {name: Má phanh trước Vision, group: phụ tùng, unit: bộ, price: 95000}
+    - {name: Má phanh sau Wave, group: phụ tùng, unit: bộ, price: 60000}
+    - {name: Lốp Michelin 80/90-14, group: lốp xe, unit: cái, price: 520000}
+    - {name: Lốp IRC 70/90-17, group: lốp xe, unit: cái, price: 340000}
+    - {name: Săm Casumina 2.25-17, group: lốp xe, unit: cái, price: 75000}
+    - {name: Ắc quy GS 12V-5Ah, group: phụ tùng, unit: bình, price: 420000}
+    - {name: Ắc quy Đồng Nai 12V-3Ah, group: phụ tùng, unit: bình, price: 290000}
+    - {name: Lọc gió Air Blade, group: phụ tùng, unit: cái, price: 120000}
+    - {name: Sên cam Wave Alpha, group: phụ tùng, unit: sợi, price: 110000}
+    - {name: Bộ nhông sên dĩa DID Exciter, group: phụ tùng, unit: bộ, price: 650000}
+    - {name: Bóng đèn pha LED H4, group: điện, unit: cái, price: 180000}
+    - {name: Dung dịch làm mát Honda 1L, group: dầu nhớt, unit: chai, price: 85000, units: [[thùng, 12]]}
+    - {name: Vệ sinh kim phun, group: dịch vụ, unit: lần, price: 150000, kind: made}
+    - {name: Công thay nhớt, group: dịch vụ, unit: lần, price: 20000, kind: made}
+    - {name: Rửa xe, group: dịch vụ, unit: lần, price: 30000, kind: made}
+    - {name: Vá săm, group: dịch vụ, unit: lần, price: 25000, kind: made}
+    - {name: Bảo dưỡng tổng quát, group: dịch vụ, unit: lần, price: 250000, kind: made}
+    - {name: Thay má phanh công thợ, group: dịch vụ, unit: lần, price: 40000, kind: made}
+    - {name: Xích chống trộm khóa đĩa, group: phụ kiện, unit: cái, price: 150000}
+pet_shop:
+  meta: {shop_word: cửa hàng, label: thú cưng, tet: 1.2, orders: [20, 60], lines: 1.8}
+  items:
+    - {name: Hạt Royal Canin Mini Adult 2kg, group: thức ăn chó, unit: túi, price: 395000}
+    - {name: Hạt SmartHeart chó lớn 3kg, group: thức ăn chó, unit: túi, price: 235000}
+    - {name: Hạt Ganador vị cừu 1.5kg, group: thức ăn chó, unit: túi, price: 145000, units: [[bao, 10]]}
+    - {name: Pate Pedigree vị bò 130g, group: thức ăn chó, unit: gói, price: 22000, units: [[hộp, 12]]}
+    - {name: Hạt Me-O vị cá ngừ 1.2kg, group: thức ăn mèo, unit: túi, price: 125000, units: [[bao, 10]]}
+    - {name: Hạt Catsrang 5kg, group: thức ăn mèo, unit: túi, price: 420000}
+    - {name: Pate Whiskas cá thu 85g, group: thức ăn mèo, unit: gói, price: 15000, units: [[hộp, 24]]}
+    - {name: Súp thưởng Ciao Churu 14g, group: thức ăn mèo, unit: thanh, price: 9000, units: [[gói, 4]]}
+    - {name: Cát vệ sinh Nhật 8L, group: vệ sinh, unit: túi, price: 95000, units: [[thùng, 4]]}
+    - {name: Cát đậu nành Cature 6L, group: vệ sinh, unit: túi, price: 135000, units: [[thùng, 4]]}
+    - {name: Sữa tắm SOS cho chó 530ml, group: vệ sinh, unit: chai, price: 120000}
+    - {name: Tã lót chuồng 60x60 50 miếng, group: vệ sinh, unit: bịch, price: 175000}
+    - {name: Vòng cổ chống ve Bayer, group: phụ kiện, unit: cái, price: 210000}
+    - {name: Dây dắt chó 1.2m, group: phụ kiện, unit: cái, price: 65000}
+    - {name: Bát ăn inox đôi, group: phụ kiện, unit: cái, price: 85000}
+    - {name: Đồ chơi xương gặm, group: phụ kiện, unit: cái, price: 35000}
+    - {name: Nhỏ gáy trị ve Frontline Plus, group: thuốc thú y, unit: tuýp, price: 160000, units: [[hộp, 3]]}
+    - {name: Thuốc tẩy giun Drontal, group: thuốc thú y, unit: viên, price: 45000, units: [[vỉ, 2]]}
+    - {name: Tắm sấy chó nhỏ, group: dịch vụ, unit: lần, price: 120000, kind: made}
+    - {name: Cắt tỉa lông, group: dịch vụ, unit: lần, price: 200000, kind: made}
+    - {name: Gửi giữ thú cưng, group: dịch vụ, unit: ngày, price: 100000, kind: made}
+    - {name: Vệ sinh tai móng, group: dịch vụ, unit: lần, price: 60000, kind: made}
+agri_supply:
+  meta: {shop_word: cửa hàng, label: vật tư nông nghiệp, tet: 0.5, orders: [12, 40], lines: 2.0}
+  items:
+    - {name: Phân Urê Phú Mỹ, group: phân bón, unit: kg, price: 14000, units: [[bao 50kg, 50]]}
+    - {name: Phân NPK Đầu Trâu 20-20-15, group: phân bón, unit: kg, price: 19000, units: [[bao 50kg, 50]]}
+    - {name: Phân DAP Đình Vũ, group: phân bón, unit: kg, price: 21000, units: [[bao 50kg, 50]]}
+    - {name: Phân Kali Canada, group: phân bón, unit: kg, price: 13000, units: [[bao 50kg, 50]]}
+    - {name: Phân hữu cơ Sông Gianh, group: phân bón, unit: kg, price: 5000, units: [[bao 25kg, 25]]}
+    - {name: Vôi bột nông nghiệp, group: phân bón, unit: kg, price: 3000, units: [[bao 25kg, 25]]}
+    - {name: Thuốc trừ sâu Regent 800WG, group: thuốc BVTV, unit: gói, price: 18000, units: [[hộp, 20]]}
+    - {name: Thuốc cỏ Gramoxone 1L, group: thuốc BVTV, unit: chai, price: 145000, units: [[thùng, 20]]}
+    - {name: Thuốc trừ bệnh Anvil 5SC 1L, group: thuốc BVTV, unit: chai, price: 165000, units: [[thùng, 20]]}
+    - {name: Thuốc trừ ốc Bosago 6.5GR, group: thuốc BVTV, unit: gói, price: 25000, units: [[bao, 40]]}
+    - {name: Lúa giống OM5451, group: giống, unit: kg, price: 22000, units: [[bao 40kg, 40]]}
+    - {name: Lúa giống ST25, group: giống, unit: kg, price: 35000, units: [[bao 40kg, 40]]}
+    - {name: Hạt giống rau muống, group: giống, unit: gói, price: 10000, units: [[hộp, 50]]}
+    - {name: Hạt bắp lai NK7328, group: giống, unit: kg, price: 155000, units: [[bao 10kg, 10]]}
+    - {name: Bình xịt điện 16L, group: dụng cụ, unit: cái, price: 650000}
+    - {name: Ống nước mềm phi 27, group: dụng cụ, unit: m, price: 9000, units: [[cuộn 50m, 50]]}
+    - {name: Màng phủ nông nghiệp 1.2m, group: dụng cụ, unit: m, price: 4500, units: [[cuộn 400m, 400]]}
+    - {name: Cuốc bàn cán gỗ, group: dụng cụ, unit: cái, price: 120000}
+    - {name: Lưới che nắng 70%, group: dụng cụ, unit: m, price: 12000, units: [[cuộn 100m, 100]]}
+    - {name: Chế phẩm Trichoderma 1kg, group: thuốc BVTV, unit: gói, price: 45000, units: [[thùng, 20]]}

@@ -1,0 +1,32 @@
+# Dev / teacher config: DeepSeek v4.1 flash via OpenRouter (DeepInfra), json_schema enforced, reasoning on (logged as
+# trace "reasoning"). Submission uses config.yaml. Needs OPENROUTER_API_KEY (.env) and OPENROUTER_BASE_URL.
+llm:
+  model: deepseek/deepseek-v4.1-flash-1017
+  base_url_env: OPENROUTER_BASE_URL
+  api_key_env: OPENROUTER_API_KEY
+  max_tokens: 32768
+  seed: 0
+  temperature: 0
+  timeout_seconds: 400
+  retries: 2
+  max_concurrency: 8
+  max_comment_lines: 40                # comments are harmless; only a flood of them is stopped
+  extra_body:
+    provider:
+      order:
+      - DeepInfra
+      allow_fallbacks: false
+    reasoning:
+      enabled: true
+agent:
+  max_calls: 3                     # program, then up to two repairs or a confirmation (user, 11/11)
+  question_seconds: 900
+sandbox:
+  memory_gib: 4
+  cpu_seconds: 60
+  wall_seconds: 30
+run:
+  workers: 8
+  total_seconds: 20700
+  cache_dir: outputs/cache
+  dev_limit: 6

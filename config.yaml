@@ -1,0 +1,25 @@
+# DataMate v4: the only configuration file. Constants that never change live in code.
+llm:
+  model: gemma-12b                 # served by vLLM (google/gemma-4-12B-it)
+  base_url_env: VLLM_BASE_URL
+  api_key_env: VLLM_API_KEY
+  max_tokens: 3072                 # text format with free reasoning (11/11); 2048 was set for JSON code_lines
+  seed: 0                          # fixed seed, thinking off
+  temperature: 0                   # 0.2 + penalty 1.2 tried 10/11: train20 PA 0.2 -> 0.15
+  timeout_seconds: 180
+  retries: 2
+  max_concurrency: 2               # gateway limit: at most two questions at once
+  max_comment_lines: 40                # comments are harmless; only a flood of them is stopped
+  extra_body: {repetition_penalty: 1.05}   # 1.2 also penalizes prompt tokens (column, dm.* names)
+agent:
+  max_calls: 3                     # program, then up to two repairs or a confirmation (user, 11/11)
+  question_seconds: 150
+sandbox:
+  memory_gib: 4
+  cpu_seconds: 60
+  wall_seconds: 30
+run:
+  workers: 2
+  total_seconds: 20700             # 5 h 45 min of the 6 h limit; the rest abstains
+  cache_dir: outputs/cache
+  dev_limit: 6                     # dev runs: at most 6 questions unless --allow-large
