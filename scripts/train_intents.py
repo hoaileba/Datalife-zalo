@@ -3,8 +3,10 @@
 python scripts/train_intents.py > data_gen/train_intents.jsonl   (run from the repo root; train data only)
 """
 import json,collections,re,unicodedata,sys
-Q=[json.loads(l) for l in open('data/train/questions.jsonl', encoding='utf-8')]
-A={json.loads(l)['id']:json.loads(l) for l in open('data/train/answers.jsonl', encoding='utf-8')}
+from pathlib import Path
+TRAIN = Path(__file__).resolve().parents[1] / 'data' / 'train'      # any working directory (gen.package imports this)
+Q=[json.loads(l) for l in open(TRAIN / 'questions.jsonl', encoding='utf-8')]
+A={json.loads(l)['id']:json.loads(l) for l in open(TRAIN / 'answers.jsonl', encoding='utf-8')}
 def fold(s):
     s=unicodedata.normalize('NFD',s.lower()).replace('đ','d')
     s=''.join(c for c in s if unicodedata.category(c)!='Mn')

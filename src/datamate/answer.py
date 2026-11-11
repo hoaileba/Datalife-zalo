@@ -17,6 +17,7 @@ COMPUTED = ('number', 'percent', 'string', 'date', 'boolean', 'list', 'table')
 SCALARS = ('number', 'percent', 'string', 'date', 'boolean')
 PLACES = 2                                   # floats are quantized half-up to 2 places; ints stay exact
 PERCENT_WORDS = re.compile(r'\b(phan tram|ti le|ty le)\b')
+PERCENT_IN_NAME = re.compile(r'\d+(?:[.,]\d+)?\s*%')
 
 
 class AnswerError(Exception):
@@ -153,7 +154,8 @@ def issues(answer_type, answer, question):
                          'the object (first), the others are the asked measures; drop the extra code/name column')
     if any(isinstance(c, str) and NUMBER_TEXT.fullmatch(c.strip()) for c in cells):
         found.append('a value is a number written as text: give numbers as numbers')
-    if ('%' in question or PERCENT_WORDS.search(norm(question))) and answer_type != 'percent':
+    asked = PERCENT_IN_NAME.sub(' ', question)      # "Povidine 10%", "giảm hơn 5%": a number with %, not the asked unit
+    if ('%' in asked or PERCENT_WORDS.search(norm(asked))) and answer_type != 'percent':
         found.append(f'the question asks for a percentage but the Answer type is {answer_type}')
     return found
 

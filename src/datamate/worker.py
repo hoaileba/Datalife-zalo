@@ -159,7 +159,10 @@ def run(request):
 
 def _limit(memory_bytes, cpu_seconds, file_bytes):
     """Resource limits set by the worker itself, first thing (no preexec_fn while the host runs threads)."""
-    import resource
+    try:
+        import resource
+    except ImportError:                             # Windows dev: no rlimits, the host timeout still applies
+        return
     resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
     resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds + 1))
     resource.setrlimit(resource.RLIMIT_FSIZE, (file_bytes, file_bytes))

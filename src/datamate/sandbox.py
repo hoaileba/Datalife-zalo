@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import os
-import resource
 import subprocess
 import sys
 import tempfile
@@ -54,13 +53,15 @@ def execute(code: str, tables_path: Path, as_of: str, limits: Limits | None = No
            'PYTHONHASHSEED': '0', 'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}
     with tempfile.TemporaryDirectory(prefix='dm4-run-') as cwd:
         env['HOME'] = env['TMPDIR'] = cwd
+        if os.name == 'nt':                         # Windows dev: Python needs SYSTEMROOT, temp dirs read TEMP/TMP
+            env.update(SYSTEMROOT=os.environ.get('SYSTEMROOT', 'C:\\Windows'), TEMP=cwd, TMP=cwd)
         proc = subprocess.Popen([sys.executable, '-m', 'datamate.worker'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, cwd=cwd, env=env, start_new_session=True)   # limits: worker.main
         try:
             out, err = proc.communicate(request.encode(), timeout=limits.wall_seconds)
         except subprocess.TimeoutExpired:
             try:
-                os.killpg(proc.pid, 9)
+                os.killpg(proc.pid, 9) if hasattr(os, "killpg") else proc.kill()   # Windows dev: no process groups
             except ProcessLookupError:
                 pass
             proc.communicate()

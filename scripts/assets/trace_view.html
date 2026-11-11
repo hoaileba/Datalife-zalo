@@ -138,20 +138,36 @@ async function showInput(a,turn){
   const d=await get(`/api/input?run=${encodeURIComponent(R)}&id=${encodeURIComponent(Q)}&turn=${turn}`);
   if(d.error){box.innerHTML=`<pre class="wrong">${esc(d.error)}</pre>`;return}
   const n=d.messages.length;
-  box.innerHTML=`<div class="inwrap"><div class="mut">Input lượt ${turn}: ${n} message, dựng lại từ trace với code hiện tại; system prompt là bản lượt chạy đã lưu</div>${d.messages.map((m,i)=>renderMsg(m,i,n)).join('')}</div>`}
+  box.innerHTML=`<div class="inwrap"><div class="mut">Input lượt ${turn}: ${n} message, ${d.exact?'đúng nguyên văn messages đã gửi teacher':'dựng lại từ trace với code hiện tại; system prompt là bản lượt chạy đã lưu'}</div>${d.messages.map((m,i)=>renderMsg(m,i,n)).join('')}</div>`}
+
+// ---------- SFT samples of a teacher record (what <run>/sft/train.jsonl holds for it) ----------
+async function showSft(el){
+  const box=el.querySelector('.sftbox');if(!el.open||box.dataset.k==Q)return;box.dataset.k=Q;
+  box.innerHTML='<span class="mut">đang tải…</span>';
+  const d=await get(`/api/sft?run=${encodeURIComponent(R)}&id=${encodeURIComponent(Q)}`);
+  if(d.error&&!(d.samples||[]).length){box.innerHTML=`<pre class="wrong">${esc(d.error)}</pre>`;return}
+  if(!d.samples.length){box.innerHTML=`<span class="mut">${d.correct?'không lượt nào được giữ':'câu sai/bỏ trống: không vào dữ liệu huấn luyện'}</span>`;return}
+  box.innerHTML=d.samples.map((s,j)=>{const m=s.meta,n=s.prompt.length;
+    return sub(`<b>mẫu ${j+1}</b> <span class="b">turn ${m.turn}</span><span class="b">${m.final?'final':'explore'}</span><span class="b">${esc(m.answer_type)}</span><span class="mut">${n} message · ${m.prompt_chars.toLocaleString()} ký tự${(m.prompt_tokens||m.teacher_prompt_tokens)?` · ${(m.prompt_tokens||m.teacher_prompt_tokens).toLocaleString()} tok (teacher)`:''}${(m.weak||[]).length?` · <span class="abstain">weak: ${esc(m.weak.join(', '))}</span>`:''} → ${m.completion_chars} ký tự</span>`,
+      `<div class="inwrap"><div class="mut">prompt (không tính loss)</div>${s.prompt.map((x,i)=>renderMsg(x,i,n)).join('')}</div>
+       <div class="inwrap" style="border-color:var(--ok)"><div class="mut">completion (tính loss)</div><pre>${esc(s.completion[0].content)}</pre></div>`,j==0)}).join('')}
 
 // ---------- panes ----------
+const paTxt=s=>s&&s.n?`PA <b>${s.pa}</b> <span class="ok">✓${s.correct}</span> <span class="wrong">✗${s.wrong}</span> <span class="abstain">∅${s.abstain}</span>`:'';
 async function loadRuns(){const rs=await get('/api/runs');$('r').innerHTML=rs.map(x=>`<div class="it ${x.name==R?'on':''}" onclick="pickRun('${esc(x.name)}')">
-${x.running?'<span class="dot"></span>':''}<b>${esc(x.name)}</b><div class="mut">${x.done} câu${x.score?` · PA <b>${x.score.pa}</b><br><span class="ok">✓${x.score.correct}</span> <span class="wrong">✗${x.score.wrong}</span> <span class="abstain">∅${x.score.abstain}</span>`:x.running?' · đang chạy':''}</div></div>`).join('')}
-function pickRun(n){R=n;Q=null;lastQ='';location.hash=n;loadRuns();loadRun();$('d').innerHTML='<span class="mut">Chọn câu hỏi</span>'}
+${x.running?'<span class="dot"></span>':''}<b>${esc(x.name)}</b><div class="mut">${x.done} câu${x.running?' · đang chạy':''}${x.score&&x.score.n?'<br>'+paTxt(x.score):''}${x.kind=='teacher'?`<br>${x.sft!=null?`SFT ${x.sft} mẫu`:'chưa export SFT'}${x.cost?` · $${x.cost}`:''}`:''}</div></div>`).join('')}
+function pickRun(n){R=n;Q=null;lastQ='';location.hash=encodeURIComponent(n);loadRuns();loadRun();$('d').innerHTML='<span class="mut">Chọn câu hỏi</span>'}
 async function loadRun(){if(!R)return;const d=await get('/api/run?name='+encodeURIComponent(R));$('rt').textContent=R;
-  const s=d.summary,h=s&&s.health;
-  $('s').innerHTML=s?`${s.n} câu · ${s.seconds}s${s.score?` · PA <b>${s.score.pa}</b>`:''}${h?`<br>calls ${h.calls} · lỗi ${h.failed_programs} · cut ${h.cut} · ${esc(Object.entries(h.reasons||{}).map(([k,v])=>k+' '+v).join(', '))}`:''}`:`<span class="dot"></span>đang chạy… ${d.rows.length} câu xong`;
+  const s=d.summary,h=s&&s.health,live=d.live,x=s&&s.sft_export;
+  const running=d.teacher?s.running:!s;
+  $('s').innerHTML=`${running?'<span class="dot"></span>đang chạy · ':''}${d.rows.length} câu xong${live.n?' · '+paTxt(live):''}`
+    +(d.teacher?`<br>${s.sft_live?`SFT <b>${s.sft_live.samples}</b> mẫu từ ${s.sft_live.records_kept}/${s.sft_live.records} câu (đếm trực tiếp)`:''}${x?` · sft/ đã export: ${x.samples} mẫu từ ${x.records_kept}/${x.records} record (final ${x.final}, explore ${x.explore})`:` · sft/ chưa export`}${running?' (export lại mỗi --export-every câu)':''}${s.cost_usd!=null&&!running?` · $${s.cost_usd}`:''}`
+      :s?`<br>${s.seconds}s${h?` · calls ${h.calls} · lỗi ${h.failed_programs} · cut ${h.cut} · ${esc(Object.entries(h.reasons||{}).map(([k,v])=>k+' '+v).join(', '))}`:''}`:'');
   const f=$('flt').value;
   $('q').innerHTML=d.rows.filter(x=>!f||(f=='err'?x.errors:x.mark==f)).map(x=>`<div class="it ${x.id==Q?'on':''}" onclick="pickQ('${esc(x.id)}')">
-${x.mark?`<span class="b ${x.mark}">${x.mark}</span>`:''}<span class="mut">${esc(x.reason)} · ${x.calls} call · ${x.seconds}s${x.errors?` · <span class="wrong">${x.errors} lỗi</span>`:''}</span>
+${x.mark?`<span class="b ${x.mark}">${x.mark}</span>`:''}${x.sft?`<span class="b ok">SFT ${x.sft}</span>`:''}<span class="mut">${esc(x.reason)} · ${x.calls} call · ${x.seconds}s${x.cost?` · $${x.cost.toFixed(4)}`:''}${x.errors?` · <span class="wrong">${x.errors} lỗi</span>`:''}</span>
 <div>${esc(x.question)}</div><div class="mut">${esc(x.type)}: ${esc(JSON.stringify(x.answer)).slice(0,110)}</div></div>`).join('')}
-function pickQ(id){Q=id;lastQ='';location.hash=R+'/'+id;loadRun();loadQ()}
+function pickQ(id){Q=id;lastQ='';location.hash=encodeURIComponent(R)+'/'+encodeURIComponent(id);loadRun();loadQ()}
 function setAll(open){document.querySelectorAll('#d details').forEach(d=>d.open=open)}
 async function loadQ(){if(!R||!Q)return;const d=await get(`/api/q?run=${encodeURIComponent(R)}&id=${encodeURIComponent(Q)}`);
   const k=JSON.stringify(d);if(k==lastQ)return;lastQ=k;const l=d.log||{},q=d.q||{},g=d.gold;
@@ -161,7 +177,8 @@ async function loadQ(){if(!R||!Q)return;const d=await get(`/api/q?run=${encodeUR
 <div class="mut" style="margin-bottom:8px">${esc(Q)} · ${esc(q.business_id)} · as_of ${esc(q.as_of_date)} · ${d.mark?`<span class="b ${d.mark}">${d.mark}</span>`:''}${esc(l.reason)} · ${l.calls} call · ${l.seconds}s</div>
 <div class="ans"><div><div class="mut">trả lời · <b>${esc(l.type)}</b></div>${V(l.answer)}</div>
 ${g?`<div><div class="mut">đáp án · <b>${esc(g.type)}</b>${g.alias&&g.alias.length?' · alias '+esc(JSON.stringify(g.alias)):''}</div>${V(g.answer)}</div>`:''}</div>
-</div></div>`+(l.trace||[]).map(ev).join('')}
+</div></div>`+(d.teacher?`<details class="card" ontoggle="showSft(this)"><summary><span class="ev execution">SFT</span><span class="mut">${d.sft?`${d.sft} mẫu huấn luyện`:'không vào dữ liệu huấn luyện'}</span></summary><div class="body sftbox"></div></details>`:'')
+  +(l.trace||[]).map(ev).join('')}
 $('flt').onchange=loadRun;
 const st=location.hash.slice(1).split('/');if(st[0])R=decodeURIComponent(st[0]);if(st[1])Q=decodeURIComponent(st[1]);
 loadRuns();loadRun();loadQ();setInterval(()=>{loadRuns();loadRun();loadQ()},2000);

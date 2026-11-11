@@ -102,6 +102,15 @@ Một record (`schema: teacher_record/v1`):
 Record là tập cha của log runner (`id`, `business_id`, `type`, `answer`, `reason`, `calls`, `trace`), nên các công cụ
 cũ đọc được: `python -m gen.sft --run outputs/teacher/<run> --split <split> --out sft.jsonl` (chỉ lấy câu đúng gold).
 
+Dữ liệu SFT: trong lúc chạy, `<run>/sft/` được làm mới ở luồng nền mỗi `--export-every` (200) record và khi kết thúc
+(gói của riêng run này, prompt như đã gửi). Gói giao tay (nhiều run, prompt dựng lại bằng code hiện tại, token Gemma,
+train/val theo shop): `python -m gen.package --teacher outputs/teacher/<run> [...] --out outputs/sft/<tên>`, kiểm bằng
+`python -m gen.validate <gói> [--rebuild --replay]`. Xem `docs/PLAN_SFT.md`.
+
+`--resume` bỏ qua record đã có, trừ record kết thúc vì `llm_error`/`host_error` (API sập, hết tiền, lỗi host): chúng
+chạy lại (`--retry` đổi danh sách lý do, `--retry ""` để tắt). `--dry-run` in thêm ước lượng token và USD
+(`--price`, mặc định giả định 0.07,0.007,0.28).
+
 ## 4. Thống kê: `gen.teacher_stats`
 
 ```

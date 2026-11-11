@@ -1,17 +1,26 @@
-"""SFT samples from v4 runs: each model turn of a question whose final answer matches the gold, as
-(messages exactly as the runner built them, completion = the model's JSON output).
+"""SFT samples from v4 runs, in the one sample format used end to end (gen.package, the hand-off package,
+train/sft_lora.py):
 
-Kept turns: the turn that produced the submitted answer, and earlier turns that ran cleanly as `explore` actions.
-Failed turns are not imitated, but they stay in the history of later turns (the model learns to recover from them).
-Runs on any split that has answers.jsonl (train, synthetic splits); never on public/private test runs.
+    {"id": <sample key>, "prompt": [messages], "completion": [{"role": "assistant", "content": <reply text>}], "meta": {...}}
 
-python -m gen.sft --run outputs/runs/<run> [--split data/train] --out sft.jsonl
+`prompt` is what the agent sends the model at that turn (system prompt, user message with the catalog, earlier turns
+and their observations); `completion` is the model's reply normalised to the text form the agent parses
+(`prompt.render_action`), which is also how the agent echoes it in the history of later turns.
+
+Kept turns of a question whose final answer matches the gold: the turn that produced the submitted answer, and
+earlier `explore` turns that ran cleanly. Failed turns are not imitated, but they stay in the history of later turns
+(the model learns to recover from them). Never on public/private test runs.
+
+python -m gen.sft --teacher outputs/teacher/<run>     # teacher run -> <run>/sft/ (gen.teacher writes it itself)
+python -m gen.sft --run outputs/runs/<run> [--split data/train] --out sft.jsonl    # runner logs (rebuilt prompts)
+The hand-off package (several runs, filters, train/val split, README, validation): python -m gen.package.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -134,22 +143,179 @@ def samples(run: Path, split: Path, cache_dir: Path, plans=None, jobs=None):
             if keep:
                 msgs = prompt.messages(catalog, q['question'], q['as_of_date'], matches, history, max_calls - t,
                                        terminal, system)
-                yield {'id': qid, 'turn': t, 'business_id': b, 'messages': msgs,
-                       'completion': prompt.render_action(action),
-                       'meta': {'run': run.name, 'calls': log.get('calls'), 'type': g['type'], 'final': t == last_turn}}
+                yield {'id': f'{run.name}/{qid}/s0/t{t}', 'prompt': msgs,
+                       'completion': [{'role': 'assistant', 'content': prompt.render_action(action)}],
+                       'meta': {'schema': SFT_SCHEMA, 'id': qid, 'group': group_of(qid), 'business_id': b, 'turn': t,
+                                'final': t == last_turn, 'run': run.name, 'split': str(split), 'calls': log.get('calls'),
+                                'gold_type': g['type'], 'answer_type': action.get('answer_type'), 'source': 'runner_log'}}
             if t in obs:
                 history.append((_echo(action), obs[t]))
 
 
+# ---------- teacher runs (gen.teacher): the exact messages sent ----------
+
+SFT_SCHEMA = 'datamate_sft/v2'
+AUG_ID = re.compile(r'^q_aug\d+_(.+)$')
+
+
+def group_of(qid, orig=None):
+    """Question group for the train/val split: every rewrite of one question goes to the same side. An augmented
+    copy `q_aug<k>_<x>` (gen.augment_train) belongs with its original `q_<x>`; other generators give `orig_id`."""
+    if orig:
+        return orig
+    m = AUG_ID.match(qid or '')
+    return f'q_{m.group(1)}' if m else qid
+
+
+def parse_turn(event, terminal):
+    """The action of one model turn, read as solve read it (a stopped or unreadable reply is `invalid`)."""
+    if event.get('finish') in STOPPED:
+        return {'action': 'invalid'}
+    try:
+        return prompt.parse_action(event.get('output') or '', terminal)
+    except prompt.ActionError:
+        return {'action': 'invalid'}
+
+
+def teacher_turns(rec):
+    """Each model turn of a teacher record: {turn, action, observation, final, keep, why}. A turn is kept when the
+    record is correct, its reply parses, the reply ended normally (finish `stop`), and it is either the final turn or
+    an `explore` that ran cleanly; `why` names the first rule a dropped turn broke."""
+    max_calls = (rec.get('input') or {}).get('max_calls') or 3
+    trace = rec.get('trace') or []
+    outputs = {e['turn']: e for e in trace if e.get('event') == 'model'}
+    obs = {e['turn']: e['observation'] for e in trace if e.get('event') == 'observation'}
+    last = max(outputs, default=-1)
+    out = []
+    for t in sorted(outputs):
+        e = outputs[t]
+        action = parse_turn(e, t == max_calls - 1)
+        explored_ok = action.get('answer_type') == prompt.EXPLORE and t in obs and 'error' not in obs[t]
+        why = ('not_correct' if not rec.get('correct') else 'invalid' if action['action'] == 'invalid'
+               else f"finish_{e.get('finish')}" if e.get('finish') != 'stop'
+               else None if t == last or explored_ok else 'failed_turn')
+        out.append({'turn': t, 'action': action, 'observation': obs.get(t), 'final': t == last, 'keep': why is None,
+                    'why': why, 'finish': e.get('finish')})
+    return out
+
+
+def history_of(turns, t):
+    """The history solve built before turn t: each earlier (echoed action, observation)."""
+    return [(_echo(x['action']), x['observation']) for x in turns if x['turn'] < t and x['observation'] is not None]
+
+
+def weak_flags(rec):
+    """Why a correct record may be right by luck (kept, flagged; gen.package --drop-weak drops them):
+    unanswerable (graded by type only), boolean (a coin flip), zero (a 0 result also comes from filters that match
+    nothing), no_program (decided without running any program)."""
+    gold = rec.get('gold') or {}
+    flags = []
+    if gold.get('type') in ('unanswerable', 'boolean'):
+        flags.append(gold['type'])
+    ans = rec.get('answer')
+    if rec.get('type') in ('number', 'percent') and isinstance(ans, (int, float)) and not isinstance(ans, bool) and ans == 0:
+        flags.append('zero')
+    if not any(e.get('event') == 'execution' for e in rec.get('trace') or []):
+        flags.append('no_program')
+    return flags
+
+
+def _system_text(run: Path, digest: str, cache: dict):
+    if digest not in cache:
+        text = None
+        for p in (run / 'system_prompts' / f'{digest[:16]}.md', run / 'system_prompt.md'):
+            if p.exists():
+                t = p.read_text(encoding='utf-8')
+                if hashlib.sha256(t.encode('utf-8')).hexdigest() == digest:
+                    text = t
+                    break
+        cache[digest] = text
+    return cache[digest]
+
+
+def recorded_messages(rec, run: Path, t, systems=None):
+    """The messages of turn t exactly as sent (a system prompt stored by reference is read back and its hash checked)."""
+    systems = {} if systems is None else systems
+    calls = [c for c in rec.get('llm_calls') or [] if 'error' not in c]
+    if t >= len(calls):
+        raise ValueError(f'no recorded call: turn {t}')
+    msgs = []
+    for m in calls[t]['messages']:
+        if 'content' not in m:
+            text = _system_text(run, m.get('content_sha256', ''), systems)
+            if text is None:
+                raise ValueError(f"system prompt not saved in the run: {m.get('content_sha256', '')[:12]}")
+            m = {'role': m['role'], 'content': text}
+        msgs.append({'role': m['role'], 'content': m['content']})
+    return msgs, calls[t]
+
+
+def _sha1(x):
+    return hashlib.sha1(json.dumps(x, ensure_ascii=False).encode('utf-8')).hexdigest()
+
+
+def teacher_samples(rec, run: Path, systems=None):
+    """Canonical SFT samples of one teacher record (empty when nothing is kept). Raises ValueError when the record
+    cannot be used (missing call, system prompt not saved, call and trace disagree)."""
+    run = Path(run)
+    turns = teacher_turns(rec)
+    inp = rec.get('input') or {}
+    flags = weak_flags(rec)
+    res = []
+    for x in turns:
+        if not x['keep']:
+            continue
+        t = x['turn']
+        msgs, call = recorded_messages(rec, run, t, systems)
+        model_event = next(e for e in rec['trace'] if e.get('event') == 'model' and e.get('turn') == t)
+        if call.get('output') != model_event.get('output'):
+            raise ValueError(f'call and trace disagree: turn {t}')
+        if msgs[-1]['role'] != 'user' or msgs[0]['role'] != 'system':
+            raise ValueError(f'unexpected roles: turn {t}')
+        completion = prompt.render_action(x['action'])
+        qid, k = rec['id'], rec.get('sample', 0)
+        meta = {'schema': SFT_SCHEMA, 'id': qid, 'group': group_of(qid, (rec.get('question_row') or {}).get('orig_id')),
+                'business_id': rec.get('business_id'), 'split': inp.get('split'), 'run': run.name,
+                'run_id': rec.get('run_id'), 'record': f"logs/{rec['_file']}" if rec.get('_file') else None,
+                'sample': k, 'turn': t, 'final': x['final'], 'turns': len(turns), 'max_calls': inp.get('max_calls') or 3,
+                'answer_type': x['action'].get('answer_type'), 'gold_type': (rec.get('gold') or {}).get('type'),
+                'reason': rec.get('reason'), 'calls': rec.get('calls'),
+                'recovered': any(not y['keep'] and y['turn'] < t for y in turns), 'weak': flags,
+                'question': rec.get('question'), 'as_of': rec.get('as_of'),
+                'teacher': inp.get('model'), 'temperature': inp.get('temperature'), 'seed': inp.get('seed'),
+                'system_sha256': hashlib.sha256(msgs[0]['content'].encode('utf-8')).hexdigest(),
+                'teacher_prompt_tokens': (call.get('usage') or {}).get('prompt_tokens'),
+                'prompt_chars': sum(len(m['content']) for m in msgs), 'completion_chars': len(completion),
+                'prompt_sha1': _sha1(msgs), 'completion_sha1': _sha1(completion)}
+        res.append({'id': f'{run.name}/{qid}/s{k}/t{t}', 'prompt': msgs,
+                    'completion': [{'role': 'assistant', 'content': completion}], 'meta': meta})
+    return res
+
+
+def export_teacher(run: Path, out: Path | None = None, quiet=False):
+    """<run>/sft/: the hand-off package of this one run, built from recorded prompts (gen.package; no data loading,
+    so it is cheap enough to refresh during a run). The package for training: python -m gen.package."""
+    from gen.package import build                  # late: gen.package imports this module
+    run = Path(run)
+    return build([run], Path(out) if out else run / 'sft', prompts='recorded', quiet=quiet)
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--run', required=True, action='append')
+    ap.add_argument('--teacher', action='append', help='teacher run folder: write <run>/sft/ (no other option needed)')
+    ap.add_argument('--run', action='append')
     ap.add_argument('--split')
-    ap.add_argument('--out', required=True)
+    ap.add_argument('--out')
     ap.add_argument('--cache', default=str(ROOT / 'outputs' / 'cache'))
     ap.add_argument('--distill', metavar='CONFIG', help='teacher config: rewrite its thinking as the visible reasoning')
     ap.add_argument('--workers', type=int, default=8)
     a = ap.parse_args()
+    if a.teacher:
+        for r in a.teacher:
+            export_teacher(Path(r))
+        return
+    if not (a.run and a.out):
+        raise SystemExit('pass --teacher <run>, or --run <runner run> --out <file>')
     n, distilled = 0, 0
     with open(a.out, 'w', encoding='utf-8') as f:
         for r in a.run:

@@ -24,6 +24,9 @@ STOPPED = {
 }
 TRACE = 3000                                     # chars of the step trace shown for a repair
 TAIL = 1500
+ZERO_NEXT = ('Every value is 0. Check it with a different program that prints how many rows each filter (names, dates, '
+             'statuses) keeps; if that second, different program also gives 0, it is submitted. If the filters match '
+             'nothing that the question means, fix them; if the data cannot support it, reply "Answer type: abstain".')
 RESULT = 20000                                   # chars of a program result kept in the trace (logs only)
 
 
@@ -86,10 +89,11 @@ def _run_program(action, question, ctx, deadline, trace):
     problems = event['issues'] = issues(action['answer_type'], answer, question['question'])
     if not problems:
         return answer, run.result, None
+    only_zero = all(p.startswith(ALL_ZERO) for p in problems)
     return None, run.result, {'status': 'not_finalized', 'issues': problems, 'result': json.dumps(answer, ensure_ascii=False)[:TAIL],
-                              'stdout': _clip(run.stdout), **steps, 'next': 'The result may be wrong (see issues). Fix the program; if '
-                              'it is truly right, submit it as it is: reply "Answer type: <its type>" and why, with no code '
-                              'block; if the data cannot support it, reply "Answer type: abstain".'}
+                              'stdout': _clip(run.stdout), **steps, 'next': ZERO_NEXT if only_zero else 'The result may be wrong '
+                              '(see issues). Fix the program; if it is truly right, submit it as it is: reply "Answer type: <its '
+                              'type>" and why, with no code block; if the data cannot support it, reply "Answer type: abstain".'}
 
 
 def _read_reply(reply, terminal):
@@ -132,8 +136,8 @@ def solve(question, ctx: Context, deadline: float) -> Outcome:
                 observation = {'status': 'error', 'error': 'No program has produced a result yet: write a ```python block with its Answer type.'}
             elif not confirmable:
                 observation = {'status': 'error', 'error': f'A result where {ALL_ZERO} cannot be confirmed yet: fix the '
-                               'filters so they match rows, or check it with a different program (two programs giving 0 '
-                               'can be confirmed), or reply "Answer type: abstain" or "Answer type: unanswerable".'}
+                               'filters so they match rows, or check it with a different program (a second, different program '
+                               'that also gives 0 is submitted), or reply "Answer type: abstain" or "Answer type: unanswerable".'}
             else:
                 try:
                     kind, answer = retype(kind, finalize(kind, last))
@@ -146,6 +150,12 @@ def solve(question, ctx: Context, deadline: float) -> Outcome:
                 zero = observation is not None and any(i.startswith(ALL_ZERO) for i in observation.get('issues', []))
                 zero_programs |= {action.get('code')} if zero else set()
                 last, confirmable = result, not zero or len(zero_programs) >= 2      # 0 from two different programs
+                if zero and len(zero_programs) >= 2 and all(i.startswith(ALL_ZERO) for i in observation['issues']):
+                    try:                                  # the second, different program agrees on 0: submitted at once
+                        kind, answer = retype(action['answer_type'], finalize(action['answer_type'], result))
+                        return out(kind, 'zero_confirmed', turn + 1, answer)
+                    except AnswerError:
+                        pass
             if answer is not None:
                 kind, answer = retype(action['answer_type'], answer)
                 return out(kind, 'auto_finalized', turn + 1, answer)

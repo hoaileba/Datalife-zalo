@@ -84,3 +84,11 @@ def test_table_columns_take_the_reference_form():
     assert column_names(['Khách hàng', 'khach_hang']) == ['Khách hàng', 'khach_hang']        # would collide: kept
     table = finalize('table', {'columns': ['Khách hàng', 'Số tiền nợ'], 'rows': [['Chị Lan', 3200000]]})
     assert table['columns'] == ['khach_hang', 'so_tien_no']
+
+
+def test_percent_in_a_name_is_not_a_percent_question():
+    from datamate.answer import issues
+    assert not issues('number', 12, 'Tháng 3/2026 bán được bao nhiêu chai Povidine 10% 90ml?')
+    assert not issues('number', 5, 'Có bao nhiêu đơn giảm giá hơn 5,5 %?')
+    assert issues('number', 12, 'Tỉ lệ hủy đơn tháng 3 là bao nhiêu %?')
+    assert issues('number', 12, 'Doanh thu nhóm A chiếm bao nhiêu phần trăm?')

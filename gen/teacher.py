@@ -5,11 +5,13 @@ Per record (<out>/logs/<id>[__s<k>].json): the question, the gold, the input set
 hash, rulebook stats), every model call (the exact messages sent, request settings, output text, thinking, finish,
 usage incl. cache/reasoning tokens, timings, response ids, retried errors, cost when prices are given), the solve trace
 (programs, sandbox results, observations), the final answer, correctness and totals. The record is a superset of a runner
-log, so `python -m gen.sft --run <out> --split <split>` works on it unchanged.
+log, so `python -m gen.sft --run <out> --split <split>` works on it unchanged. Training data: <out>/sft/ is refreshed
+during the run (recorded prompts); the hand-off package is `python -m gen.package --teacher <out> --out <dir>`.
 
 Run folder: run.json (args, config, git commit, versions, balance before/after), config.yaml, system_prompt.md,
 logs/*.json, index.jsonl (one compact row per finished record), errors.jsonl (host failures), summary.json.
-Interrupt (Ctrl-C) or a budget stop is safe: --resume skips the records already written.
+Interrupt (Ctrl-C) or a budget stop is safe: --resume skips the records already written, except those that ended
+with an API or host error (--retry), which run again.
 
   PY=/mnt/ssd4t/dungnd4/zac_2026/envs/pd22/bin/python; export PYTHONIOENCODING=utf-8 PYTHONPATH=src:.
   $PY -m gen.teacher --split data_gen/train_aug --config config.deepseek_direct.yaml --out outputs/teacher/aug_v1 \
@@ -47,11 +49,17 @@ from datamate.eval import correct, format_ok  # noqa: E402
 from datamate.llm import LLM  # noqa: E402
 from datamate.runner import Businesses, load_rulebook, read_jsonl, writable_dir  # noqa: E402
 from datamate.solve import Context, solve  # noqa: E402
+from gen.sft import export_teacher  # noqa: E402
 
 SCHEMA = 'teacher_record/v1'
 TEST_SPLITS = ('public_test', 'private_test')
 DEFAULT_URLS = (('OPENROUTER', 'https://openrouter.ai/api/v1'), ('DEEPSEEK', 'https://api.deepseek.com'))
 CALLS_PER_QUESTION, SECONDS_PER_CALL = 1.1, 25.0          # estimate only (DeepSeek flash runs, 11/11)
+# per question, measured on smoke + try6 (12 train questions, 11/11): prompt tokens over all calls, share served from
+# the provider's prefix cache, output tokens (thinking included)
+PROMPT_TOKENS, CACHE_HIT, OUTPUT_TOKENS = 17700, 0.95, 2400
+ASSUMED_PRICE = '0.07,0.007,0.28'                         # USD per 1M (miss, hit, output) when --price is not given
+RETRY_REASONS = 'llm_error,host_error'                    # records --resume runs again (API down, balance out, host bug)
 
 
 def now():
@@ -190,9 +198,13 @@ def main(argv=None):
     ap.add_argument('--price', help='USD per 1M tokens: input_miss,input_hit,output (cost per call and budget)')
     ap.add_argument('--max-usd', type=float, help='stop starting new questions once the estimated cost reaches this (needs --price)')
     ap.add_argument('--inline-system', action='store_true', help='store the full system prompt in every call (default: a reference + sha256)')
-    ap.add_argument('--resume', action='store_true', help='skip records already in <out>/logs')
+    ap.add_argument('--resume', action='store_true', help='skip records already in <out>/logs (see --retry)')
     ap.add_argument('--allow-test', action='store_true', help='allow public_test/private_test splits')
     ap.add_argument('--yes', action='store_true', help='confirm a run larger than the dev limit (approved by the user)')
+    ap.add_argument('--retry', default=RETRY_REASONS,
+                    help='with --resume, run again the records that ended for these reasons (comma separated; "" for none)')
+    ap.add_argument('--export-every', type=int, default=200,
+                    help='rewrite <out>/sft/ (gen.package, recorded prompts) every N finished records, in the background, and at the end')
     ap.add_argument('--dry-run', action='store_true', help='print the selection and the estimate, no model calls')
     a = ap.parse_args(argv)
 
@@ -224,11 +236,27 @@ def main(argv=None):
     (out / 'logs').mkdir(parents=True, exist_ok=True)
     if out.joinpath('logs').exists() and any((out / 'logs').glob('*.json')) and not a.resume and not a.dry_run:
         raise SystemExit(f'{out}/logs already has records: pass --resume or choose another --out')
-    todo = [(q, k) for q, k in jobs if not (out / 'logs' / name(q, k)).exists()]
+    retry = {r for r in a.retry.split(',') if r} if a.resume else set()
+
+    def finished(q, k):                                    # a record on disk, unless it ended for a retry reason
+        path = out / 'logs' / name(q, k)
+        if not path.exists():
+            return False
+        try:
+            return json.loads(path.read_text(encoding='utf-8')).get('reason') not in retry
+        except (OSError, ValueError):
+            return False                                   # unreadable: run it again
+    todo = [(q, k) for q, k in jobs if not finished(q, k)]
+    retried = sum((out / 'logs' / name(q, k)).exists() for q, k in todo)
     est_calls = round(len(todo) * CALLS_PER_QUESTION)
     est_min = round(est_calls * SECONDS_PER_CALL / max(1, min(workers, llm_cfg['max_concurrency'])) / 60, 1)
-    print(json.dumps({'questions': len(questions), 'samples': a.samples, 'todo': len(todo), 'done_before': len(jobs) - len(todo),
-                      'est_calls': est_calls, 'est_minutes': est_min, 'workers': workers, 'model': llm_cfg['model']}, ensure_ascii=False))
+    price = Prices(a.price or ASSUMED_PRICE)
+    per_q = (PROMPT_TOKENS * (1 - CACHE_HIT) * price.miss + PROMPT_TOKENS * CACHE_HIT * price.hit + OUTPUT_TOKENS * price.out) / 1e6
+    print(json.dumps({'questions': len(questions), 'samples': a.samples, 'todo': len(todo), 'retry': retried,
+                      'done_before': len(jobs) - len(todo), 'est_calls': est_calls, 'est_minutes': est_min,
+                      'est_tokens': {'prompt': PROMPT_TOKENS * len(todo), 'output': OUTPUT_TOKENS * len(todo)},
+                      'est_usd': round(per_q * len(todo), 2), 'price': a.price or f'{ASSUMED_PRICE} (assumed)',
+                      'workers': workers, 'model': llm_cfg['model']}, ensure_ascii=False))
     if a.dry_run:
         return
     if len(todo) > cfg['run'].get('dev_limit', 6) and not a.yes:
@@ -240,6 +268,8 @@ def main(argv=None):
     cfg_text = yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False)
     (out / 'config.yaml').write_text(cfg_text, encoding='utf-8')
     (out / 'system_prompt.md').write_text(system, encoding='utf-8')
+    (out / 'system_prompts').mkdir(exist_ok=True)              # by hash: a --resume with another prompt keeps the old one
+    (out / 'system_prompts' / f'{system_sha[:16]}.md').write_text(system, encoding='utf-8')
     base_url, key = os.environ.get(llm_cfg['base_url_env']), os.environ.get(llm_cfg.get('api_key_env', ''))
     run_id = f"{out.name}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     run_info = {'run_id': run_id, 'started_at': now(), 'argv': sys.argv, 'args': vars(a), 'split': str(split.resolve()),
@@ -274,7 +304,7 @@ def main(argv=None):
         for c in shared.values():
             c.slots = sem
 
-    lock, stop = threading.Lock(), threading.Event()
+    lock, stop, export_lock = threading.Lock(), threading.Event(), threading.Lock()
     stats = {'done': 0, 'correct': 0, 'wrong': 0, 'abstain': 0, 'no_gold': 0, 'host_error': 0, 'calls': 0,
              'prompt_tokens': 0, 'completion_tokens': 0, 'cost_usd': 0.0}
     t_start = time.monotonic()
@@ -357,6 +387,16 @@ def main(argv=None):
             if a.max_usd is not None and prices.on and s['cost_usd'] >= a.max_usd and not stop.is_set():
                 print(f'budget {a.max_usd} USD reached: no new questions start (resume later with --resume)', file=sys.stderr)
                 stop.set()
+            refresh = s['done'] % a.export_every == 0
+        if refresh and export_lock.acquire(blocking=False):  # training data on disk during a long run too, off the workers
+            def refresh_sft():
+                try:
+                    export_teacher(out, quiet=True)
+                except Exception as exc:                   # noqa: BLE001 - the run goes on; the final export retries
+                    print(f'sft export failed: {type(exc).__name__}: {exc}', file=sys.stderr)
+                finally:
+                    export_lock.release()
+            threading.Thread(target=refresh_sft, name='sft-export', daemon=True).start()
 
     def interrupt(*_):
         if stop.is_set():                                  # second Ctrl-C: leave now (finished records are on disk)
@@ -374,6 +414,11 @@ def main(argv=None):
                    'balance_after': balance(base_url, key)}
         graded = stats['correct'] + stats['wrong'] + stats['abstain']
         summary['pa'] = round((stats['correct'] - stats['wrong']) / graded, 4) if graded else None
+        try:
+            with export_lock:
+                summary['sft'] = {k: v for k, v in export_teacher(out).items() if k in ('samples', 'records', 'dropped_records')}
+        except Exception as exc:                           # noqa: BLE001 - rebuild later: python -m gen.sft --teacher <out>
+            summary['sft'] = {'error': f'{type(exc).__name__}: {exc}'[:300]}
         runs[-1].update(summary=summary)
         write_json(out / 'run.json', runs)
         write_json(out / 'summary.json', summary)

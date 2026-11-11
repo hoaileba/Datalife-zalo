@@ -52,6 +52,20 @@ def test_all_zero_result_cannot_be_confirmed(make):
     assert (out.answer_type, out.reason) == ('abstain', 'model_decision')
 
 
+def test_zero_from_two_different_programs_is_submitted(make):
+    first, second = program(["result = 0"]), program(["n = 0", "result = n"])
+    llm, out = make([first, second])
+    assert 'second, different program' in llm.calls[1]['messages'][-1]['content']
+    assert (out.answer_type, out.answer, out.reason, out.calls) == ('number', 0, 'zero_confirmed', 2)
+
+
+def test_same_zero_program_twice_is_not_submitted(make):
+    zero = program(["result = 0"])
+    abstain = {'action': 'answer', 'plan': 'filters match nothing', 'answer_type': 'abstain'}
+    llm, out = make([zero, zero, abstain])
+    assert out.reason != 'zero_confirmed'
+
+
 def test_same_failure_twice_abstains(make):
     bad = program(["result = tables['ban_hang']['khong co'].sum()"])
     llm, out = make([bad, bad])
