@@ -196,8 +196,9 @@ def between(df, column, start, end, dayfirst=True, excel_serial=False):
 
 # ---------------------------------------------------------------- dates, groups and ranking
 def dedup(df):
-    """Drop rows identical in every column (the __source partition label is ignored), keeping the first."""
-    return df[~df.drop(columns=[c for c in ('__source',) if c in df.columns]).duplicated(keep='first')]
+    """Drop rows identical in every column, keeping the first. Layout markers are ignored: the __source partition
+    label, and __group_start (a line repeated as a group's continuation row is the same line as the group's first)."""
+    return df[~df.drop(columns=[c for c in ('__source', '__group_start') if c in df.columns]).duplicated(keep='first')]
 
 
 def drop_groups(df, group_column, mask):

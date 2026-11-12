@@ -88,8 +88,10 @@ def bounds(spec, as_of: dt.date, rules) -> tuple[dt.date, dt.date]:
     raise ValueError(k)
 
 
-def previous(spec, as_of, rules):
-    """The comparison period of 'thay đổi so với kỳ trước' (rulebook §1, §2)."""
+def previous(spec, as_of, rules, same_days=None):
+    """The comparison period of 'thay đổi so với kỳ trước' (rulebook §1, §2). same_days: the question's own words fix
+    the window of 'tháng này' vs the previous month (True: 'cùng kỳ', 'cùng số ngày'; False: 'cả tháng trước'), over
+    the rulebook (§ intro: the question wins when it says otherwise)."""
     k = spec['kind']
     if k == 'month':
         y, m = add_months(spec['y'], spec['m'], -1)
@@ -101,7 +103,8 @@ def previous(spec, as_of, rules):
         return {'kind': 'quarter', 'y': y, 'q': q}
     if k == 'this_month':                     # same number of days of the previous month (clamped to its end)
         y, m = add_months(as_of.year, as_of.month, -1)
-        end = min(as_of.day, _cal.monthrange(y, m)[1]) if rules.this_month_same_days else _cal.monthrange(y, m)[1]
+        same = rules.this_month_same_days if same_days is None else same_days
+        end = min(as_of.day, _cal.monthrange(y, m)[1]) if same else _cal.monthrange(y, m)[1]
         return {'kind': 'range', 'start': dt.date(y, m, 1), 'end': dt.date(y, m, end)}
     if k == 'tet':
         return {'kind': 'tet', 'year': spec['year'] - 1}
@@ -118,8 +121,9 @@ def previous(spec, as_of, rules):
     raise ValueError(k)
 
 
-def before_tet(spec, as_of, rules):
-    """'So với trước Tết' = the same number of days right before 23 tháng Chạp."""
+def before_tet(spec, as_of, rules, days=None):
+    """'So với trước Tết' = the same number of days right before 23 tháng Chạp; `days` when the question names the
+    number ('17 ngày trước Tết')."""
     s, e = bounds(spec, as_of, rules)
-    n = (e - s).days + 1
+    n = days or (e - s).days + 1
     return {'kind': 'range', 'start': s - dt.timedelta(days=n), 'end': s - dt.timedelta(days=1)}

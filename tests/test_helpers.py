@@ -67,6 +67,12 @@ def test_dedup_ignores_source_partition():
     assert list(dm.dedup(df)['tiền']) == [5, 6, 5]
 
 
+def test_dedup_ignores_group_start_marker():
+    # an order's first line written again as a continuation row: filled from the first line, so the same line (§8)
+    df = pd.DataFrame({'đơn': ['A', 'A', 'A', 'B'], 'tiền': [5, 5, 6, 5], '__group_start': [True, False, False, True]})
+    assert list(dm.dedup(df)['tiền']) == [5, 6, 5]
+
+
 def test_tolerant_frame_resolves_unique_normalized_names_only():
     f = dm.TolerantFrame(pd.DataFrame({'Tổng tiền': [1, 2], 'Mã hóa đơn': ['A', 'B'], 'Tiền giảm': [0, 1]}))
     assert list(f['tong tien']) == [1, 2] and list(f[['ma hoa don', 'TỔNG TIỀN']].columns) == ['Mã hóa đơn', 'Tổng tiền']

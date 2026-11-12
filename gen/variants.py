@@ -27,7 +27,9 @@ VARIANTS = {
         None),
     'delivering_out': (dict(count_delivering=False), [(
         'là đơn trả hàng: bỏ **cả đơn**. Đơn đang giao vẫn tính |',
-        'là đơn trả hàng: bỏ **cả đơn**. Đơn **đang giao chưa tính**: chỉ tính khi đã hoàn thành |')],
+        'là đơn trả hàng: bỏ **cả đơn**. Đơn **đang giao chưa tính**: chỉ tính khi đã hoàn thành |'),
+        # the order count follows the same set (the oracle counts §1 orders): its own line says so too
+        ('| Số đơn | chỉ tính đơn không huỷ, không trả;', '| Số đơn | chỉ tính đơn không huỷ, không trả, **không đang giao**;')],
         None),
     'revenue_shipping': (dict(revenue_shipping=True), [(
         '**không** cộng thuế VAT, **không** gồm phí giao hàng.',
@@ -60,7 +62,9 @@ VARIANTS = {
     'pct_one_decimal': (dict(pct_decimals=1), [(
         'Phần trăm và số trung bình khác làm tròn 2 chữ số thập phân, trừ khi một luật khác trong rulebook ghi khác.',
         'Phần trăm làm tròn **1 chữ số thập phân** (nửa lên); số trung bình khác làm tròn 2 chữ số thập phân.'),
-        ('Làm tròn 2 chữ số thập phân. |', 'Làm tròn 1 chữ số thập phân. |')],
+        ('Làm tròn 2 chữ số thập phân. |', 'Làm tròn 1 chữ số thập phân. |'),
+        ('Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 2 chữ số thập phân.',      # §9 grading line
+         'Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 1 chữ số thập phân.')],
         {'type': ['percent']}),
 }
 

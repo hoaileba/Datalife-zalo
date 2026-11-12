@@ -40,7 +40,7 @@ sys.path[:0] = [str(ROOT / 'src'), str(ROOT), str(ROOT / 'scripts')]
 from datamate.eval import correct  # noqa: E402
 from gen import surface as S  # noqa: E402
 from gen import variants as V  # noqa: E402
-from gen.oracle import Rules, View, answer  # noqa: E402
+from gen.oracle import Rules, View, answer, undetermined  # noqa: E402
 from gen.parse import Names, parse  # noqa: E402
 from gen.remap import NameMap  # noqa: E402
 
@@ -50,13 +50,8 @@ PARAPHRASE = 'paraphrase'
 VIEW_CACHE = 4             # oracle Views kept per shop (each is large; peak RSS was 22 GB with no bound)
 
 
-# Intents whose own rulebook line is not the changed one but whose oracle answer the change moves (the oracle shares one
-# valid-order set): their gold would contradict an unchanged line ("bỏ đơn huỷ, trả" of §3 Bán chạy, §5 ế, §5 hiệu ứng
-# tăng giá...). Left out of the variant's split, changed or not.
-SHARED_ORDER_SET = {'top_items', 'items_min_orders', 'qty_item', 'qty_unit', 'qty_size', 'price_effect', 'unsold_count',
-                    'purchase_minus_sales', 'gross_profit', 'net_profit', 'stock_end', 'stock_value', 'stock_big_small',
-                    'out_of_stock_count', 'expiring_items', 'expiring_count', 'expiring_value', 'nearest_lot_expiry'}
-EXCLUDED = {'returns_count': SHARED_ORDER_SET, 'delivering_out': SHARED_ORDER_SET}
+# Questions the variant's rulebook does not fix (gen.oracle.undetermined: intents sharing the valid-order set of §1
+# under returns_count / delivering_out, line-part revenue under revenue_voucher) are left out, changed or not.
 
 
 def _vseed(variant):
@@ -150,7 +145,8 @@ def train_candidates(shop: Shop, questions, gold, rules):
         changed = not same(var, base, g.get('alias'))
         new = dict(g) if not changed else {'id': q['id'], 'type': var[0], 'answer': _clean(var[1]),
                                            'alias': shop.alias(var[0], var[1])}
-        out.append({'q': q, 'gold': new, 'changed': changed, 'intent': spec['intent'], 'source': 'train'})
+        out.append({'q': q, 'gold': new, 'changed': changed, 'intent': spec['intent'], 'source': 'train',
+                    'undetermined': undetermined(spec, rules, shop.L)})
     return out
 
 
@@ -181,7 +177,8 @@ def generated_candidates(shop: Shop, variant, rules, n, seed):
         qid = f'q_rv{seed:06d}_{shop.b[4:]}_{k:04d}'
         out.append({'q': {'id': qid, 'business_id': shop.b, 'question': text, 'as_of_date': as_of.isoformat()},
                     'gold': {'id': qid, 'type': var[0], 'answer': _clean(var[1]), 'alias': shop.alias(var[0], var[1])},
-                    'changed': changed, 'intent': spec2['intent'], 'source': 'generated'})
+                    'changed': changed, 'intent': spec2['intent'], 'source': 'generated',
+                    'undetermined': undetermined(spec2, rules, shop.L)})
     return out
 
 
@@ -283,9 +280,8 @@ def build(out: Path, variants, per_variant=220, changed_share=.75, generated=40,
                 break
             for si, b in enumerate(CALIBRATED):
                 cands += generated_candidates(shops[b], variant, rules, generated, seed * 100000 + _vseed(variant) * 1000 + rnd * 10 + si)
-        excluded = EXCLUDED.get(variant, set())
-        n_excluded = sum(c['intent'] in excluded for c in cands)
-        cands = [c for c in cands if c['intent'] not in excluded]
+        n_excluded = sum(bool(c.get('undetermined')) for c in cands)
+        cands = [c for c in cands if not c.get('undetermined')]
         share = 0.0 if variant == PARAPHRASE else changed_share
         if variant == PARAPHRASE:
             chosen = select([{**c, 'changed': True} for c in cands], per_variant, 1.0, rng)
@@ -321,7 +317,7 @@ def build(out: Path, variants, per_variant=220, changed_share=.75, generated=40,
                 'by_source': dict(collections.Counter(m['source'] for m in meta)),
                 'by_shop': dict(collections.Counter(m['business_id'] for m in meta)),
                 'by_intent': dict(collections.Counter(m['intent'] for m in meta).most_common()),
-                'dropped': dict(dropped, excluded_intents=n_excluded), 'pipeline': pipeline_check(split, text, fragments)}
+                'dropped': dict(dropped, undetermined=n_excluded), 'pipeline': pipeline_check(split, text, fragments)}
         summary['splits'][split.name] = info
         for sh in shops.values():                      # nothing kept across variants but the ledgers
             sh.views.clear()

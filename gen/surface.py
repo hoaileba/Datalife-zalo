@@ -146,11 +146,17 @@ def period_text(per, as_of, rng):
     return s, (s if s.startswith(('từ', 'trong')) else 'trong ' + s)
 
 
+# units that are also words for times or durations: 'bán được bao nhiêu lần' asks a count of sales, not of a unit
+EVENT_UNITS = {'lan', 'luot', 'buoi', 'ngay', 'gio', 'phut', 'tuan', 'thang', 'nam', 'ca', 'dot', 'chuyen'}
+
+
 def prev_text(per, ref, as_of, rng):
     """The comparison period of a change question, as text (None = cannot be written unambiguously)."""
     k = per['kind']
     if ref == 'before_tet':
         return rng.choice(['cùng số ngày ngay trước Tết', 'quãng ngày dài bằng vậy ngay trước Tết'])
+    if isinstance(ref, dict) and ref.get('kind') == 'before_tet':
+        return f"{ref['days']} ngày ngay trước Tết"
     if ref is not None:
         if ref.get('kind') == 'month' and k == 'month':
             if (ref['y'], ref['m']) == (per['y'] - 1, per['m']) and rng.random() < 0.5:
@@ -522,6 +528,10 @@ T = {
         'Lý do khách trả hàng nhiều nhất {P} là gì', 'Khách có hài lòng với cách phục vụ của {S} không',
         '{P} khách ở đường {STREET} mua tổng cộng bao nhiêu tiền',
     ],
+    'qty_unit:named': [                   # a unit that is also a word for times or durations (lần, lượt, ngày...):
+        'Cộng mọi mặt hàng tính theo {U}, {P} bán ra được mấy {U}',          # 'bán được bao nhiêu lần' would read
+        'Số {U} bán được {P} là bao nhiêu, cộng mọi mặt hàng tính theo {U}',  # as a count of sales
+    ],
     'qty_size:word': [
         '{P} {S} bán được bao nhiêu sản phẩm size {SZ}', 'Tổng số món đồ size {SZ} bán ra {Pt} là bao nhiêu',
         'Hàng size {SZ} {P} bán được mấy cái, tính mọi mẫu',
@@ -664,6 +674,8 @@ def realize(spec, ctx: Ctx, rng, marked=False) -> str:
         kw['R'] = prev_text(per, spec.get('ref'), as_of, rng)
         if spec.get('ref_text') == 'neutral' and per['kind'] == 'this_month':
             kw['R'] = rng.choice(['tháng trước', 'tháng trước đó'])     # which days: the rulebook says
+        elif spec.get('ref_text') == 'full' and per['kind'] == 'this_month':
+            kw['R'] = rng.choice(['cả tháng trước', 'trọn tháng trước'])  # the words fix the window
         if kw['R'] is None:
             raise ValueError(f'cannot write the reference period of {spec}')
     elif it == 'revenue_trend_up':
@@ -757,6 +769,8 @@ def realize(spec, ctx: Ctx, rng, marked=False) -> str:
         kw['G'] = mark(spec['group'])
     elif it == 'qty_unit':
         kw['U'] = str(spec['unit'])
+        if fold(kw['U']).strip() in EVENT_UNITS:
+            key = 'qty_unit:named'
     elif it == 'qty_size':
         kw['SZ'] = spec['size'].upper()
         if spec.get('style') == 'word':

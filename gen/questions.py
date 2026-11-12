@@ -230,8 +230,11 @@ class Sampler:
             spec = S(period=p)
             if p['kind'] == 'month' and rng.random() < 0.2:
                 spec['ref'] = {**p, 'y': p['y'] - 1}
-            if self.mix == 'train' and p['kind'] == 'this_month':
-                spec['ref_text'] = 'neutral'      # 'so với tháng trước': the rulebook decides which days
+            if p['kind'] == 'this_month':
+                # 'so với tháng trước': the rulebook decides which days (syn_v2, and any rulebook whose window is not
+                # the train one); else the words say 'cùng kỳ / cùng số ngày' and the gold follows them
+                neutral = self.mix == 'train' or not self.R.this_month_same_days
+                spec['ref_text'] = 'neutral' if neutral else 'same_days'
             return spec
         if intent in ('revenue_list', 'revenue_trend_up', 'best_month'):
             fm = [m for m in self.full_months if P.month_end(*m) <= as_of]
@@ -458,7 +461,9 @@ def sample(L, rng, n, main_as_of=None, rules=Rules(), weights=WEIGHTS, unanswera
            period_boost=None):
     """mix='train' (syn_v2): period kinds in train shares (period_boost multiplies some), no order-level question on
     files without order ids, ~no zero answers (2 of 3000 in train), no repeat of an absolute question at another
-    as_of, no tie anywhere inside a ranked list."""
+    as_of, no tie anywhere inside a ranked list. Questions the rulebook does not fix (gen.oracle.undetermined) are
+    returned too: the callers drop them after the draw (gen.build: their ids stay unused), so the other questions of a
+    split keep their ids and texts."""
     smp = Sampler(L, rng, rules, mix)
     smp.period_boost = period_boost or {}
     if mix == 'train':

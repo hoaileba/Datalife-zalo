@@ -252,9 +252,6 @@ FOCUS = {
     'bestseller_revenue': (('top_items',), ()),
     'last_n_before_today': ((), ('last_n_days',)),
 }
-# rows of the §9 format table that the 1-decimal variant of gen.variants leaves saying "2 chữ số"
-PCT_ONE_EXTRA = [('Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 2 chữ số thập phân.',
-                  'Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 1 chữ số thập phân.')]
 HEADER_ROWS = {('Luật', 'Mặc định'), ('Cách nói', 'Nghĩa'), ('Từ', 'Nghĩa'), ('Cách ghi', 'Hiểu là')}
 
 
@@ -312,8 +309,6 @@ def compose(industries, rng, profile='train', n_variants=None, title=None, force
                 else:
                     text = variants.rulebook_text(name, text)
                     o = variants.VARIANTS[name][0]
-                if name == 'pct_one_decimal':
-                    text = _apply(text, PCT_ONE_EXTRA, name)
             except ValueError:
                 if force is not None:
                     raise

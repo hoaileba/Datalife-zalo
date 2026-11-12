@@ -187,10 +187,16 @@ def _revenue_list(V, s):
 
 
 def _ref(V, s):
+    """The comparison period. What the question's words fix wins over the rules (rulebook intro: 'Câu hỏi nói khác
+    thì làm theo câu hỏi'): ref_text 'same_days' ('cùng kỳ / cùng số ngày của tháng trước') or 'full' ('cả tháng
+    trước'); a before-Tết ref with the number of days the question names."""
     ref = s.get('ref')
     if ref == 'before_tet':
         return P.before_tet(s['period'], V.as_of, V.R)
-    return ref or P.previous(s['period'], V.as_of, V.R)
+    if isinstance(ref, dict) and ref.get('kind') == 'before_tet':
+        return P.before_tet(s['period'], V.as_of, V.R, days=ref.get('days'))
+    same = {'same_days': True, 'full': False}.get(s.get('ref_text'))
+    return ref or P.previous(s['period'], V.as_of, V.R, same_days=same)
 
 
 @intent('revenue_change_pct')
@@ -510,19 +516,24 @@ def _ingredient_revenue(V, s):
     return 'number', half_up(l[l.product_id.isin(ids)].amount.sum())
 
 
+def _gross(V, s):
+    """§5 Lãi gộp = doanh thu (§1) − giá vốn: the revenue of §1 (with the delivery fee / minus the order voucher when
+    the rulebook puts them in revenue), not only the line amounts."""
+    l = _item_lines(V, s)
+    return V.revenue(s['period']) - (l.qty * l.unit_cost).sum()
+
+
 @intent('gross_profit', 'unit_cost')
 def _gross_profit(V, s):
-    l = _item_lines(V, s)
-    return 'number', half_up((l.amount - l.qty * l.unit_cost).sum())
+    return 'number', half_up(_gross(V, s))
 
 
 @intent('net_profit', 'unit_cost', 'expenses')
 def _net_profit(V, s):
-    l = _item_lines(V, s)
     s0, e0 = V.bounds(s['period'])
     ex = V.L.expenses
     ex = ex[(ex.date >= s0) & (ex.date <= e0)].amount.sum()
-    return 'number', half_up((l.amount - l.qty * l.unit_cost).sum() - ex)
+    return 'number', half_up(_gross(V, s) - ex)
 
 
 def _purchases(V, s):
@@ -879,6 +890,54 @@ def _repeat_vehicles(V, s):
 
 
 # ------------------------------------------------------------------ entry point
+# Intents whose oracle uses the one set of valid orders of §1 although their own rulebook line names its orders itself
+# ("bỏ đơn huỷ, trả" of §3 Bán chạy, §5 ế, §5 hiệu ứng tăng giá...) or reads stock: when the rulebook changes which
+# orders count in revenue (returns kept, deliveries out), their gold would follow the changed §1 line and contradict
+# their own unchanged line.
+SHARED_ORDER_SET = frozenset({
+    'top_items', 'items_min_orders', 'qty_item', 'qty_unit', 'qty_size', 'price_effect', 'unsold_count',
+    'purchase_minus_sales', 'gross_profit', 'net_profit', 'stock_end', 'stock_value', 'stock_big_small',
+    'out_of_stock_count', 'expiring_items', 'expiring_count', 'expiring_value', 'nearest_lot_expiry'})
+# Revenue of a part of the order lines (an item, a group, a kind of goods) and its share: the rulebook defines revenue
+# per order (§1 Doanh thu một đơn); with the order voucher deducted it gives no way to split it over the lines.
+LINE_PART_REVENUE = frozenset({'revenue_item', 'revenue_group', 'group_share', 'rx_revenue', 'rx_share',
+                               'ingredient_revenue', 'service_revenue', 'service_share'})
+
+
+def _price_conflict(L, spec):
+    """§5 Giá bán X ngày D is the price written on the day's lines, per base unit: when lines in different units
+    give different prices per base unit (a big unit priced below n x base), the rulebook does not say which one."""
+    d = pd.Timestamp(spec['date'])
+    day = L.orders.set_index('order_id').created.dt.normalize()
+    l = L.lines[(L.lines.product_id == spec['item'])]
+    l = l[l.order_id.map(day) == d]
+    if l.unit.nunique(dropna=False) < 2:
+        return False
+    per_base = (l.unit_price / l.unit.map(lambda u: _unit_factor(L, spec['item'], u))).round(6)
+    return per_base.nunique() > 1
+
+
+def undetermined(spec, rules: Rules, L=None) -> bool:
+    """The rulebook text under `rules` does not fix this question's answer (or fixes another one than the oracle
+    computes): such a question is never asked. With the ledger L, also the checks that depend on the data.
+
+    Kept on purpose: line-part revenue and its share when the rulebook ADDS the delivery fee to revenue. The fee is
+    no line's money (like the service fee, which §3 keeps in the denominator of a group share), so a part is its lines
+    and the whole is the §1 revenue of the shop; a voucher instead lowers what the lines sold for, by an amount the
+    rulebook does not split."""
+    it = spec['intent']
+    if L is not None and it == 'price_on_day' and _price_conflict(L, spec):
+        return True
+    if (not rules.exclude_returned or not rules.count_delivering) and it in SHARED_ORDER_SET:
+        return True
+    if rules.revenue_order_discount:
+        if it in LINE_PART_REVENUE:
+            return True
+        if it == 'top_items' and (spec.get('by', 'qty') != 'qty' or rules.bestseller_by == 'revenue'):
+            return True
+    return False
+
+
 def answer(L, spec, as_of, rules: Rules = Rules(), view: View | None = None):
     if spec['intent'] == 'unanswerable':
         return 'unanswerable', None

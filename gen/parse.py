@@ -192,6 +192,19 @@ def _cmp_pair(months, t):
     return months[0], months[1]
 
 
+def _this_month_words(spec, t):
+    """'Tháng này' vs the previous month: the window the question's words fix ('cùng kỳ / cùng số ngày của tháng
+    trước' = same days, 'cả tháng trước' = whole month) wins over the rulebook; plain 'tháng trước' leaves it to the
+    rulebook (no ref_text)."""
+    if (spec.get('period') or {}).get('kind') != 'this_month':
+        return spec
+    if re.search(r'cung ky(?! nam)|cung so ngay|cung khoang', t):
+        return {**spec, 'ref_text': 'same_days'}
+    if re.search(r'(ca|tron|toan bo|het) thang (truoc|roi|lien truoc)', t):
+        return {**spec, 'ref_text': 'full'}
+    return spec
+
+
 def parse(question, as_of, L, names: Names | None = None):
     names = names or Names(L)
     t = norm_question(question)
@@ -456,9 +469,10 @@ def parse(question, as_of, L, names: Names | None = None):
         if per and per['kind'] == 'tet' and re.search(r'nam ngoai|nam truoc', t):
             return S('revenue_change_pct', period=per)
         if per and per['kind'] == 'tet' and re.search(r'truoc tet', t):
-            from . import periods as P
-            return S('revenue_change_pct', period=per, ref='before_tet')
-        return S('revenue_change_pct', period=per)
+            m = re.search(r'(\d+) ngay (?:ngay )?truoc tet', t)       # the question names the days: they win
+            return S('revenue_change_pct', period=per,
+                     ref={'kind': 'before_tet', 'days': int(m[1])} if m else 'before_tet')
+        return _this_month_words(S('revenue_change_pct', period=per), t)
     if re.search(r'doanh thu|ban duoc', t) and re.search(r'so voi|so vs|tru di|tru doanh thu|chenh lech', t) and \
             re.search(r'tien|dong|bao nhieu', t):
         if len(months) >= 2:
@@ -466,7 +480,7 @@ def parse(question, as_of, L, names: Names | None = None):
             return S('revenue_diff', period=a, ref=b)
         if per and per['kind'] == 'month' and re.search(r'cung ky nam (ngoai|truoc)', t):
             return S('revenue_diff', period=per, ref={**per, 'y': per['y'] - 1})
-        return S('revenue_diff', period=per)
+        return _this_month_words(S('revenue_diff', period=per), t)
 
     if re.search(r'tien hang|doanh thu', t) and re.search(r'don', t) and (m := re.search(r'(\d[\d.,]*) (?:dong|d\b)', t)):
         return S('orders_over', threshold=_money(m[1]), period=per)

@@ -177,16 +177,16 @@ Bộ nhớ: ~2.2 GB đỉnh mỗi biến thể (đo bằng `/usr/bin/time -v`); 
 | week_sunday | 123 | 92 | 31 |
 | returns_count | 220 | 165 | 55 |
 | delivering_out | 184 | 138 | 46 |
-| revenue_shipping | 156 | 117 | 39 |
+| revenue_shipping | 157 | 118 | 39 |
 | revenue_voucher | 220 | 165 | 55 |
 | cancel_rate_no_returns | 220 | 165 | 55 |
-| this_month_full_prev | 39 | 29 | 10 |
+| this_month_full_prev | 36 | 27 | 9 |
 | tet_short | 4 | 3 | 1 |
 | shifts_split | 220 | 165 | 55 |
 | avg_purchase_simple | 44 | 33 | 11 |
 | pct_one_decimal | 220 | 165 | 55 |
 | paraphrase (diễn đạt lại, đáp án chuẩn) | 220 | 0 | 220 |
-| **Tổng** | **1870** | **1237** | **633** |
+| **Tổng** | **1868** | **1236** | **632** |
 
 Kiểm pipeline (mọi split): `load_rulebook` liệt kê đúng dòng đổi (1–2 dòng; paraphrase 6), mọi đoạn mới của biến thể có
 trong `rulebook_changes`, không split nào thành "rewrite", system prompt khác train (bỏ công thức của dòng đổi),
@@ -197,7 +197,7 @@ Diễn đạt lại rulebook (`gen/variants.py`): `paraphrase_format` (bảng �
 so theo chữ, nên một rulebook viết lại câu chữ sẽ mất công thức của các dòng đó và hiện chúng trong `rulebook_changes`.
 Không sửa được ở `src/` lúc này; split `rulevar_paraphrase` dạy đúng tình huống này (dòng "đổi" nhưng đáp án như chuẩn).
 
-Ước lượng teacher (`gen.teacher --dry-run`, 16 workers): 1870 câu, ~2056 lượt gọi, ~54 phút, ~1.6 USD (giá giả định
+Ước lượng teacher (`gen.teacher --dry-run`, 16 workers): 1868 câu, ~2054 lượt gọi, ~54 phút, ~1.6 USD (giá giả định
 0.07/0.007/0.28). Đề xuất chạy tất cả (1.9k câu; bỏ `tet_short` nếu muốn, chỉ 4 câu).
 
 ### 3.3 Lệnh
@@ -272,7 +272,7 @@ một rulebook, nên `syn_v2` là 8 split con, mỗi split một rulebook do `ge
 | Ý định mới (`gen/oracle.py`) | `guests_total`, `revenue_per_guest`, `area_revenue`, `top_table`, `service_revenue` (+ phần hàng hoá), `service_share`, `vehicle_count`, `repeat_vehicles`; `qty_size` cho size chữ; hạn dùng cho ngành có lô; kỳ `season`. Chỉ hỏi khi rulebook của split có mục tương ứng (`questions.allowed`) |
 | Câu hỏi (`mix='train'`) | loại kỳ theo tỉ lệ đo trên train; họ định dạng phân tầng theo tỉ lệ train; không hỏi số đơn khi file không có mã đơn; gần như không có đáp án 0; không lặp câu kỳ tuyệt đối ở as_of khác; bỏ câu có hoà trong top k; "so với tháng trước" để rulebook quyết; câu hiệu ứng tăng giá chỉ nêu giá mới khi file thấy được ngày tăng; câu không trả lời được riêng từng ngành |
 
-Split (`data_gen/syn_v2`, 71 shop, 4615 câu, ~8 phút dựng với 3 tiến trình, đỉnh 2 GB): t1 (rulebook train + mục ngành),
+Split (`data_gen/syn_v2`, 71 shop, 4297 câu (12/11 dựng lại: bỏ câu rulebook không xác định đáp án, xem §4.2), ~8 phút dựng với 3 tiến trình, đỉnh 2 GB): t1 (rulebook train + mục ngành),
 t2–t5, t7 (luật đổi), t6 (diễn đạt lại nhiều + luật đổi), mỗi split 9 shop × 65 câu; `val` (8 shop `hotpot` +
 `spa_salon`, luật đổi và định nghĩa mục riêng không có ở split train nào, rulebook viết lại toàn bộ, chủ yếu họ P). Họ P
 chỉ có ở `val` và 2 shop của t5 (họ giữ riêng trên ngành đã thấy). Chi tiết: `manifest.json`.
@@ -297,6 +297,22 @@ for s in t1 t2 t3 t4 t5 t6 t7 val; do
 $PY -m gen.package --teacher outputs/teacher/train_v1 outputs/teacher/syn_v2_* --out outputs/sft/v2 \
     --val-industries hotpot,spa_salon --val-families P
 ```
+
+### 4.2 Sửa sau lượt thử teacher 100 câu (12/11, không gọi API)
+
+Lỗi do code (không phải do model) tìm được khi đọc mọi record sai của `try100_dir2_*` / `try100_dir3_*`, sửa dạng cơ chế:
+
+| Lớp lỗi | Sửa |
+|---|---|
+| Chữ của câu hỏi cố định kỳ so ("cùng kỳ / cùng số ngày của tháng trước", "17 ngày trước Tết") nhưng gold theo luật biến thể (rulebook: câu hỏi nói khác thì theo câu hỏi) | `gen.parse` ghi `ref_text` (`same_days`/`full`) và số ngày trước Tết vào spec; `gen.oracle._ref` theo chữ câu hỏi trước luật; `gen.questions` viết "so với tháng trước" (trung tính) khi luật tháng này của rulebook khác luật train |
+| Câu rulebook không xác định đáp án: phần doanh thu theo dòng (mặt hàng, nhóm, kê đơn, dịch vụ, tỉ trọng) khi rulebook trừ voucher cả đơn; nhóm ý định dùng chung tập đơn §1 khi `returns_count`/`delivering_out` (trước chỉ lọc ở `rule_variants`, `syn_v2` t3/t6 chưa lọc) | `gen.oracle.undetermined(spec, rules)`, dùng ở `gen.rule_variants` và `gen.build` (câu bị bỏ sau khi đã rút id và hạt sinh chữ: các câu khác giữ nguyên id và chữ) |
+| Lãi gộp không theo doanh thu §1 khi rulebook cộng phí giao / trừ voucher | `gen.oracle._gross` = doanh thu §1 − giá vốn |
+| Giá bán ngày D khi dòng bán các đơn vị khác nhau cho hai giá trên một đơn vị cơ bản (đơn vị lớn bán rẻ hơn n × lẻ): rulebook không nói lấy giá nào | `gen.oracle.undetermined(spec, rules, L)` (kiểm trên dữ liệu): câu đó không hỏi |
+| `delivering_out` đổi dòng doanh thu nhưng để nguyên dòng "Số đơn" (vẫn đếm đơn đang giao) trong khi oracle đếm theo tập đơn §1 | biến thể sửa cả dòng "Số đơn" (`gen.variants`) |
+| `pct_one_decimal` ở `rule_variants` để dòng chấm điểm §9 "phần trăm đúng 2 chữ số" | cặp sửa §9 chuyển vào chính biến thể (trước chỉ `rulebook_gen` áp) |
+| Đơn vị là từ chỉ lần/thời gian ("bán được bao nhiêu lần") | `gen.surface`: các đơn vị `EVENT_UNITS` chỉ dùng mẫu "cộng mọi mặt hàng tính theo {U}" |
+| (giữ, có lý do) phần doanh thu theo dòng và tỉ trọng khi rulebook **cộng phí giao** | phí giao không thuộc dòng nào (như phí phục vụ, §3 vẫn để ở mẫu số tỉ trọng nhóm); tỉ trọng dịch vụ ghi rõ mẫu số "doanh thu cả shop (§1)" |
+| `dm.dedup` bỏ sót dòng trùng khi một bản là dòng đầu nhóm (cột `__group_start` khác) | `src/datamate/helpers.dedup` bỏ qua `__group_start` như `__source` (0 bảng train đổi; system prompt train giống từng byte) |
 
 ## 5. Bàn giao: danh sách kiểm
 - `gen.validate <gói> --rebuild --replay` sạch; `stats.json` không có `prompt.drift`, `tokens.exact = true`.

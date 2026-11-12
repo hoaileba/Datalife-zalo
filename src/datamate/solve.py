@@ -14,7 +14,7 @@ import time
 from dataclasses import dataclass, field
 
 from . import prompt, sandbox
-from .answer import ALL_ZERO, AnswerError, finalize, issues, retype
+from .answer import AnswerError, finalize, issues, retype
 from .catalog import lookup
 
 STOPPED = {
@@ -24,9 +24,6 @@ STOPPED = {
 }
 TRACE = 3000                                     # chars of the step trace shown for a repair
 TAIL = 1500
-ZERO_NEXT = ('Every value is 0. Check it with a different program that prints how many rows each filter (names, dates, '
-             'statuses) keeps; if that second, different program also gives 0, it is submitted. If the filters match '
-             'nothing that the question means, fix them; if the data cannot support it, reply "Answer type: abstain".')
 RESULT = 20000                                   # chars of a program result kept in the trace (logs only)
 
 
@@ -89,11 +86,10 @@ def _run_program(action, question, ctx, deadline, trace):
     problems = event['issues'] = issues(action['answer_type'], answer, question['question'])
     if not problems:
         return answer, run.result, None
-    only_zero = all(p.startswith(ALL_ZERO) for p in problems)
     return None, run.result, {'status': 'not_finalized', 'issues': problems, 'result': json.dumps(answer, ensure_ascii=False)[:TAIL],
-                              'stdout': _clip(run.stdout), **steps, 'next': ZERO_NEXT if only_zero else 'The result may be wrong '
-                              '(see issues). Fix the program; if it is truly right, submit it as it is: reply "Answer type: <its '
-                              'type>" and why, with no code block; if the data cannot support it, reply "Answer type: abstain".'}
+                              'stdout': _clip(run.stdout), **steps, 'next': 'The result may be wrong (see issues). Fix the '
+                              'program; if it is truly right, submit it as it is: reply "Answer type: <its type>" and why, with no '
+                              'code block; if the data cannot support it, reply "Answer type: abstain".'}
 
 
 def _read_reply(reply, terminal):
@@ -107,7 +103,7 @@ def _read_reply(reply, terminal):
 
 
 def solve(question, ctx: Context, deadline: float) -> Outcome:
-    history, trace, last, previous_failure, confirmable, zero_programs = [], [], None, None, False, set()
+    history, trace, last, previous_failure = [], [], None, None
     matches = lookup(question['question'], ctx.business)
     max_calls = ctx.config['agent']['max_calls']
     out = lambda kind, reason, calls, answer=None: Outcome(kind, answer, reason, calls, trace)
@@ -134,10 +130,6 @@ def solve(question, ctx: Context, deadline: float) -> Outcome:
                 return out(kind, 'model_decision', turn + 1)
             if last is None:
                 observation = {'status': 'error', 'error': 'No program has produced a result yet: write a ```python block with its Answer type.'}
-            elif not confirmable:
-                observation = {'status': 'error', 'error': f'A result where {ALL_ZERO} cannot be confirmed yet: fix the '
-                               'filters so they match rows, or check it with a different program (a second, different program '
-                               'that also gives 0 is submitted), or reply "Answer type: abstain" or "Answer type: unanswerable".'}
             else:
                 try:
                     kind, answer = retype(kind, finalize(kind, last))
@@ -147,15 +139,7 @@ def solve(question, ctx: Context, deadline: float) -> Outcome:
         if observation is None:
             answer, result, observation = _run_program({**action, 'turn': turn}, question, ctx, deadline, trace)
             if result is not None:
-                zero = observation is not None and any(i.startswith(ALL_ZERO) for i in observation.get('issues', []))
-                zero_programs |= {action.get('code')} if zero else set()
-                last, confirmable = result, not zero or len(zero_programs) >= 2      # 0 from two different programs
-                if zero and len(zero_programs) >= 2 and all(i.startswith(ALL_ZERO) for i in observation['issues']):
-                    try:                                  # the second, different program agrees on 0: submitted at once
-                        kind, answer = retype(action['answer_type'], finalize(action['answer_type'], result))
-                        return out(kind, 'zero_confirmed', turn + 1, answer)
-                    except AnswerError:
-                        pass
+                last = result
             if answer is not None:
                 kind, answer = retype(action['answer_type'], answer)
                 return out(kind, 'auto_finalized', turn + 1, answer)

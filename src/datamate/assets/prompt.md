@@ -81,7 +81,7 @@ dm.top(series, k=3) or dm.top(frame, by='<col>', k=3) (always pass k by name; as
 Before dict(zip(keys, codes)), assert not keys.duplicated().any(): two names that differ only by accents are two people.
 
 # 8. After an error or failed check
-You see the error, the failing line, the variables on it and the trace. Find the real cause, fix it, and do not repeat the same program. A result where every value is 0 cannot be confirmed unless a second, different program also gives 0: fix the filters or abstain. A wrong answer costs more than abstain.
+You see the error, the failing line, the variables on it and the trace. Find the real cause, fix it, and do not repeat the same program. A wrong answer costs more than abstain.
 
 # 9. Remember (most important)
 1. Line 1 Answer type, line 2 ASKED. Answer exactly what is asked (count vs money vs quantity).

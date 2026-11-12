@@ -30,8 +30,6 @@ def pairs_of(names):
             out += RG.EXTRA[n][1]
         elif n in V.VARIANTS:
             out += V.VARIANTS[n][1]
-        if n == 'pct_one_decimal':
-            out += RG.PCT_ONE_EXTRA
     return out
 
 

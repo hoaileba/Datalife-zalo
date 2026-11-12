@@ -118,9 +118,6 @@ def column_names(columns):
     return slugs if len(set(slugs)) == len(slugs) else [str(c) for c in columns]
 
 
-ALL_ZERO = 'every numeric value is 0'           # a result with this issue cannot be confirmed, only fixed or abstained
-
-
 BLANK_TEXT = {'nan', 'none', 'null', 'nat', '<na>'}
 NUMBER_TEXT = re.compile(r'-?[1-9]\d*(\.\d+)?|-?0\.\d+')       # not a code: no leading zero, no letters
 UNANSWERABLE_TEXT = {'unanswerable', 'khong tra loi duoc', 'khong the tra loi'}
@@ -144,9 +141,6 @@ def issues(answer_type, answer, question):
     if answer_type == 'table' and not answer['rows']:
         found.append('empty table')
     cells = answer if isinstance(answer, list) else [c for r in answer['rows'] for c in r] if isinstance(answer, dict) else [answer]
-    numbers = [c for c in cells if isinstance(c, (int, float)) and not isinstance(c, bool)]
-    if numbers and all(n == 0 for n in numbers):
-        found.append(ALL_ZERO + ': check that the filters (names, dates, statuses) matched rows')
     if isinstance(answer, dict) and answer.get('rows') and len(answer['columns']) > 2:
         text = [j for j in range(len(answer['columns'])) if all(isinstance(r[j], str) for r in answer['rows'])]
         if len(text) >= 2:

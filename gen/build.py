@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'src'), str(ROOT)]
 
 from gen import variants  # noqa: E402
-from gen.oracle import Rules, answer  # noqa: E402
+from gen.oracle import Rules, answer, undetermined  # noqa: E402
 from gen.questions import sample  # noqa: E402
 from gen.sim import TRAIN_META, make_spec, simulate  # noqa: E402
 
@@ -86,7 +86,8 @@ def answer_alias(kind, ans, codes, values, caps):
 
 def variant_questions(L, rng, n, variant, rules, keep_unaffected=0.3):
     """S4: questions of a rulebook variant, mostly ones whose answer the changed rule moves (the point of the
-    sample), plus some it does not move (the model must not over-apply a change)."""
+    sample), plus some it does not move (the model must not over-apply a change). Questions the variant's rulebook
+    does not fix (gen.oracle.undetermined) stay in the list: callers drop them."""
     from gen.questions import WEIGHTS
     focus = (variants.VARIANTS[variant][2] or {}).get('*', [])
     w = dict(WEIGHTS)
@@ -158,7 +159,7 @@ def build(out: Path, n_shops: int, n_questions: int, industries, seed=0, variant
             default=str, indent=1), encoding='utf-8')
     (out / 'rulebook.md').write_text(rb, encoding='utf-8')
     fq, fa, fm = (open(out / f, 'w', encoding='utf-8') for f in ('questions.jsonl', 'answers.jsonl', 'meta.jsonl'))
-    qn = 0
+    qn = dropped = 0
     for i in range(n_shops):
         ind = industries[i % len(industries)]
         bid = f'syn_{first_id + i}'
@@ -210,6 +211,9 @@ def build(out: Path, n_shops: int, n_questions: int, industries, seed=0, variant
             qid = f'q_syn{seed:02d}_{qn:06d}' if split_name is None else f'q_{split_name}_{qn:05d}'
             ctx = S.make_ctx(L, q['spec'], q['as_of'])
             prng = random.Random(int(rng.integers(1 << 62)))       # surface.py uses random.Random
+            if undetermined(q['spec'], rules, L):  # the rulebook does not fix this answer: never asked (dropped after
+                dropped += 1                    # its id and text seed are drawn: the other questions stay the same)
+                continue
             text = S.noisify(S.realize(q['spec'], ctx, prng), prng)
             fq.write(json.dumps({'id': qid, 'business_id': bid, 'question': text,
                                  'as_of_date': q['as_of'].isoformat()}, ensure_ascii=False) + '\n')
@@ -223,7 +227,7 @@ def build(out: Path, n_shops: int, n_questions: int, industries, seed=0, variant
         print(f'{bid} {ind:16s} {fam:6s} orders={len(L.orders):6d} questions={len(qs)}', flush=True)
     for f in (fq, fa, fm):
         f.close()
-    return qn
+    return qn - dropped
 
 
 def main():

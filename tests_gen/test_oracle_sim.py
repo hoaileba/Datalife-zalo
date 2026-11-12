@@ -89,3 +89,96 @@ def test_every_variant_changes_some_answer(shop):
                 changed.add(v)
                 break
     assert len(changed) >= 6, changed
+
+
+# ---------------------------------------------------------------- the question's words and the rulebook
+def test_question_words_fix_the_comparison_window(shop):
+    """'cùng kỳ / cùng số ngày của tháng trước' wins over a rulebook that compares 'tháng này' with the whole previous
+    month (rulebook intro: the question wins when it says otherwise); plain 'tháng trước' follows the rulebook."""
+    from gen.parse import Names, parse
+    from gen.questions import Sampler
+    import random
+    from gen import surface as S
+    full = rules_of('this_month_full_prev')
+    as_of = shop.shop['end'] - dt.timedelta(days=12)
+    as_of = as_of.replace(day=min(as_of.day, 20))
+    base = {'intent': 'revenue_change_pct', 'period': {'kind': 'this_month'}}
+    default = oracle.answer(shop, base, as_of)
+    assert oracle.answer(shop, {**base, 'ref_text': 'same_days'}, as_of, full) == default
+    assert oracle.answer(shop, base, as_of, full) != default
+    assert oracle.answer(shop, {**base, 'ref_text': 'full'}, as_of) == oracle.answer(shop, base, as_of, full)
+    names = Names(shop)
+    for text, want in (('Doanh thu tháng này thay đổi bao nhiêu % so với cùng kỳ tháng trước', 'same_days'),
+                       ('dthu thang nay so voi cung so ngay cua th truoc tang hay giam may %', 'same_days'),
+                       ('Doanh thu tháng này thay đổi bao nhiêu % so với cả tháng trước', 'full'),
+                       ('Doanh thu tháng này thay đổi bao nhiêu % so với tháng trước', None)):
+        assert parse(text, as_of, shop, names).get('ref_text') == want, text
+    tet = parse('Dịp Tết 2026 có doanh thu hơn hay kém 17 ngày trước Tết bao nhiêu %?', as_of, shop, names)
+    assert tet['ref'] == {'kind': 'before_tet', 'days': 17}
+    s, _ = periods.bounds({'kind': 'tet', 'year': 2026}, as_of, oracle.Rules())
+    r = periods.before_tet({'kind': 'tet', 'year': 2026}, as_of, rules_of('tet_short'), days=17)
+    assert (r['start'], r['end']) == (s - dt.timedelta(days=17), s - dt.timedelta(days=1))
+    # the generator writes neutral words when the rulebook's window is not the train one, explicit ones otherwise
+    for rules, want in ((full, 'neutral'), (oracle.Rules(), 'same_days')):
+        smp = Sampler(shop, np.random.default_rng(0), rules)
+        spec = next(sp for sp in (smp.spec('revenue_change_pct', as_of) for _ in range(300))
+                    if sp['period']['kind'] == 'this_month')
+        assert spec['ref_text'] == want
+        for seed in range(10):
+            text = S.realize(spec, S.make_ctx(shop, spec, as_of), random.Random(seed))
+            assert ('cùng' in text) == (want == 'same_days'), text
+
+
+def test_undetermined_questions():
+    R = oracle.Rules()
+    vou, ret, dlv = rules_of('revenue_voucher'), rules_of('returns_count'), rules_of('delivering_out')
+    for it in ('group_share', 'revenue_item', 'rx_share', 'service_share'):
+        assert oracle.undetermined({'intent': it}, vou) and not oracle.undetermined({'intent': it}, R)
+    assert oracle.undetermined({'intent': 'top_items', 'by': 'revenue'}, vou)
+    assert not oracle.undetermined({'intent': 'top_items'}, vou) and not oracle.undetermined({'intent': 'revenue'}, vou)
+    for rules in (ret, dlv):
+        assert oracle.undetermined({'intent': 'top_items'}, rules) and not oracle.undetermined({'intent': 'revenue'}, rules)
+    assert not oracle.undetermined({'intent': 'group_share'}, rules_of('revenue_shipping'))
+
+
+def test_gross_profit_uses_the_revenue_of_the_rulebook(shop):
+    per = {'kind': 'month', 'y': shop.shop['start'].year, 'm': shop.shop['start'].month + 1}
+    as_of = shop.shop['end']
+    spec = {'intent': 'gross_profit', 'period': per}
+    ship, R = rules_of('revenue_shipping'), oracle.Rules()
+    rev = {r: oracle.answer(shop, {'intent': 'revenue', 'period': per}, as_of, r)[1] for r in (R, ship)}
+    assert rev[ship] > rev[R]                                      # the month has delivery fees
+    assert oracle.answer(shop, spec, as_of, ship)[1] - oracle.answer(shop, spec, as_of, R)[1] == rev[ship] - rev[R]
+
+
+def test_price_on_a_day_of_two_prices_per_base_unit_is_not_asked():
+    """§5 Giá bán: the price written on the day's lines per base unit. A big unit priced below n x base the same day
+    gives two answers: undetermined. A day with one price per base unit stays (its answer: that price x the factor)."""
+    L = simulate(make_spec('pet_shop', np.random.default_rng(5), 'syn_p'), 5)
+    big = L.units[L.units.factor > 1]
+    day = L.orders.set_index('order_id').created.dt.normalize()
+    l = L.lines[L.lines.product_id.isin(big.product_id)].assign(day=lambda x: x.order_id.map(day))
+    f = l.apply(lambda r: oracle._unit_factor(L, r.product_id, r.unit), axis=1)
+    l = l.assign(pb=(l.unit_price / f).round(6))
+    g = l.groupby(['product_id', 'day']).agg(units=('unit', 'nunique'), prices=('pb', 'nunique'))
+    two = g[(g.units > 1) & (g.prices > 1)].index
+    one = g[(g.units == 1) & (g.prices == 1)].index
+    assert len(two) and len(one)
+    R = oracle.Rules()
+    pid, d = two[0]
+    unit = big[big.product_id == pid].unit.iloc[0]
+    assert oracle.undetermined({'intent': 'price_on_day', 'item': pid, 'date': d.date(), 'unit': unit}, R, L)
+    pid, d = one[0]
+    spec = {'intent': 'price_on_day', 'item': pid, 'date': d.date()}
+    assert not oracle.undetermined(spec, R, L)
+    assert oracle.answer(L, spec, L.shop['end'])[1] == l[(l.product_id == pid) & (l.day == d)].pb.iloc[0]
+
+
+def test_event_word_units_are_named_as_units():
+    import random
+    from gen import surface as S
+    ctx = S.Ctx(as_of=dt.date(2026, 3, 4))
+    for seed in range(20):
+        text = S.realize({'intent': 'qty_unit', 'unit': 'lần', 'period': {'kind': 'month', 'y': 2026, 'm': 2}}, ctx,
+                         random.Random(seed))
+        assert 'tính theo lần' in text, text

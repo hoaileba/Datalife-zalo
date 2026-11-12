@@ -47,7 +47,7 @@ def test_finalize_numbers_dates_lists_tables():
 
 
 def test_checks_before_auto_submit():
-    assert issues('list', [], 'q') == ['empty list'] and issues('number', 0, 'q')
+    assert issues('list', [], 'q') == ['empty list'] and not issues('number', 0, 'q')      # 0 is an answer like any other
     assert issues('number', 12.5, 'Tỉ lệ đơn huỷ là bao nhiêu?') and not issues('percent', 12.5, 'Tỉ lệ đơn huỷ?')
     assert not issues('number', 5, 'Bao nhiêu đơn?')
 
