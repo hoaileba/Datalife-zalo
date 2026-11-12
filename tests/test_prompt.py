@@ -86,8 +86,9 @@ def test_cookbook_drops_the_recipes_of_gone_rules_and_marks_cited_ones():
     gone = frozenset(key(r) for name in names for r in entries[name]['rules'])
     text = cookbook(gone)
     assert '- [Giao nhiều đợt]' not in text and '- [Số đơn]' in text                # nobody cites it: dropped
-    assert '- [Tồn theo đơn vị lớn]' + GONE_NOTE in text           # cited by name ([Tồn theo đơn vị lớn] (a)/(b)/(c))
-    assert '- [Đơn thuộc kỳ nào]' + GONE_NOTE in text              # cited by section: "orders that count (§1)"
+    assert '- [Tồn theo đơn vị lớn]' + GONE_NOTE + '\n' in text + '\n'    # cited by name: only the name and the note
+    assert '- [Đơn thuộc kỳ nào]' + GONE_NOTE + '\n' in text + '\n'       # cited by section: "orders that count (§1)"
+    assert entries['Đơn thuộc kỳ nào']['recipe'].split('] ', 1)[1][:40] not in text   # the old method is gone
     assert cookbook() == cookbook(frozenset({key('| Không có | dòng này |')}))
     assert all(e['recipe'].startswith('- [') for s in load_cookbook()['sections'] for e in s['entries'])   # every recipe tagged
     assert all(re.fullmatch(r'## §\d+ .+', s['title']) for s in load_cookbook()['sections'])        # titles carry §N
@@ -101,3 +102,11 @@ def test_lookup_groups_spellings_and_notes_drop_empty_joins():
     text = render_state({'notes': 'n', 'data_notes': notes}, 'q', '2026-01-01', look, 3, False)
     assert "t.c = 'Siro  ăn' (3 rows) | 'Siro Ăn' (2 rows) (mentioned in question; written 2 ways" in text
     assert 'joins' not in text.split('<data_notes>')[1]
+
+
+def test_recipes_cited_by_the_instructions_keep_their_name_when_gone():
+    from datamate.prompt import GONE_NOTE, cookbook
+    from datamate.rules import key, load_cookbook
+    entry = next(e for s in load_cookbook()['sections'] for e in s['entries'] if e['recipe'].startswith('- [Bảng không ghi theo đơn]'))
+    text = cookbook(frozenset(key(r) for r in entry['rules']))
+    assert '- [Bảng không ghi theo đơn]' + GONE_NOTE in text                 # prompt.md cites it: the name stays

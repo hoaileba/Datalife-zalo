@@ -1,7 +1,7 @@
 # Industries absent from the train shops (the private test has new business types). Hand-written, plausible
 # Vietnamese retail items. unit = base unit; units = [larger unit, base units in it]; kind made = prepared on the spot.
 cosmetics:
-  meta: {shop_word: cửa hàng, label: mỹ phẩm, tet: 1.6, orders: [25, 70], lines: 1.6}
+  meta: {shop_word: cửa hàng, label: mỹ phẩm, tet: 1.6, orders: [25, 70], lines: 1.6, lots: true}
   items:
     - {name: Sữa rửa mặt Cetaphil 125ml, group: chăm sóc da, unit: chai, price: 215000}
     - {name: Sữa rửa mặt Senka Perfect Whip 120g, group: chăm sóc da, unit: tuýp, price: 89000}
@@ -30,7 +30,7 @@ cosmetics:
     - {name: Tẩy tế bào chết Cocoon cà phê 200ml, group: chăm sóc cơ thể, unit: hũ, price: 145000}
     - {name: Gel trị mụn Some By Mi 50ml, group: serum, unit: tuýp, price: 199000}
 mother_baby:
-  meta: {shop_word: cửa hàng, label: mẹ và bé, tet: 1.4, orders: [30, 80], lines: 2.0}
+  meta: {shop_word: cửa hàng, label: mẹ và bé, tet: 1.4, orders: [30, 80], lines: 2.0, lots: true}
   items:
     - {name: Sữa Meiji số 0 800g, group: sữa bột, unit: lon, price: 520000, units: [[thùng, 8]]}
     - {name: Sữa Aptamil Úc số 1 900g, group: sữa bột, unit: lon, price: 610000, units: [[thùng, 6]]}
@@ -113,7 +113,7 @@ bakery:
     - {name: Sữa tươi Vinamilk 180ml, group: đồ uống, unit: hộp, price: 9000, units: [[lốc, 4], [thùng, 48]]}
     - {name: Nước suối Aquafina 500ml, group: đồ uống, unit: chai, price: 7000, units: [[thùng, 24]]}
 motorbike_repair:
-  meta: {shop_word: tiệm, label: sửa xe máy, tet: 0.7, orders: [15, 45], lines: 2.2}
+  meta: {shop_word: tiệm, label: sửa xe máy, tet: 0.7, orders: [15, 45], lines: 2.2, visits: plates, staff: 4}
   items:
     - {name: Nhớt Castrol Power1 0.8L, group: dầu nhớt, unit: chai, price: 115000, units: [[thùng, 24]]}
     - {name: Nhớt Motul 3000 Plus 0.8L, group: dầu nhớt, unit: chai, price: 105000, units: [[thùng, 20]]}
@@ -140,7 +140,7 @@ motorbike_repair:
     - {name: Thay má phanh công thợ, group: dịch vụ, unit: lần, price: 40000, kind: made}
     - {name: Xích chống trộm khóa đĩa, group: phụ kiện, unit: cái, price: 150000}
 pet_shop:
-  meta: {shop_word: cửa hàng, label: thú cưng, tet: 1.2, orders: [20, 60], lines: 1.8}
+  meta: {shop_word: cửa hàng, label: thú cưng, tet: 1.2, orders: [20, 60], lines: 1.8, staff: 4}
   items:
     - {name: Hạt Royal Canin Mini Adult 2kg, group: thức ăn chó, unit: túi, price: 395000}
     - {name: Hạt SmartHeart chó lớn 3kg, group: thức ăn chó, unit: túi, price: 235000}
@@ -165,7 +165,7 @@ pet_shop:
     - {name: Gửi giữ thú cưng, group: dịch vụ, unit: ngày, price: 100000, kind: made}
     - {name: Vệ sinh tai móng, group: dịch vụ, unit: lần, price: 60000, kind: made}
 agri_supply:
-  meta: {shop_word: cửa hàng, label: vật tư nông nghiệp, tet: 0.5, orders: [12, 40], lines: 2.0}
+  meta: {shop_word: cửa hàng, label: vật tư nông nghiệp, tet: 0.5, orders: [12, 40], lines: 2.0, lots: true}
   items:
     - {name: Phân Urê Phú Mỹ, group: phân bón, unit: kg, price: 14000, units: [[bao 50kg, 50]]}
     - {name: Phân NPK Đầu Trâu 20-20-15, group: phân bón, unit: kg, price: 19000, units: [[bao 50kg, 50]]}
@@ -187,3 +187,150 @@ agri_supply:
     - {name: Cuốc bàn cán gỗ, group: dụng cụ, unit: cái, price: 120000}
     - {name: Lưới che nắng 70%, group: dụng cụ, unit: m, price: 12000, units: [[cuộn 100m, 100]]}
     - {name: Chế phẩm Trichoderma 1kg, group: thuốc BVTV, unit: gói, price: 45000, units: [[thùng, 20]]}
+# ---- Direction 3 (private test: new business types). Extra meta keys read by gen.sim / gen.industry:
+#   decimal_units: base units sold by weight (quantities with decimals)   visits: tables | plates
+#   lots: true (lots with expiry dates)   staff: number of staff   takeaway: share of orders without table/guests
+# Item keys: sizes [..] + size_fmt ('{n} size {s}' | '{n} ({s})') + size_step (price step per size) expand one
+# entry into one item per size; kind addon = sold only with other items (topping, khăn lạnh).
+fruit_shop:
+  meta: {shop_word: cửa hàng, label: trái cây, tet: 1.8, orders: [45, 120], lines: 2.1, decimal_units: [kg]}
+  items:
+    - {name: Xoài cát Hòa Lộc, group: trái cây nội, unit: kg, price: 75000}
+    - {name: Sầu riêng Ri6, group: trái cây nội, unit: kg, price: 95000}
+    - {name: Bưởi da xanh, group: trái cây nội, unit: kg, price: 55000}
+    - {name: Cam sành, group: trái cây nội, unit: kg, price: 30000}
+    - {name: Thanh long ruột đỏ, group: trái cây nội, unit: kg, price: 35000}
+    - {name: Mãng cầu xiêm, group: trái cây nội, unit: kg, price: 60000}
+    - {name: Chôm chôm Thái, group: trái cây nội, unit: kg, price: 40000}
+    - {name: Măng cụt Lái Thiêu, group: trái cây nội, unit: kg, price: 70000}
+    - {name: Nho xanh Ninh Thuận, group: trái cây nội, unit: kg, price: 65000}
+    - {name: Dưa hấu Long An, group: trái cây nội, unit: kg, price: 18000}
+    - {name: Táo Envy New Zealand, group: trái cây nhập, unit: kg, price: 155000}
+    - {name: Lê Hàn Quốc, group: trái cây nhập, unit: kg, price: 120000}
+    - {name: Nho mẫu đơn Nhật, group: trái cây nhập, unit: kg, price: 450000}
+    - {name: Cherry Mỹ size 9.5, group: trái cây nhập, unit: kg, price: 390000}
+    - {name: Kiwi vàng Zespri, group: trái cây nhập, unit: kg, price: 180000}
+    - {name: Việt quất Peru hộp 125g, group: trái cây nhập, unit: hộp, price: 89000, units: [[thùng, 12]]}
+    - {name: Dừa xiêm Bến Tre, group: trái cây nội, unit: trái, price: 15000, units: [[chục, 12]]}
+    - {name: Giỏ quà trái cây 500k, group: giỏ quà, unit: giỏ, price: 500000, kind: made}
+    - {name: Giỏ quà trái cây 1 triệu, group: giỏ quà, unit: giỏ, price: 1000000, kind: made}
+    - {name: Nước ép cam ly 350ml, group: nước ép, unit: ly, price: 35000, kind: made}
+    - {name: Nước ép dưa hấu ly 350ml, group: nước ép, unit: ly, price: 30000, kind: made}
+    - {name: Hạt điều rang muối hũ 500g, group: hạt khô, unit: hũ, price: 165000}
+fashion:
+  meta: {shop_word: shop, label: thời trang, tet: 2.0, orders: [20, 60], lines: 1.7}
+  items:
+    - {name: Áo thun cổ tròn trắng, group: áo, unit: cái, price: 129000, sizes: [S, M, L, XL], size_fmt: '{n} size {s}'}
+    - {name: Áo thun oversize đen, group: áo, unit: cái, price: 159000, sizes: [M, L, XL], size_fmt: '{n} size {s}'}
+    - {name: Áo polo nam xanh navy, group: áo, unit: cái, price: 219000, sizes: [M, L, XL], size_fmt: '{n} size {s}'}
+    - {name: Áo sơ mi trắng tay dài, group: áo, unit: cái, price: 289000, sizes: [S, M, L], size_fmt: '{n} size {s}'}
+    - {name: Áo khoác gió 2 lớp, group: áo khoác, unit: cái, price: 349000, sizes: [M, L, XL], size_fmt: '{n} size {s}'}
+    - {name: Quần jean nữ ống suông, group: quần, unit: cái, price: 329000, sizes: [S, M, L], size_fmt: '{n} size {s}'}
+    - {name: Quần short kaki nam, group: quần, unit: cái, price: 199000, sizes: [M, L, XL], size_fmt: '{n} size {s}'}
+    - {name: Váy hoa nhí dáng xoè, group: váy đầm, unit: cái, price: 279000, sizes: [S, M], size_fmt: '{n} size {s}'}
+    - {name: Đầm công sở cổ vuông, group: váy đầm, unit: cái, price: 389000, sizes: [S, M, L], size_fmt: '{n} size {s}'}
+    - {name: Tất cổ ngắn cotton, group: phụ kiện, unit: đôi, price: 25000, units: [[hộp, 5]]}
+    - {name: Mũ lưỡi trai thêu chữ, group: phụ kiện, unit: cái, price: 99000}
+    - {name: Túi tote canvas, group: phụ kiện, unit: cái, price: 119000}
+    - {name: Thắt lưng da nam, group: phụ kiện, unit: cái, price: 189000}
+milk_tea:
+  meta: {shop_word: quán, label: trà sữa, tet: 0.6, orders: [70, 180], lines: 1.8}
+  items:
+    - {name: Trà sữa truyền thống, group: trà sữa, unit: ly, price: 30000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 6000}
+    - {name: Trà sữa trân châu đường đen, group: trà sữa, unit: ly, price: 38000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 6000}
+    - {name: Trà sữa matcha, group: trà sữa, unit: ly, price: 36000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 6000}
+    - {name: Trà sữa khoai môn, group: trà sữa, unit: ly, price: 35000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 6000}
+    - {name: Hồng trà kem cheese, group: trà kem, unit: ly, price: 39000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 7000}
+    - {name: Trà đào cam sả, group: trà trái cây, unit: ly, price: 35000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 6000}
+    - {name: Trà vải hoa hồng, group: trà trái cây, unit: ly, price: 35000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 6000}
+    - {name: Sữa tươi trân châu đường đen, group: sữa tươi, unit: ly, price: 40000, kind: made, sizes: [M, L], size_fmt: '{n} ({s})', size_step: 7000}
+    - {name: Topping trân châu đen, group: topping, unit: phần, price: 6000, kind: addon}
+    - {name: Topping thạch phô mai, group: topping, unit: phần, price: 8000, kind: addon}
+    - {name: Topping pudding trứng, group: topping, unit: phần, price: 8000, kind: addon}
+    - {name: Topping kem cheese, group: topping, unit: phần, price: 10000, kind: addon}
+    - {name: Bánh flan, group: ăn vặt, unit: hũ, price: 15000, kind: made}
+    - {name: Nước suối Lavie 500ml, group: nước đóng chai, unit: chai, price: 8000, units: [[thùng, 24]]}
+spa_salon:
+  meta: {shop_word: tiệm, label: salon tóc và spa, tet: 1.7, orders: [20, 55], lines: 1.5, staff: 5}
+  items:
+    - {name: Cắt tóc nam, group: dịch vụ tóc, unit: lần, price: 80000, kind: made}
+    - {name: Cắt tóc nữ, group: dịch vụ tóc, unit: lần, price: 150000, kind: made}
+    - {name: Gội đầu dưỡng sinh, group: dịch vụ tóc, unit: lần, price: 120000, kind: made}
+    - {name: Uốn tóc, group: dịch vụ tóc, unit: lần, price: 650000, kind: made}
+    - {name: Nhuộm tóc thời trang, group: dịch vụ tóc, unit: lần, price: 550000, kind: made}
+    - {name: Phục hồi tóc keratin, group: dịch vụ tóc, unit: lần, price: 450000, kind: made}
+    - {name: Chăm sóc da mặt cơ bản, group: dịch vụ da, unit: lần, price: 250000, kind: made}
+    - {name: Lấy nhân mụn, group: dịch vụ da, unit: lần, price: 200000, kind: made}
+    - {name: Massage body 60 phút, group: dịch vụ spa, unit: lần, price: 350000, kind: made}
+    - {name: Sơn gel tay, group: dịch vụ móng, unit: lần, price: 120000, kind: made}
+    - {name: Sơn gel chân, group: dịch vụ móng, unit: lần, price: 100000, kind: made}
+    - {name: Đắp móng bột, group: dịch vụ móng, unit: lần, price: 350000, kind: made}
+    - {name: Duỗi tóc, group: dịch vụ tóc, unit: lần, price: 600000, kind: made}
+    - {name: Tẩy tóc, group: dịch vụ tóc, unit: lần, price: 300000, kind: made}
+    - {name: Gội sấy tạo kiểu, group: dịch vụ tóc, unit: lần, price: 90000, kind: made}
+    - {name: Massage cổ vai gáy 30 phút, group: dịch vụ spa, unit: lần, price: 180000, kind: made}
+    - {name: Triệt lông nách, group: dịch vụ da, unit: lần, price: 250000, kind: made}
+    - {name: Combo 10 buổi chăm sóc da, group: dịch vụ da, unit: gói, price: 2000000, kind: made}
+    - {name: Kem ủ tóc Karseell 500ml, group: mỹ phẩm bán lẻ, unit: hũ, price: 190000}
+    - {name: Xịt dưỡng tóc Mise en scène 150ml, group: mỹ phẩm bán lẻ, unit: chai, price: 145000}
+    - {name: Dầu gội Olaplex No.4 250ml, group: mỹ phẩm bán lẻ, unit: chai, price: 780000}
+    - {name: Dầu xả TSUBAKI 490ml, group: mỹ phẩm bán lẻ, unit: chai, price: 210000}
+    - {name: Tinh dầu dưỡng tóc Moroccanoil 25ml, group: mỹ phẩm bán lẻ, unit: chai, price: 320000}
+    - {name: Sáp vuốt tóc By Vilain, group: mỹ phẩm bán lẻ, unit: hộp, price: 350000}
+    - {name: Mặt nạ đất sét Innisfree, group: mỹ phẩm bán lẻ, unit: hũ, price: 275000}
+hotpot:
+  meta: {shop_word: quán, label: lẩu nướng, tet: 0.6, orders: [35, 90], lines: 4.0, visits: tables, takeaway: 0.12}
+  items:
+    - {name: Lẩu Thái hải sản, group: lẩu, unit: nồi, price: 289000, kind: made}
+    - {name: Lẩu bò nhúng giấm, group: lẩu, unit: nồi, price: 259000, kind: made}
+    - {name: Lẩu gà lá é, group: lẩu, unit: nồi, price: 239000, kind: made}
+    - {name: Lẩu nấm chay, group: lẩu, unit: nồi, price: 199000, kind: made}
+    - {name: Ba chỉ bò Mỹ, group: món nướng, unit: dĩa, price: 119000, kind: made}
+    - {name: Sườn heo nướng mật ong, group: món nướng, unit: dĩa, price: 129000, kind: made}
+    - {name: Bạch tuộc nướng sa tế, group: món nướng, unit: dĩa, price: 139000, kind: made}
+    - {name: Tôm sú nướng muối ớt, group: món nướng, unit: dĩa, price: 169000, kind: made}
+    - {name: Rau nhúng thập cẩm, group: món thêm, unit: dĩa, price: 39000, kind: made}
+    - {name: Mì trứng, group: món thêm, unit: vắt, price: 12000, kind: made}
+    - {name: Lẩu cá kèo lá giang, group: lẩu, unit: nồi, price: 269000, kind: made}
+    - {name: Lẩu riêu cua bắp bò, group: lẩu, unit: nồi, price: 299000, kind: made}
+    - {name: Lẩu mắm miền Tây, group: lẩu, unit: nồi, price: 319000, kind: made}
+    - {name: Ba chỉ heo nướng sả, group: món nướng, unit: dĩa, price: 99000, kind: made}
+    - {name: Lòng bò nướng, group: món nướng, unit: dĩa, price: 109000, kind: made}
+    - {name: Mực một nắng nướng, group: món nướng, unit: dĩa, price: 189000, kind: made}
+    - {name: Nấm kim châm cuộn bò, group: món thêm, unit: dĩa, price: 79000, kind: made}
+    - {name: Đậu hũ phô mai, group: món thêm, unit: dĩa, price: 45000, kind: made}
+    - {name: Cơm chiên trứng, group: món thêm, unit: dĩa, price: 55000, kind: made}
+    - {name: Rượu Soju Jinro 360ml, group: đồ uống, unit: chai, price: 75000, units: [[thùng, 20]]}
+    - {name: Nước suối Lavie 500ml, group: đồ uống, unit: chai, price: 10000, units: [[thùng, 24]]}
+    - {name: Sữa đậu nành nhà làm, group: đồ uống, unit: ly, price: 15000, kind: made}
+    - {name: Bia Tiger lon 330ml, group: đồ uống, unit: lon, price: 22000, units: [[thùng, 24]]}
+    - {name: Bia Heineken lon 330ml, group: đồ uống, unit: lon, price: 26000, units: [[thùng, 24]]}
+    - {name: Coca Cola lon 330ml, group: đồ uống, unit: lon, price: 15000, units: [[thùng, 24]]}
+    - {name: Trà đá, group: đồ uống, unit: ly, price: 5000, kind: made}
+    - {name: Khăn lạnh, group: phụ thu, unit: cái, price: 3000, kind: addon}
+phone_shop:
+  meta: {shop_word: cửa hàng, label: điện thoại di động, tet: 1.5, orders: [12, 40], lines: 1.6}
+  items:
+    - {name: iPhone 15 128GB, group: điện thoại, unit: máy, price: 18990000}
+    - {name: iPhone 13 128GB, group: điện thoại, unit: máy, price: 12490000}
+    - {name: Samsung Galaxy A55 5G, group: điện thoại, unit: máy, price: 9490000}
+    - {name: Samsung Galaxy S24, group: điện thoại, unit: máy, price: 19990000}
+    - {name: Xiaomi Redmi Note 13, group: điện thoại, unit: máy, price: 4790000}
+    - {name: OPPO A79 5G, group: điện thoại, unit: máy, price: 6490000}
+    - {name: Cáp sạc Type-C Anker 1m, group: phụ kiện, unit: sợi, price: 159000, units: [[hộp, 10]]}
+    - {name: Củ sạc nhanh 20W Baseus, group: phụ kiện, unit: cái, price: 249000}
+    - {name: Sạc dự phòng Xiaomi 10000mAh, group: phụ kiện, unit: cái, price: 399000}
+    - {name: Tai nghe Bluetooth JBL Tune 520, group: phụ kiện, unit: cái, price: 1190000}
+    - {name: Ốp lưng silicon iPhone 15, group: phụ kiện, unit: cái, price: 89000, units: [[hộp, 20]]}
+    - {name: Kính cường lực iPhone 15, group: phụ kiện, unit: miếng, price: 69000, units: [[hộp, 20]]}
+    - {name: Thẻ nhớ microSD 64GB, group: phụ kiện, unit: cái, price: 179000}
+    - {name: Dán màn hình, group: dịch vụ, unit: lần, price: 30000, kind: made}
+    - {name: Thay pin iPhone, group: dịch vụ, unit: lần, price: 650000, kind: made}
+    - {name: Cài đặt phần mềm, group: dịch vụ, unit: lần, price: 100000, kind: made}
+    - {name: Ép kính màn hình, group: dịch vụ, unit: lần, price: 450000, kind: made}
+    - {name: Thay chân sạc, group: dịch vụ, unit: lần, price: 250000, kind: made}
+    - {name: Samsung Galaxy A15, group: điện thoại, unit: máy, price: 4290000}
+    - {name: iPhone 16 Pro Max 256GB, group: điện thoại, unit: máy, price: 33990000}
+    - {name: Đồng hồ thông minh Xiaomi Band 9, group: đồng hồ, unit: cái, price: 890000}
+    - {name: Loa Bluetooth JBL Go 4, group: phụ kiện, unit: cái, price: 990000}
+    - {name: Giá đỡ điện thoại ô tô, group: phụ kiện, unit: cái, price: 129000, units: [[hộp, 10]]}

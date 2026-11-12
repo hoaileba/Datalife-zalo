@@ -5759,5 +5759,1432 @@
     ]
    ]
   }
+ ],
+ "fruit_shop": [
+  {
+   "name": "Xoài cát Hòa Lộc",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 75000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Sầu riêng Ri6",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 95000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Bưởi da xanh",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 55000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Cam sành",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 30000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Thanh long ruột đỏ",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 35000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Mãng cầu xiêm",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 60000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Chôm chôm Thái",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 40000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Măng cụt Lái Thiêu",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 70000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Nho xanh Ninh Thuận",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 65000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Dưa hấu Long An",
+   "group": "trái cây nội",
+   "base_unit": "kg",
+   "price": 18000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Táo Envy New Zealand",
+   "group": "trái cây nhập",
+   "base_unit": "kg",
+   "price": 155000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Lê Hàn Quốc",
+   "group": "trái cây nhập",
+   "base_unit": "kg",
+   "price": 120000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Nho mẫu đơn Nhật",
+   "group": "trái cây nhập",
+   "base_unit": "kg",
+   "price": 450000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Cherry Mỹ size 9.5",
+   "group": "trái cây nhập",
+   "base_unit": "kg",
+   "price": 390000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Kiwi vàng Zespri",
+   "group": "trái cây nhập",
+   "base_unit": "kg",
+   "price": 180000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Việt quất Peru hộp 125g",
+   "group": "trái cây nhập",
+   "base_unit": "hộp",
+   "price": 89000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "thùng",
+     12
+    ]
+   ]
+  },
+  {
+   "name": "Dừa xiêm Bến Tre",
+   "group": "trái cây nội",
+   "base_unit": "trái",
+   "price": 15000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "chục",
+     12
+    ]
+   ]
+  },
+  {
+   "name": "Giỏ quà trái cây 500k",
+   "group": "giỏ quà",
+   "base_unit": "giỏ",
+   "price": 500000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Giỏ quà trái cây 1 triệu",
+   "group": "giỏ quà",
+   "base_unit": "giỏ",
+   "price": 1000000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Nước ép cam ly 350ml",
+   "group": "nước ép",
+   "base_unit": "ly",
+   "price": 35000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Nước ép dưa hấu ly 350ml",
+   "group": "nước ép",
+   "base_unit": "ly",
+   "price": 30000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Hạt điều rang muối hũ 500g",
+   "group": "hạt khô",
+   "base_unit": "hũ",
+   "price": 165000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  }
+ ],
+ "fashion": [
+  {
+   "name": "Áo thun cổ tròn trắng size S",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 129000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo thun cổ tròn trắng size M",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 129000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo thun cổ tròn trắng size L",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 129000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo thun cổ tròn trắng size XL",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 129000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo thun oversize đen size M",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 159000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo thun oversize đen size L",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 159000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo thun oversize đen size XL",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 159000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo polo nam xanh navy size M",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 219000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo polo nam xanh navy size L",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 219000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo polo nam xanh navy size XL",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 219000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo sơ mi trắng tay dài size S",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 289000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo sơ mi trắng tay dài size M",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 289000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo sơ mi trắng tay dài size L",
+   "group": "áo",
+   "base_unit": "cái",
+   "price": 289000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo khoác gió 2 lớp size M",
+   "group": "áo khoác",
+   "base_unit": "cái",
+   "price": 349000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo khoác gió 2 lớp size L",
+   "group": "áo khoác",
+   "base_unit": "cái",
+   "price": 349000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Áo khoác gió 2 lớp size XL",
+   "group": "áo khoác",
+   "base_unit": "cái",
+   "price": 349000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Quần jean nữ ống suông size S",
+   "group": "quần",
+   "base_unit": "cái",
+   "price": 329000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Quần jean nữ ống suông size M",
+   "group": "quần",
+   "base_unit": "cái",
+   "price": 329000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Quần jean nữ ống suông size L",
+   "group": "quần",
+   "base_unit": "cái",
+   "price": 329000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Quần short kaki nam size M",
+   "group": "quần",
+   "base_unit": "cái",
+   "price": 199000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Quần short kaki nam size L",
+   "group": "quần",
+   "base_unit": "cái",
+   "price": 199000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Quần short kaki nam size XL",
+   "group": "quần",
+   "base_unit": "cái",
+   "price": 199000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Váy hoa nhí dáng xoè size S",
+   "group": "váy đầm",
+   "base_unit": "cái",
+   "price": 279000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Váy hoa nhí dáng xoè size M",
+   "group": "váy đầm",
+   "base_unit": "cái",
+   "price": 279000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Đầm công sở cổ vuông size S",
+   "group": "váy đầm",
+   "base_unit": "cái",
+   "price": 389000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Đầm công sở cổ vuông size M",
+   "group": "váy đầm",
+   "base_unit": "cái",
+   "price": 389000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Đầm công sở cổ vuông size L",
+   "group": "váy đầm",
+   "base_unit": "cái",
+   "price": 389000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Tất cổ ngắn cotton",
+   "group": "phụ kiện",
+   "base_unit": "đôi",
+   "price": 25000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "hộp",
+     5
+    ]
+   ]
+  },
+  {
+   "name": "Mũ lưỡi trai thêu chữ",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 99000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Túi tote canvas",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 119000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Thắt lưng da nam",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 189000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  }
+ ],
+ "milk_tea": [
+  {
+   "name": "Trà sữa truyền thống (M)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 30000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà sữa truyền thống (L)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 36000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà sữa trân châu đường đen (M)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 38000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà sữa trân châu đường đen (L)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 44000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà sữa matcha (M)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 36000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà sữa matcha (L)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 42000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà sữa khoai môn (M)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 35000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà sữa khoai môn (L)",
+   "group": "trà sữa",
+   "base_unit": "ly",
+   "price": 41000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Hồng trà kem cheese (M)",
+   "group": "trà kem",
+   "base_unit": "ly",
+   "price": 39000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Hồng trà kem cheese (L)",
+   "group": "trà kem",
+   "base_unit": "ly",
+   "price": 46000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà đào cam sả (M)",
+   "group": "trà trái cây",
+   "base_unit": "ly",
+   "price": 35000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà đào cam sả (L)",
+   "group": "trà trái cây",
+   "base_unit": "ly",
+   "price": 41000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà vải hoa hồng (M)",
+   "group": "trà trái cây",
+   "base_unit": "ly",
+   "price": 35000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Trà vải hoa hồng (L)",
+   "group": "trà trái cây",
+   "base_unit": "ly",
+   "price": 41000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Sữa tươi trân châu đường đen (M)",
+   "group": "sữa tươi",
+   "base_unit": "ly",
+   "price": 40000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Sữa tươi trân châu đường đen (L)",
+   "group": "sữa tươi",
+   "base_unit": "ly",
+   "price": 47000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Topping trân châu đen",
+   "group": "topping",
+   "base_unit": "phần",
+   "price": 6000.0,
+   "cost": null,
+   "kind": "addon",
+   "units": []
+  },
+  {
+   "name": "Topping thạch phô mai",
+   "group": "topping",
+   "base_unit": "phần",
+   "price": 8000.0,
+   "cost": null,
+   "kind": "addon",
+   "units": []
+  },
+  {
+   "name": "Topping pudding trứng",
+   "group": "topping",
+   "base_unit": "phần",
+   "price": 8000.0,
+   "cost": null,
+   "kind": "addon",
+   "units": []
+  },
+  {
+   "name": "Topping kem cheese",
+   "group": "topping",
+   "base_unit": "phần",
+   "price": 10000.0,
+   "cost": null,
+   "kind": "addon",
+   "units": []
+  },
+  {
+   "name": "Bánh flan",
+   "group": "ăn vặt",
+   "base_unit": "hũ",
+   "price": 15000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Nước suối Lavie 500ml",
+   "group": "nước đóng chai",
+   "base_unit": "chai",
+   "price": 8000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "thùng",
+     24
+    ]
+   ]
+  }
+ ],
+ "spa_salon": [
+  {
+   "name": "Cắt tóc nam",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 80000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Cắt tóc nữ",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 150000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Gội đầu dưỡng sinh",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 120000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Uốn tóc",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 650000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Nhuộm tóc thời trang",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 550000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Phục hồi tóc keratin",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 450000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Chăm sóc da mặt cơ bản",
+   "group": "dịch vụ da",
+   "base_unit": "lần",
+   "price": 250000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lấy nhân mụn",
+   "group": "dịch vụ da",
+   "base_unit": "lần",
+   "price": 200000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Massage body 60 phút",
+   "group": "dịch vụ spa",
+   "base_unit": "lần",
+   "price": 350000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Sơn gel tay",
+   "group": "dịch vụ móng",
+   "base_unit": "lần",
+   "price": 120000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Sơn gel chân",
+   "group": "dịch vụ móng",
+   "base_unit": "lần",
+   "price": 100000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Đắp móng bột",
+   "group": "dịch vụ móng",
+   "base_unit": "lần",
+   "price": 350000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Duỗi tóc",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 600000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Tẩy tóc",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 300000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Gội sấy tạo kiểu",
+   "group": "dịch vụ tóc",
+   "base_unit": "lần",
+   "price": 90000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Massage cổ vai gáy 30 phút",
+   "group": "dịch vụ spa",
+   "base_unit": "lần",
+   "price": 180000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Triệt lông nách",
+   "group": "dịch vụ da",
+   "base_unit": "lần",
+   "price": 250000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Combo 10 buổi chăm sóc da",
+   "group": "dịch vụ da",
+   "base_unit": "gói",
+   "price": 2000000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Kem ủ tóc Karseell 500ml",
+   "group": "mỹ phẩm bán lẻ",
+   "base_unit": "hũ",
+   "price": 190000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Xịt dưỡng tóc Mise en scène 150ml",
+   "group": "mỹ phẩm bán lẻ",
+   "base_unit": "chai",
+   "price": 145000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Dầu gội Olaplex No.4 250ml",
+   "group": "mỹ phẩm bán lẻ",
+   "base_unit": "chai",
+   "price": 780000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Dầu xả TSUBAKI 490ml",
+   "group": "mỹ phẩm bán lẻ",
+   "base_unit": "chai",
+   "price": 210000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Tinh dầu dưỡng tóc Moroccanoil 25ml",
+   "group": "mỹ phẩm bán lẻ",
+   "base_unit": "chai",
+   "price": 320000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Sáp vuốt tóc By Vilain",
+   "group": "mỹ phẩm bán lẻ",
+   "base_unit": "hộp",
+   "price": 350000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Mặt nạ đất sét Innisfree",
+   "group": "mỹ phẩm bán lẻ",
+   "base_unit": "hũ",
+   "price": 275000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  }
+ ],
+ "hotpot": [
+  {
+   "name": "Lẩu Thái hải sản",
+   "group": "lẩu",
+   "base_unit": "nồi",
+   "price": 289000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lẩu bò nhúng giấm",
+   "group": "lẩu",
+   "base_unit": "nồi",
+   "price": 259000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lẩu gà lá é",
+   "group": "lẩu",
+   "base_unit": "nồi",
+   "price": 239000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lẩu nấm chay",
+   "group": "lẩu",
+   "base_unit": "nồi",
+   "price": 199000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Ba chỉ bò Mỹ",
+   "group": "món nướng",
+   "base_unit": "dĩa",
+   "price": 119000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Sườn heo nướng mật ong",
+   "group": "món nướng",
+   "base_unit": "dĩa",
+   "price": 129000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Bạch tuộc nướng sa tế",
+   "group": "món nướng",
+   "base_unit": "dĩa",
+   "price": 139000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Tôm sú nướng muối ớt",
+   "group": "món nướng",
+   "base_unit": "dĩa",
+   "price": 169000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Rau nhúng thập cẩm",
+   "group": "món thêm",
+   "base_unit": "dĩa",
+   "price": 39000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Mì trứng",
+   "group": "món thêm",
+   "base_unit": "vắt",
+   "price": 12000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lẩu cá kèo lá giang",
+   "group": "lẩu",
+   "base_unit": "nồi",
+   "price": 269000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lẩu riêu cua bắp bò",
+   "group": "lẩu",
+   "base_unit": "nồi",
+   "price": 299000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lẩu mắm miền Tây",
+   "group": "lẩu",
+   "base_unit": "nồi",
+   "price": 319000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Ba chỉ heo nướng sả",
+   "group": "món nướng",
+   "base_unit": "dĩa",
+   "price": 99000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Lòng bò nướng",
+   "group": "món nướng",
+   "base_unit": "dĩa",
+   "price": 109000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Mực một nắng nướng",
+   "group": "món nướng",
+   "base_unit": "dĩa",
+   "price": 189000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Nấm kim châm cuộn bò",
+   "group": "món thêm",
+   "base_unit": "dĩa",
+   "price": 79000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Đậu hũ phô mai",
+   "group": "món thêm",
+   "base_unit": "dĩa",
+   "price": 45000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Cơm chiên trứng",
+   "group": "món thêm",
+   "base_unit": "dĩa",
+   "price": 55000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Rượu Soju Jinro 360ml",
+   "group": "đồ uống",
+   "base_unit": "chai",
+   "price": 75000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "thùng",
+     20
+    ]
+   ]
+  },
+  {
+   "name": "Nước suối Lavie 500ml",
+   "group": "đồ uống",
+   "base_unit": "chai",
+   "price": 10000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "thùng",
+     24
+    ]
+   ]
+  },
+  {
+   "name": "Sữa đậu nành nhà làm",
+   "group": "đồ uống",
+   "base_unit": "ly",
+   "price": 15000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Bia Tiger lon 330ml",
+   "group": "đồ uống",
+   "base_unit": "lon",
+   "price": 22000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "thùng",
+     24
+    ]
+   ]
+  },
+  {
+   "name": "Bia Heineken lon 330ml",
+   "group": "đồ uống",
+   "base_unit": "lon",
+   "price": 26000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "thùng",
+     24
+    ]
+   ]
+  },
+  {
+   "name": "Coca Cola lon 330ml",
+   "group": "đồ uống",
+   "base_unit": "lon",
+   "price": 15000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "thùng",
+     24
+    ]
+   ]
+  },
+  {
+   "name": "Trà đá",
+   "group": "đồ uống",
+   "base_unit": "ly",
+   "price": 5000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Khăn lạnh",
+   "group": "phụ thu",
+   "base_unit": "cái",
+   "price": 3000.0,
+   "cost": null,
+   "kind": "addon",
+   "units": []
+  }
+ ],
+ "phone_shop": [
+  {
+   "name": "iPhone 15 128GB",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 18990000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "iPhone 13 128GB",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 12490000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Samsung Galaxy A55 5G",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 9490000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Samsung Galaxy S24",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 19990000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Xiaomi Redmi Note 13",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 4790000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "OPPO A79 5G",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 6490000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Cáp sạc Type-C Anker 1m",
+   "group": "phụ kiện",
+   "base_unit": "sợi",
+   "price": 159000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "hộp",
+     10
+    ]
+   ]
+  },
+  {
+   "name": "Củ sạc nhanh 20W Baseus",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 249000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Sạc dự phòng Xiaomi 10000mAh",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 399000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Tai nghe Bluetooth JBL Tune 520",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 1190000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Ốp lưng silicon iPhone 15",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 89000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "hộp",
+     20
+    ]
+   ]
+  },
+  {
+   "name": "Kính cường lực iPhone 15",
+   "group": "phụ kiện",
+   "base_unit": "miếng",
+   "price": 69000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "hộp",
+     20
+    ]
+   ]
+  },
+  {
+   "name": "Thẻ nhớ microSD 64GB",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 179000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Dán màn hình",
+   "group": "dịch vụ",
+   "base_unit": "lần",
+   "price": 30000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Thay pin iPhone",
+   "group": "dịch vụ",
+   "base_unit": "lần",
+   "price": 650000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Cài đặt phần mềm",
+   "group": "dịch vụ",
+   "base_unit": "lần",
+   "price": 100000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Ép kính màn hình",
+   "group": "dịch vụ",
+   "base_unit": "lần",
+   "price": 450000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Thay chân sạc",
+   "group": "dịch vụ",
+   "base_unit": "lần",
+   "price": 250000.0,
+   "cost": null,
+   "kind": "made",
+   "units": []
+  },
+  {
+   "name": "Samsung Galaxy A15",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 4290000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "iPhone 16 Pro Max 256GB",
+   "group": "điện thoại",
+   "base_unit": "máy",
+   "price": 33990000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Đồng hồ thông minh Xiaomi Band 9",
+   "group": "đồng hồ",
+   "base_unit": "cái",
+   "price": 890000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Loa Bluetooth JBL Go 4",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 990000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": []
+  },
+  {
+   "name": "Giá đỡ điện thoại ô tô",
+   "group": "phụ kiện",
+   "base_unit": "cái",
+   "price": 129000.0,
+   "cost": null,
+   "kind": "goods",
+   "units": [
+    [
+     "hộp",
+     10
+    ]
+   ]
+  }
  ]
 }

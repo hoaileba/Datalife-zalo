@@ -519,6 +519,8 @@ H_SCHEMA = {
                              ('GhiChu', 'note')]),
     'giao_hang': ('deliveries', [('MaHoaDon', 'order_id'), ('LanGiao', 'trip_no'), ('NgayGiao', 'date'),
                                  ('BienSoXe', 'plate'), ('TaiXe', 'driver')]),
+    'luot_phuc_vu': ('visits', [('MaHoaDon', 'order_id'), ('SoBan', 'table'), ('KhuVuc', 'area'),
+                                ('SoKhach', 'guests'), ('BienSoXe', 'plate')]),
 }
 H_STATUS = {'completed': 'completed', 'cancelled': 'cancelled', 'returned': 'returned', 'delivering': 'shipping'}
 
@@ -565,7 +567,7 @@ def render_H(ctx: Ctx, out_dir: Path):
             if 'seq' not in df:
                 df['seq'] = [f'MV{i + 1:07d}' for i in range(len(df))]
             df['doc_kind'] = df['kind'].map({'out_sale': 'HD', 'in_purchase': 'PN', 'in_return': 'TH'}).fillna('KHAC')
-        present = [(c, k) for c, k in cols if k in df.columns]
+        present = [(c, k) for c, k in cols if k in df.columns and (src != 'visits' or df[k].notna().any())]
         out = pd.DataFrame({(_snake(c) if snake else c): df[k].map(_sql_value) for c, k in present})
         if src != 'shop':
             out.insert(0, 'id_cua_hang' if snake else 'IDCuaHang', L.shop['business_id'])
@@ -1564,6 +1566,108 @@ def orders_meta(ctx):
     return None
 
 
+VISIT_HEADERS = {
+    'table': ['Bàn', 'Số bàn', 'Tên bàn', 'Mã bàn', 'Phòng/Bàn'],
+    'area': ['Khu vực', 'Khu', 'Vị trí', 'Tầng/Khu'],
+    'guests': ['Số khách', 'SL khách', 'Số người', 'Số lượng khách', 'Khách (người)'],
+    'plate': ['Biển số', 'Biển số xe', 'BKS', 'Biển kiểm soát', 'Số xe'],
+}
+VISIT_HEADERS_EN = {'table': ['Table', 'Table no'], 'area': ['Area', 'Zone'], 'guests': ['Guests', 'Pax'],
+                    'plate': ['Plate', 'Plate number']}
+
+
+def _add_order_columns(ctx, by, keys, pools, docs):
+    """Order-level facts `by` (indexed by order id) as columns of the invoice list, else of the lines (repeated on
+    every line of the order). Returns {'level', 'cols', 'files'} or None when no sheet carries order ids."""
+    sheets = [(f, s) for f in ctx.files for s in f.sheets if {'order_id', 'status'} <= set(s.keys) and 'qty' not in s.keys]
+    level = 'orders'
+    if not sheets:
+        sheets = [(f, s) for f in ctx.files for s in f.sheets if {'order_id', 'qty', 'amount'} <= set(s.keys)]
+        level = 'lines'
+    if not sheets:
+        return None
+    known = set(by.index)
+    oid_rows = [(s, r[s.keys.index('order_id')]) for _, s in sheets for r in s.rows]
+    written = [o for _, o in oid_rows if not _isna(o) and o != '']        # fill-down blanks do not count
+    if sum(isinstance(o, str) and o in known for o in written) < 0.5 * max(1, len(written)):
+        return None                             # order ids written otherwise: not carried
+    used = {_fold(h) for _, s in sheets for h in s.headers}
+    heads = {}
+    for k in keys:
+        h = next((c for c in ctx.rng.permutation(pools[k]).tolist() if _fold(c) not in used), None)
+        if h is None:
+            return None
+        used.add(_fold(h))
+        heads[k] = h
+    rep = ' (ghi lặp lại ở mọi dòng của đơn)' if level == 'lines' else ''
+    done = {}                                   # id(keys list) -> new keys (sheets may share one header list)
+    for f, s in sheets:
+        old_keys = list(s.keys) if id(s.keys) not in done else done[id(s.keys)][0]
+        i = old_keys.index('order_id')
+        if id(s.keys) not in done:
+            new_keys = list(old_keys)
+            for k in keys:
+                p = int(ctx.rng.integers(0, len(new_keys) + 1))
+                new_keys.insert(p, k)
+                s.headers.insert(p, heads[k])
+                if s.group is not None:
+                    s.group.insert(p, None)
+            s.keys[:] = new_keys
+            done[id(s.keys)] = (old_keys, new_keys)
+        new_keys = done[id(s.keys)][1]
+        for j, r in enumerate(s.rows):
+            oid = r[i]
+            vals = {}
+            for k in keys:
+                v = by.at[oid, k] if isinstance(oid, str) and oid in known else None
+                vals[k] = None if _isna(v) else (int(v) if isinstance(v, (int, float, np.integer, np.floating)) else v)
+            it = iter(r)                        # old cells keep their order, new cells go where their key stands
+            s.rows[j] = [vals[k] if k in keys else next(it) for k in new_keys]
+        for k in keys:
+            ctx.doc_override[(f.name, heads[k])] = docs[k] + rep
+    return {'level': level, 'cols': heads, 'files': sorted({f.name for f, _ in sheets})}
+
+
+def add_visit_columns(ctx):
+    """Visit facts (table, area, guests / vehicle plate). Families without order ids cannot carry them: caps dropped."""
+    V = ctx.L.visits
+    ctx.caps -= {'tables', 'guests', 'plates'}
+    if not len(V):
+        return
+    keys = [k for k in ('table', 'area', 'guests', 'plate') if V[k].notna().any()]
+    docs = {'table': 'bàn của đơn (trống: đơn mang về)', 'area': 'khu vực phục vụ của đơn; `Mang về` = khách mang đi',
+            'guests': 'số khách ngồi bàn của đơn (trống: đơn mang về, không ghi số khách)',
+            'plate': 'biển số xe của phiếu sửa/bảo dưỡng'}
+    res = _add_order_columns(ctx, V.set_index('order_id'), keys, VISIT_HEADERS_EN if ctx.family == 'S' else VISIT_HEADERS,
+                             docs)
+    if res is None:
+        return
+    ctx.caps |= ({'tables', 'guests'} if 'table' in keys else set()) | ({'plates'} if 'plate' in keys else set())
+    ctx.extras['visits'] = res
+
+
+MONEY_HEADERS = {'shipping': ['Phí giao hàng', 'Phí ship', 'Phí vận chuyển', 'Tiền ship'],
+                 'order_discount': ['Giảm giá đơn', 'Voucher', 'Chiết khấu hoá đơn', 'KM trên đơn']}
+MONEY_HEADERS_EN = {'shipping': ['Shipping fee', 'Delivery fee'], 'order_discount': ['Order discount', 'Voucher']}
+
+
+def add_money_columns(ctx, keys):
+    """Order-level money a split rulebook counts in revenue (delivery fee, order voucher), when the family does not
+    write it already. Returns the keys the files carry."""
+    have = {k for f in ctx.files for s in f.sheets for k in s.keys}
+    todo = [k for k in keys if k not in have]
+    if todo:
+        o = ctx.L.orders.set_index('order_id').rename(columns={'discount': 'order_discount'})
+        docs = {'shipping': 'phí giao hàng của đơn (0: đơn không giao)',
+                'order_discount': 'giảm giá trên cả đơn (voucher, khuyến mãi theo tổng tiền đơn; 0: không có)'}
+        res = _add_order_columns(ctx, o[todo].fillna(0), todo, MONEY_HEADERS_EN if ctx.family == 'S' else MONEY_HEADERS,
+                                 docs)
+        if res is not None:
+            ctx.extras['order_money'] = res
+            have |= set(todo)
+    return [k for k in keys if k in have]
+
+
 def families_for(ledger):
     """Families the ledger can be rendered in (needs: order ids / product codes in the ledger, some lines)."""
     if not len(ledger.lines):
@@ -1571,8 +1675,9 @@ def families_for(ledger):
     return [f for f in FAMILIES if NEEDS[f] <= set(ledger.shop['caps'])]
 
 
-def render(ledger, family, out_dir, rng, noise=None):
-    """Write one shop folder; return {'files', 'caps', 'family', 'aliases', 'extras', 'noise'}."""
+def render(ledger, family, out_dir, rng, noise=None, order_money=()):
+    """Write one shop folder; return {'files', 'caps', 'family', 'aliases', 'extras', 'noise'}. order_money: order-level
+    money keys ('shipping', 'order_discount') the files must carry (a split rulebook counts them in revenue)."""
     from .readme import write_readme
     if family not in families_for(ledger):
         raise ValueError(f'family {family} not applicable to {ledger.shop["business_id"]}')
@@ -1581,12 +1686,19 @@ def render(ledger, family, out_dir, rng, noise=None):
     nz = noise or N.draw_noise(rng)
     ctx = Ctx(ledger, rng, nz, family)
     RENDERERS[family](ctx, out_dir)
+    if family != 'H':
+        add_visit_columns(ctx)
+        if order_money and set(add_money_columns(ctx, order_money)) != set(order_money):
+            raise ValueError(f'family {family} cannot carry {order_money}')
     files = write_files(ctx, out_dir) if family != 'H' else ['pos.sqlite']
     ctx.extras['lines'] = lines_meta(ctx)
     ctx.caps.discard('catalog_cost')
     if catalog_cost_written(ctx):
         ctx.caps.add('catalog_cost')
     ctx.extras['orders'] = orders_meta(ctx)
+    ctx.extras['sheets'] = [{'file': f.name, 'sheet': s.name, 'cols': {k: h for k, h in zip(s.keys, s.headers)
+                                                                       if k != 'filler'}}
+                            for f in ctx.files for s in f.sheets if s.headers]
     write_readme(ctx, out_dir)
     return {'files': files, 'caps': set(ctx.caps), 'family': family,
             'aliases': {k: {e: sorted(v) for e, v in d.items()} for k, d in ctx.aliases.items()},

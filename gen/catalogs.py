@@ -104,9 +104,9 @@ def harvest():
                 e['kind'] = 'made'                 # cooked/mixed on the spot (not bought to sell)
     new = yaml.safe_load((ASSETS / 'new_industries.yaml').read_text(encoding='utf-8'))
     for ind, spec in new.items():
-        cat[ind] = [dict(name=e['name'], group=e['group'], base_unit=e['unit'], price=float(e['price']),
+        cat[ind] = [dict(name=n, group=e['group'], base_unit=e['unit'], price=float(p),
                          cost=None, kind=e.get('kind', 'goods'), units=[list(u) for u in e.get('units', [])])
-                    for e in spec['items']]
+                    for e in spec['items'] for n, p in _sized(e)]
     for ind, items in cat.items():
         for e in items:
             if e['price'] is None and e['cost'] is not None:
@@ -114,6 +114,14 @@ def harvest():
             if e['cost'] is None and e['price'] is not None:
                 e['cost'] = None                   # drawn per shop by the simulator
     return cat
+
+
+def _sized(e):
+    """(name, price) of one yaml entry: one per size when it lists sizes (price + size_step per size)."""
+    if not e.get('sizes'):
+        return [(e['name'], e['price'])]
+    fmt, step = e.get('size_fmt', '{n} ({s})'), e.get('size_step', 0)
+    return [(fmt.format(n=e['name'], s=s), e['price'] + i * step) for i, s in enumerate(e['sizes'])]
 
 
 def load():

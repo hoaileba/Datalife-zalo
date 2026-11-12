@@ -31,17 +31,45 @@ WEIGHTS = {
     'debt_total': 0.8, 'debt_customers': 0.4, 'debt_top': 0.6, 'debt_over_age': 0.3, 'debt_aging': 0.2,
     'debt_collected': 0.8, 'debt_new_paid': 0.6, 'deliveries_count': 0.5, 'customer_count': 0.3,
     'payment_share': 0.2, 'revenue_diff': 0.4, 'debt_new': 0.1, 'unanswerable': 1.0,
+    # split-rulebook sections (gen.rulebook_gen): drawn only in shops of those trades whose rulebook defines them
+    # (a trade's own measures: ~15-20 % of the questions of its shops, as a test of that trade would ask them)
+    'guests_total': 7, 'revenue_per_guest': 7, 'area_revenue': 4, 'top_table': 3,
+    'service_revenue': 9, 'service_share': 5, 'vehicle_count': 6, 'repeat_vehicles': 6,
 }
 INDUSTRY_ONLY = {'qty_size': ('cafe',), 'rx_revenue': ('pharmacy',), 'rx_share': ('pharmacy',),
                  'ingredient_revenue': ('pharmacy',), 'expiring_items': ('pharmacy',), 'expiring_count': ('pharmacy',),
                  'expiring_value': ('pharmacy',), 'nearest_lot_expiry': ('pharmacy',)}
+# intents a split rulebook section opens to more trades: intent -> {section: trades}
+SECTION_ONLY = {
+    **{i: {'tables': ('restaurant', 'hotpot')} for i in ('guests_total', 'revenue_per_guest', 'area_revenue', 'top_table')},
+    **{i: {'service': ('motorbike_repair', 'spa_salon', 'pet_shop', 'phone_shop')} for i in ('service_revenue', 'service_share')},
+    **{i: {'vehicles': ('motorbike_repair',)} for i in ('vehicle_count', 'repeat_vehicles')},
+    'qty_size': {'size_word': ('fashion',), 'milk_tea': ('milk_tea',)},
+    **{i: {'expiry': ('cosmetics', 'mother_baby', 'agri_supply')}
+       for i in ('expiring_items', 'expiring_count', 'expiring_value', 'nearest_lot_expiry')},
+}
+SEASON_TRADES = {'dong_xuan': 'agri_supply', 'he_thu': 'agri_supply', 'tuu_truong': 'stationery'}
+# period kinds of the train questions, measured with gen.parse.find_period on the 3000 questions (scripts/check_syn.py
+# dist): month .64, day .07, today .06, yesterday .06, this_month .05, last_week .04, quarter .03, ...
+PERIOD_MIX = [('month', 0.62), ('day', 0.05), ('today', 0.06), ('yesterday', 0.06), ('this_month', 0.05),
+              ('last_week', 0.04), ('quarter', 0.03), ('last_n_days', 0.02), ('ytd', 0.02), ('range', 0.015),
+              ('this_week', 0.01), ('tet', 0.01)]
+
+
+def allowed(intent, industry, rules):
+    """May this intent be asked in a shop of `industry` under `rules` (sections of the split rulebook)?"""
+    if industry in INDUSTRY_ONLY.get(intent, (industry,)) and intent not in SECTION_ONLY:
+        return True
+    if intent in INDUSTRY_ONLY and industry in INDUSTRY_ONLY[intent]:
+        return True
+    return any(sec in rules.sections and industry in trades for sec, trades in SECTION_ONLY.get(intent, {}).items())
 RELATIVE = ['today', 'yesterday', 'this_month', 'last_week', 'this_week', 'last_n_days', 'ytd']
-RANKED = {'top_items', 'top_customers', 'top_staff', 'top_supplier', 'best_day', 'best_month'}
+RANKED = {'top_items', 'top_customers', 'top_staff', 'top_supplier', 'best_day', 'best_month', 'top_table'}
 
 
 class Sampler:
-    def __init__(self, L, rng, rules=Rules()):
-        self.L, self.rng, self.R = L, rng, rules
+    def __init__(self, L, rng, rules=Rules(), mix='v1'):
+        self.L, self.rng, self.R, self.mix = L, rng, rules, mix
         self.start, self.end = L.shop['start'], L.shop['end']
         months, d = [], self.start
         while d <= self.end:
@@ -71,7 +99,22 @@ class Sampler:
         y, m = ms[int(self.rng.integers(len(ms)))]
         return {'kind': 'month', 'y': y, 'm': m}
 
+    def seasons(self, as_of):
+        """Season windows of the split rulebook for this trade that start in the data and end by as_of."""
+        out = []
+        for key, label, *_ in self.R.seasons:
+            if SEASON_TRADES.get(key) != self.L.shop.get('industry'):
+                continue
+            for y in range(self.start.year, as_of.year + 2):
+                spec = {'kind': 'season', 'name': key, 'year': y, 'label': label}
+                s, e = P.bounds(spec, as_of, self.R)
+                if s >= self.start and e <= as_of:
+                    out.append(spec)
+        return out
+
     def period(self, as_of, relative_ok=True):
+        if self.mix == 'train':
+            return self.period_train(as_of, relative_ok)
         r = self.rng.random()
         if relative_ok and r < 0.25:
             k = RELATIVE[int(self.rng.integers(len(RELATIVE)))]
@@ -87,6 +130,55 @@ class Sampler:
             s = self.start + dt.timedelta(days=int(self.rng.integers(0, max(1, (as_of - self.start).days - 14))))
             return {'kind': 'range', 'start': s, 'end': s + dt.timedelta(days=int(self.rng.choice([6, 9, 13])))}
         return self.month()
+
+    def period_train(self, as_of, relative_ok=True):
+        """Period kinds in the train shares; a season of the split rulebook for 15 % of its trade's questions."""
+        rng = self.rng
+        seas = self.seasons(as_of)
+        if seas and rng.random() < 0.15:
+            return seas[int(rng.integers(len(seas)))]
+        boost = getattr(self, 'period_boost', {})
+        mix = [(k, w * boost.get(k, 1.0)) for k, w in PERIOD_MIX
+               if relative_ok or k in ('month', 'quarter', 'range', 'day', 'tet')]
+        k = mix[int(rng.choice(len(mix), p=np.array([w for _, w in mix]) / sum(w for _, w in mix)))][0]
+        if k == 'quarter' and len(self.full_months) >= 3:
+            mm = self.month()
+            q = (mm['m'] - 1) // 3 + 1
+            if P.month_end(mm['y'], 3 * q) <= as_of:
+                return {'kind': 'quarter', 'y': mm['y'], 'q': q}
+            return mm
+        if k == 'last_n_days':
+            return {'kind': k, 'n': int(rng.choice([7, 7, 14, 30, 30]))}
+        if k == 'range':
+            s0 = self.start + dt.timedelta(days=int(rng.integers(0, max(1, (as_of - self.start).days - 14))))
+            return {'kind': 'range', 'start': s0, 'end': s0 + dt.timedelta(days=int(rng.choice([6, 9, 13, 20])))}
+        if k == 'day':
+            span = (as_of - self.start).days
+            if span < 3:
+                return self.month()
+            return {'kind': 'day', 'date': as_of - dt.timedelta(days=int(rng.integers(2, span)))}
+        if k == 'tet':
+            ys = []
+            for y in (2025, 2026, 2027):
+                try:
+                    s0, e0 = P.bounds({'kind': 'tet', 'year': y}, as_of, self.R)
+                except ValueError:
+                    continue
+                if s0 >= self.start and e0 <= as_of:
+                    ys.append(y)
+            return {'kind': 'tet', 'year': int(rng.choice(ys))} if ys else self.month()
+        if k in ('month', 'quarter'):
+            return self.month()
+        return {'kind': k}
+
+    def rise_visible(self, V, pid, d, price):
+        """A price rise the files show on its day: the price list is written, or the item sold at the new price
+        (per base unit) on day d and never before (else the agent would date the rise elsewhere)."""
+        if 'prices' in self.L.shop['caps']:      # caps = what the rendered files carry (gen.build)
+            return True
+        l = V.lines_all[V.lines_all.product_id == pid]
+        l = l[(l.unit_price / l.base_qty * l.qty).round(0) >= price - 0.5]
+        return not l.empty and l.day.min().date() == d
 
     def sold_item(self, V, period=None, goods=False):
         l = V.vlines if period is None else V.in_period(V.vlines, period)
@@ -138,6 +230,8 @@ class Sampler:
             spec = S(period=p)
             if p['kind'] == 'month' and rng.random() < 0.2:
                 spec['ref'] = {**p, 'y': p['y'] - 1}
+            if self.mix == 'train' and p['kind'] == 'this_month':
+                spec['ref_text'] = 'neutral'      # 'so với tháng trước': the rulebook decides which days
             return spec
         if intent in ('revenue_list', 'revenue_trend_up', 'best_month'):
             fm = [m for m in self.full_months if P.month_end(*m) <= as_of]
@@ -230,13 +324,30 @@ class Sampler:
             if not rises:
                 return None
             pid, d, price = rises[int(rng.integers(len(rises)))]
-            return S(item=pid, date=d, n=int(rng.choice([7, 14, 30])), new_price=float(price),
+            spec = S(item=pid, date=d, n=int(rng.choice([7, 14, 30])), new_price=float(price),
                      unit=L.products.set_index('product_id').base_unit.get(pid))
+            if self.mix == 'train' and not self.rise_visible(V, pid, d, price):
+                del spec['new_price']             # the question then names the day of the rise
+            return spec
         if intent in ('qty_unit',):
             u = L.products[L.products.kind != 'fee'].base_unit.value_counts()
             return S(unit=u.index[int(rng.integers(min(3, len(u))))], period=per)
         if intent == 'qty_size':
+            if L.shop.get('industry') == 'fashion':
+                return S(size=str(rng.choice(['S', 'M', 'L', 'XL'])), style='word', period=per)
             return S(size=rng.choice(['M', 'L']), period=per)
+        if intent in ('guests_total', 'revenue_per_guest', 'top_table'):
+            return S(period=per)
+        if intent == 'area_revenue':
+            a = [x for x in L.visits.area.dropna().unique() if x != 'Mang về']
+            return S(area=str(a[int(rng.integers(len(a)))]), period=per) if len(a) else None
+        if intent == 'service_revenue':
+            return S(period=per, part='goods') if rng.random() < 0.3 else S(period=per)
+        if intent in ('service_share', 'vehicle_count'):
+            return S(period=per)
+        if intent == 'repeat_vehicles':
+            return S(period=per if per['kind'] not in ('today', 'yesterday', 'day') else self.month(),
+                     **({'n': int(rng.choice([2, 3]))} if rng.random() < 0.3 else {}))
         if intent in ('stock_end', 'stock_big_small'):
             pid = self.sold_item(V, goods=True)
             if pid is None or not self.stock_date_ok(as_of):
@@ -247,7 +358,10 @@ class Sampler:
             if intent == 'stock_big_small':
                 big = self.item_unit(pid, big=True)
                 return S(item=pid, date=date, big_unit=big) if big else None
-            return S(item=pid, date=date, unit=self.item_unit(pid))
+            unit = self.item_unit(pid)
+            if self.mix == 'train':               # stock in a big unit is the [big, base] list of §5 (stock_big_small)
+                unit = L.products.set_index('product_id').base_unit.get(pid)
+            return S(item=pid, date=date, unit=unit)
         if intent in ('stock_value', 'out_of_stock_count'):
             if not self.stock_date_ok(as_of):
                 return None
@@ -289,8 +403,9 @@ class Sampler:
         return d0 + dt.timedelta(days=int(self.rng.integers(0, max(1, (self.end - d0).days + 1))))
 
 
-def _tie_at_k(V, spec):
-    """True when the reference ranking would have a tie at the k boundary (such questions are excluded)."""
+def _tie_at_k(V, spec, strict=False):
+    """True when the reference ranking would have a tie at the k boundary (such questions are excluded); strict:
+    also a tie anywhere inside the top k (its order would rest on codes the files may not show)."""
     import gen.oracle as O
     it = spec['intent']
     k = spec.get('k', 1)
@@ -313,21 +428,50 @@ def _tie_at_k(V, spec):
         elif it == 'debt_top':
             o = O._debt_orders(V, spec['date'])
             v = o[o.customer_id.notna()].groupby('customer_id').left.sum()
+        elif it == 'top_table':
+            v = O.table_revenue(V, spec)
+        elif it == 'top_staff':
+            o = V.in_period(V.valid, spec['period'])
+            v = V.order_rev.reindex(o.order_id).groupby(o.staff_id.values).sum()
+        elif it == 'top_supplier':
+            v = O._purchases(V, spec).groupby('supplier_id').total.sum()
+        elif it == 'best_month':
+            v = pd.Series([V.revenue(p) for p in spec['periods']])
         else:
             return False
     except O.Unanswerable:
         return False
     v = np.sort(np.asarray(v, dtype=float))[::-1]
+    if strict and len(v) > 1 and np.any(np.abs(np.diff(v[:min(len(v), k + 1)])) < 1e-9):
+        return True
     if len(v) <= k:
         return False
     return abs(v[k - 1] - v[k]) < 1e-9
 
 
-def sample(L, rng, n, main_as_of=None, rules=Rules(), weights=WEIGHTS, unanswerable_drop=0.85):
-    smp = Sampler(L, rng, rules)
+ORDER_INTENTS = {'order_count', 'avg_order', 'cancel_rate', 'cancel_count', 'items_min_orders', 'orders_over',
+                 'customers_min_orders', 'customers_min_orders_share', 'customer_count', 'top_customers'}
+ABSOLUTE = {'month', 'quarter', 'range', 'day', 'tet', 'season', 'year'}
+
+
+def sample(L, rng, n, main_as_of=None, rules=Rules(), weights=WEIGHTS, unanswerable_drop=0.85, mix='v1',
+           period_boost=None):
+    """mix='train' (syn_v2): period kinds in train shares (period_boost multiplies some), no order-level question on
+    files without order ids, ~no zero answers (2 of 3000 in train), no repeat of an absolute question at another
+    as_of, no tie anywhere inside a ranked list."""
+    smp = Sampler(L, rng, rules, mix)
+    smp.period_boost = period_boost or {}
+    if mix == 'train':
+        unanswerable_drop = max(unanswerable_drop, 0.92)      # cap-missing unanswerables near the train 2-4 %
+        weights = {**weights, 'revenue': weights['revenue'] * 0.7,       # train: revenue questions 23 %
+                   'unsold_count': weights['unsold_count'] * 2}          # most zero answers are dropped
     main = main_as_of or L.shop['end']
     ind = L.shop['industry']
-    names = [i for i in weights if (i in INTENTS or i == 'unanswerable') and ind in INDUSTRY_ONLY.get(i, (ind,))]
+    if mix == 'v1':
+        names = [i for i in weights if (i in INTENTS or i == 'unanswerable') and ind in INDUSTRY_ONLY.get(i, (ind,))
+                 and i not in SECTION_ONLY.keys() - INDUSTRY_ONLY.keys()]
+    else:
+        names = [i for i in weights if (i in INTENTS or i == 'unanswerable') and allowed(i, ind, rules)]
     w = np.array([weights[i] for i in names], dtype=float)
     w /= w.sum()
     out, tries, seen = [], 0, set()
@@ -341,15 +485,23 @@ def sample(L, rng, n, main_as_of=None, rules=Rules(), weights=WEIGHTS, unanswera
             spec = None
         if spec is None:
             continue
-        key = repr(sorted((k, repr(v)) for k, v in spec.items())) + str(as_of)
+        if mix == 'train' and it in ORDER_INTENTS and 'order_ids' not in L.shop['caps']:
+            continue                          # train never asks order counts of files without order ids
+        key = repr(sorted((k, repr(v)) for k, v in spec.items()))
+        absolute = all(p.get('kind') in ABSOLUTE for p in ([spec['period']] if 'period' in spec else [])
+                       + list(spec.get('periods', []))) and 'date' not in spec
+        if not (mix == 'train' and absolute):
+            key += str(as_of)
         if key in seen:
             continue
         V = smp.view(as_of)
-        if it in RANKED | {'debt_top'} and _tie_at_k(V, spec):
+        if it in RANKED | {'debt_top'} and _tie_at_k(V, spec, strict=mix == 'train'):
             continue
         t, a = answer(L, spec, as_of, rules, view=V)
         if t != 'unanswerable' and (a is None or a == [] or (isinstance(a, float) and np.isnan(a))):
             continue
+        if mix == 'train' and t == 'number' and a == 0 and rng.random() < 0.95:
+            continue                          # zero answers: 2 of 3000 train questions
         if t == 'unanswerable' and it != 'unanswerable' and rng.random() < unanswerable_drop:
             continue                      # keep unanswerables near the train share (~2-5 %)
         seen.add(key)

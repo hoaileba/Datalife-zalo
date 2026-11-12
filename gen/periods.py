@@ -3,6 +3,7 @@
 A period spec is a dict with 'kind':
   day(date) | today | yesterday | month(y, m) | this_month | quarter(y, q) | this_week | last_week | last_n_days(n)
   | ytd | range(start, end) | tet(year) | year(y) | upto(date) (from the start of the data)
+  | season(name, year) (window named in a split rulebook: Rules.seasons)
 Months/quarters without a year are resolved by the question generator (rulebook §2), never here.
 """
 from __future__ import annotations
@@ -65,6 +66,8 @@ def bounds(spec, as_of: dt.date, rules) -> tuple[dt.date, dt.date]:
             return start, as_of
         return start - dt.timedelta(days=7), start - dt.timedelta(days=1)
     if k == 'last_n_days':
+        if not getattr(rules, 'last_n_include_today', True):          # split rulebook: N full days before today
+            return as_of - dt.timedelta(days=spec['n']), as_of - dt.timedelta(days=1)
         return as_of - dt.timedelta(days=spec['n'] - 1), as_of
     if k == 'ytd':
         return as_of.replace(month=1, day=1), as_of
@@ -76,6 +79,12 @@ def bounds(spec, as_of: dt.date, rules) -> tuple[dt.date, dt.date]:
         y = spec['year']
         (m1, d1), (m2, d2) = rules.tet_start, rules.tet_end
         return solar_of_lunar(y - 1 if m1 > m2 else y, m1, d1), solar_of_lunar(y, m2, d2)
+    if k == 'season':                         # a named window the split rulebook defines (vụ Đông Xuân, mùa tựu trường)
+        y = spec['year']
+        for key, _label, (m1, d1), (m2, d2) in getattr(rules, 'seasons', ()):
+            if key == spec['name']:
+                return dt.date(y - 1 if (m1, d1) > (m2, d2) else y, m1, d1), dt.date(y, m2, d2)
+        raise ValueError(f"season {spec['name']} not in the rulebook")
     raise ValueError(k)
 
 
@@ -96,6 +105,8 @@ def previous(spec, as_of, rules):
         return {'kind': 'range', 'start': dt.date(y, m, 1), 'end': dt.date(y, m, end)}
     if k == 'tet':
         return {'kind': 'tet', 'year': spec['year'] - 1}
+    if k == 'season':
+        return {**spec, 'year': spec['year'] - 1}
     if k in ('day', 'today', 'yesterday', 'last_week', 'this_week', 'last_n_days', 'range'):
         s, e = bounds(spec, as_of, rules)
         n = (e - s).days + 1

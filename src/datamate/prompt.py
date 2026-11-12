@@ -23,8 +23,8 @@ from .values import fold
 ASSETS = Path(__file__).with_name('assets')
 
 
-GONE_NOTE = (' (THIS SET CHANGED OR DROPPED THIS RULE: follow rulebook_changes for it; this recipe stays only for the '
-             'recipes that refer to it by name or by its §)')
+GONE_NOTE = (' THIS SET CHANGED OR DROPPED THIS RULE: its standard recipe is removed. Follow the rule as rulebook_changes '
+             'writes it; recipes that cite this name or its § mean that rule.')
 
 
 def _read(name):
@@ -36,7 +36,7 @@ def _read(name):
 def cookbook(gone=frozenset()):
     """Prompt section 4 from assets/cookbook_train.yaml without the recipes of the standard lines this set changed or
     dropped (`gone`, rules.compare). A recipe that another kept recipe refers to, by its [tag] or by its section ("§10"
-    in a recipe of another section), stays, marked."""
+    in a recipe of another section), leaves only its [tag] and a note that this set changed it (no old method)."""
     book = rules.load_cookbook()
     number = lambda s: int(re.match(r'##\s*§(\d+)', s['title'])[1])
     entries = [(number(s), e) for s in book['sections'] for e in s['entries']]
@@ -44,6 +44,7 @@ def cookbook(gone=frozenset()):
     tag = lambda e: (re.match(r'- \[([^\]]+)\]', e['recipe']) or [None, None])[1]     # no tag: never cited by name
     kept = [(n, e['recipe']) for n, e in entries if id(e) not in out]
     cited = {t for _, r in kept for t in re.findall(r'\[([^\]\'"<]+)\]', r)[1:]}
+    cited |= set(re.findall(r'\[([^\]\'"<]+)\]', _read('prompt.md')))      # the instructions cite recipes too
     cited_sections = {int(m) for n, r in kept for m in re.findall(r'§(\d+)', r) if int(m) != n}
     parts = [book['preamble'].rstrip('\n')]
     for s in book['sections']:
@@ -53,7 +54,7 @@ def cookbook(gone=frozenset()):
             if id(e) in out:
                 if tag(e) not in cited and number(s) not in cited_sections:
                     continue
-                recipe = recipe.replace(f'[{tag(e)}]', f'[{tag(e)}]{GONE_NOTE}', 1) if tag(e) else GONE_NOTE.strip() + ' ' + recipe
+                recipe = f'- [{tag(e)}]{GONE_NOTE}'          # the name stays for its citations, the old method goes
             lines.append(recipe)
         parts.append('\n'.join(lines))
     return '\n\n'.join(parts)

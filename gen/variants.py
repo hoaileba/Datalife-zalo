@@ -7,6 +7,7 @@ VARIANTS: name -> (Rules overrides, [(old line fragment, new line fragment)], in
 """
 from __future__ import annotations
 
+import re
 from dataclasses import replace
 from pathlib import Path
 
@@ -80,3 +81,49 @@ def rules_of(name) -> Rules:
 def affected(name, spec, answer_type, default_answer, variant_answer):
     """A question is a useful S4 sample when the variant changes its answer."""
     return default_answer != variant_answer
+
+
+# ---------------------------------------------------------------- paraphrases (meaning unchanged)
+def paraphrase_format(base: str | None = None) -> str:
+    """The train rulebook retyped without changing a word: table rows as bullets (`- **Luật**: mặc định`), the
+    table header rows as plain lines, bold dropped from paragraphs, the other tone placement (hủy -> huỷ), curly
+    quotes. datamate.rules keys ignore all of this, so the agent must see no rulebook_changes."""
+    text = base if base is not None else TRAIN_RULEBOOK.read_text(encoding='utf-8')
+    out = []
+    for line in text.split('\n'):
+        s = line.strip()
+        if s.startswith('|') and s.endswith('|'):
+            cells = [c.strip() for c in s.strip('|').split('|')]
+            if all(re.fullmatch(r':?-{3,}:?', c) for c in cells):
+                continue                                      # table rule
+            if len(cells) >= 2:
+                head, rest = cells[0], ' | '.join(cells[1:])
+                line = f'- **{head.strip("*")}**: {rest}' if head else f'- {rest}'
+        elif s and not s.startswith('#'):
+            line = line.replace('**', '')
+        line = re.sub(r'(?<!\w)hủy', 'huỷ', re.sub(r'(?<!\w)Hủy', 'Huỷ', line))
+        out.append(line)
+    return '\n'.join(out)
+
+
+# Same meaning, other words (a writer of another split would reword like this). datamate.rules compares words, so
+# each reworded line is listed in rulebook_changes and loses its recipe: the answers stay those of the standard rules.
+REWORDINGS = [
+    ('Mọi đáp án chuẩn tính theo các luật dưới đây.', 'Đáp án chuẩn đều được tính theo những luật sau.'),
+    ('| Tuần | bắt đầu **thứ Hai**.', '| Tuần | tuần mở đầu bằng **thứ Hai**.'),
+    ('| Bán chạy | theo **số lượng quy về đơn vị cơ bản**, không theo số dòng hay số tiền;',
+     '| Bán chạy | xếp theo **số lượng đã quy ra đơn vị cơ bản**, không xếp theo số dòng hay theo tiền;'),
+    ('| Tháng M/Y | cả tháng, từ ngày 1 đến hết ngày cuối tháng |', '| Tháng M/Y | trọn tháng: từ mùng 1 tới hết ngày cuối cùng của tháng |'),
+    ('| Từ X đến Y, nhóm X–Y | gồm cả X và Y |', '| Từ X đến Y, nhóm X–Y | tính luôn cả X lẫn Y |'),
+    ('| Phần trăm thay đổi, tăng trưởng | so với **kỳ trước**; giảm thì ra **số âm** |',
+     '| Phần trăm thay đổi, tăng trưởng | đem so với **kỳ liền trước**; nếu giảm thì kết quả là **số âm** |'),
+]
+
+
+def paraphrase_words(base: str | None = None) -> str:
+    text = base if base is not None else TRAIN_RULEBOOK.read_text(encoding='utf-8')
+    for old, new in REWORDINGS:
+        if old not in text:
+            raise ValueError(f'rewording: line not found: {old[:60]}')
+        text = text.replace(old, new)
+    return text

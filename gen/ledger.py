@@ -22,6 +22,7 @@ Schema (pandas DataFrames, clean dtypes, English names; ids are strings):
   drugs       product_id, ingredient, rx (bool)
   expenses    date, category, amount, note
   deliveries  order_id, trip_no, date, plate, driver
+  visits      order_id, table, area, guests (None = not written, e.g. takeaway), plate (vehicle of a repair order)
 Empty optional tables are empty DataFrames with the columns above; `caps` says which exist in the shop's files.
 """
 from __future__ import annotations
@@ -56,12 +57,13 @@ COLUMNS = {
     'drugs': ['product_id', 'ingredient', 'rx'],
     'expenses': ['date', 'category', 'amount', 'note'],
     'deliveries': ['order_id', 'trip_no', 'date', 'plate', 'driver'],
+    'visits': ['order_id', 'table', 'area', 'guests', 'plate'],
 }
 
 # Capabilities: what kind of information the shop's files carry (questions needing a missing one are unanswerable).
 CAPS = ['customers', 'customer_ids', 'customer_groups', 'staff', 'time', 'channel', 'payment_method', 'debt',
         'purchases', 'stock', 'lots', 'prices', 'drugs', 'expenses', 'deliveries', 'unit_cost', 'units', 'groups',
-        'order_ids', 'product_ids']
+        'order_ids', 'product_ids', 'tables', 'guests', 'plates']
 
 
 @dataclass

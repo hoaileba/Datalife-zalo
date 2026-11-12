@@ -106,8 +106,37 @@ def variant_questions(L, rng, n, variant, rules, keep_unaffected=0.3):
     return out
 
 
+# export families in the train shares (30 shops: E 6, F 5, D 5, G 3, A 3, B 3, C 2, H 1 + A' and I, not rendered),
+# plus the two families absent from train
+TRAIN_FAMILY_WEIGHTS = {'E': 6, 'F': 5, 'D': 5, 'G': 3, 'A': 3, 'B': 3, 'C': 2, 'H': 1.5, 'S': 1.5, 'P': 1.5}
+
+
+def pick_family(fams, rng, weights=None):
+    if not weights:
+        return fams[int(rng.integers(len(fams)))]
+    w = np.array([weights.get(f, 0.0) for f in fams], dtype=float)
+    if w.sum() == 0:
+        return fams[int(rng.integers(len(fams)))]
+    return fams[int(rng.choice(len(fams), p=w / w.sum()))]
+
+
+def stratified(weights, n, rng):
+    """n families in the shares of `weights` (largest remainder), shuffled."""
+    tot = sum(weights.values())
+    raw = {f: n * w / tot for f, w in weights.items()}
+    k = {f: int(v) for f, v in raw.items()}
+    for f in sorted(raw, key=lambda f: raw[f] - k[f], reverse=True)[:n - sum(k.values())]:
+        k[f] += 1
+    plan = [f for f, c in k.items() for _ in range(c)]
+    return [plan[i] for i in rng.permutation(len(plan))]
+
+
 def build(out: Path, n_shops: int, n_questions: int, industries, seed=0, variant=None, families=None,
-          first_id=901):
+          first_id=901, composed=None, family_weights=None, mix='v1', split_name=None, family_plan=None):
+    """composed: a gen.rulebook_gen.Composed (split rulebook + its Rules) instead of the train rulebook / a variant;
+    family_weights: {family: weight} (TRAIN_FAMILY_WEIGHTS) instead of a uniform choice; mix='train': period kinds
+    and split-rulebook intents of gen.questions (v1 = the syn_v1 behaviour); family_plan: the family of each shop
+    (stratified by the caller), used when applicable."""
     from datamate.data import load_business
     from gen import render as R
     from gen import surface as S
@@ -121,6 +150,12 @@ def build(out: Path, n_shops: int, n_questions: int, industries, seed=0, variant
     if variant:
         rules = variants.rules_of(variant)
         rb = variants.rulebook_text(variant)
+    if composed is not None:
+        rules, rb = composed.rules, composed.text
+        (out / '_render').mkdir()
+        (out / '_render' / 'rulebook_parts.json').write_text(json.dumps(
+            {'parts': composed.parts, 'rules': {k: v for k, v in vars(rules).items()}}, ensure_ascii=False,
+            default=str, indent=1), encoding='utf-8')
     (out / 'rulebook.md').write_text(rb, encoding='utf-8')
     fq, fa, fm = (open(out / f, 'w', encoding='utf-8') for f in ('questions.jsonl', 'answers.jsonl', 'meta.jsonl'))
     qn = 0
@@ -130,21 +165,49 @@ def build(out: Path, n_shops: int, n_questions: int, industries, seed=0, variant
         spec = make_spec(ind, rng, bid)
         L = simulate(spec, int(rng.integers(1 << 30)))
         fams = [f for f in R.families_for(L) if families is None or f in families]
-        fam = fams[int(rng.integers(len(fams)))]
+        money = [k for k, on in (('shipping', rules.revenue_shipping), ('order_discount', rules.revenue_order_discount))
+                 if on]
+        if money:                             # revenue needs order-level money: a family with order ids
+            fams = [f for f in fams if f != 'B']
+        fam = pick_family(fams, rng, family_weights)
+        if family_plan and i < len(family_plan) and family_plan[i] in fams:
+            fam = family_plan[i]
         shop_dir = out / 'data' / bid
-        rendered = R.render(L, fam, shop_dir, rng)
+        shown = list(money)
+        if composed is not None and fam != 'B':     # the columns also appear where the rulebook ignores them, so a
+            for k in ('shipping', 'order_discount'):  # column never stands in for reading the rule
+                if k not in shown and rng.random() < 0.35:
+                    shown.append(k)
+        rendered = R.render(L, fam, shop_dir, rng, order_money=tuple(shown))
         L.shop['caps'] = set(rendered['caps'])
+        if composed is not None:              # side files for the checks (outside data/: the agent never sees them)
+            (out / '_render' / f'{bid}.json').write_text(json.dumps(
+                {'family': fam, 'industry': ind, 'caps': sorted(rendered['caps']), 'extras': rendered['extras'],
+                 'start': str(L.shop['start']), 'end': str(L.shop['end'])}, ensure_ascii=False, default=str),
+                encoding='utf-8')
         business = load_business(shop_dir, out / 'calendar.csv', None)
         values = _text_values(business)
         codes = _codes(L)
         if variant:
             qs = variant_questions(L, rng, n_questions, variant, rules)
         else:
-            qs = sample(L, rng, n_questions, rules=rules)
+            kw = {}
+            if composed is not None:          # more of the questions the split's changed defaults move
+                from gen.questions import WEIGHTS
+                from gen.rulebook_gen import focus
+                iw, pw = focus(composed.parts)
+                kw = {'weights': {k: v * iw.get(k, 1.0) for k, v in WEIGHTS.items()}, 'period_boost': pw}
+            qs = sample(L, rng, n_questions, rules=rules, mix=mix, **kw)
+        if composed is not None:
+            # moved = the split's own text (changed defaults, section alternatives) changes this answer
+            from gen.rulebook_gen import base_rules
+            base = base_rules(rules, composed.parts)
+            for q in qs:
+                q['moved'] = base != rules and answer(L, q['spec'], q['as_of'], base) != (q['type'], q['answer'])
         for q in qs:                      # sampled after rendering: the rendered caps decide unanswerable
             t, a = q['type'], q['answer']
             qn += 1
-            qid = f'q_syn{seed:02d}_{qn:06d}'
+            qid = f'q_syn{seed:02d}_{qn:06d}' if split_name is None else f'q_{split_name}_{qn:05d}'
             ctx = S.make_ctx(L, q['spec'], q['as_of'])
             prng = random.Random(int(rng.integers(1 << 62)))       # surface.py uses random.Random
             text = S.noisify(S.realize(q['spec'], ctx, prng), prng)
@@ -153,7 +216,9 @@ def build(out: Path, n_shops: int, n_questions: int, industries, seed=0, variant
             line = {'id': qid, 'type': t, 'answer': a, 'alias': answer_alias(t, a, codes, values, L.shop['caps'])}
             fa.write(json.dumps(line, ensure_ascii=False) + '\n')
             fm.write(json.dumps({'id': qid, 'intent': q['spec']['intent'], 'family': fam, 'industry': ind,
-                                 'variant': variant, 'moved': q.get('moved'), 'spec': q['spec']},
+                                 'variant': variant or (composed.parts.get('name') if composed else None),
+                                 'moved': q.get('moved'), 'spec': q['spec'], 'business_id': bid,
+                                 'as_of': q['as_of'].isoformat(), 'split': split_name},
                                 ensure_ascii=False, default=str) + '\n')
         print(f'{bid} {ind:16s} {fam:6s} orders={len(L.orders):6d} questions={len(qs)}', flush=True)
     for f in (fq, fa, fm):

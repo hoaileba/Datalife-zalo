@@ -37,6 +37,16 @@ class Rules:
     debt_age_from_order: bool = True       # §4 age from the order date
     avg_purchase_weighted: bool = True     # §5 weighted by quantity
     pct_decimals: int = 2
+    # ---- rules a split rulebook may add or change (gen.rulebook_gen); defaults = the train rulebook's meaning
+    sections: tuple = ()                   # industry sections the rulebook carries (gate the intents they define)
+    addon_is_item: bool = True             # toppings / khăn lạnh are items unless the rulebook says otherwise
+    service_prefix: str = 'dịch vụ'        # 'tiền công, doanh thu dịch vụ' = lines whose group starts with this
+    guests_missing_as_one: bool = False    # an order without a guest count counts as one guest
+    per_guest_round: int = 0               # decimals of revenue per guest (-3 = to the thousand đồng)
+    seasons: tuple = ()                    # ((key, label, (m1, d1), (m2, d2)), ...); m1 > m2 = starts the year before
+    bestseller_by: str = 'qty'             # 'bán chạy' ranks by quantity (or 'revenue')
+    last_n_include_today: bool = True      # 'N ngày gần nhất' ends today (False: ends yesterday)
+    repeat_min: int = 2                    # 'xe quay lại' = a plate with at least this many orders in the period
 
 
 # ------------------------------------------------------------------ rounding and helpers
@@ -114,8 +124,10 @@ class View:
         return df[(df[col] >= s) & (df[col] <= e)]
 
     def items(self, df):
-        """Lines that are items (§3: the service-fee line is not an item)."""
-        return df if self.R.service_fee_is_item else df[df.kind != 'fee']
+        """Lines that are items (§3: the service-fee line is not an item; toppings when the rulebook says so)."""
+        if not self.R.service_fee_is_item:
+            df = df[df.kind != 'fee']
+        return df if self.R.addon_is_item else df[df.kind != 'addon']
 
     def revenue(self, spec):
         o = self.in_period(self.valid, spec)
@@ -296,14 +308,15 @@ def _group_share(V, s):
 def _qty_unit(V, s):
     l = V.items(_item_lines(V, s))
     ids = V.L.products[V.L.products.base_unit.str.lower() == s['unit'].lower()].product_id
-    return 'number', _as_number(l[l.product_id.isin(ids)].base_qty.sum())
+    return 'number', _as_number(half_up(l[l.product_id.isin(ids)].base_qty.sum(), 2))
 
 
 @intent('qty_size')
 def _qty_size(V, s):
     l = V.items(_item_lines(V, s))
     names = V.L.products.set_index('product_id').name
-    mask = l.product_id.map(names).str.strip().str.upper().str.endswith(f"({s['size'].upper()})")
+    end = f"({s['size'].upper()})" if s.get('style', 'paren') == 'paren' else f"SIZE {s['size'].upper()}"
+    mask = l.product_id.map(names).str.strip().str.upper().str.endswith(end)
     return 'number', _as_number(l[mask].base_qty.sum())
 
 
@@ -311,6 +324,8 @@ def _qty_size(V, s):
 def _top_items(V, s):
     l = V.items(_item_lines(V, s))
     by = s.get('by', 'qty')
+    if by == 'qty' and V.R.bestseller_by == 'revenue':
+        by = 'revenue'                             # the rulebook ranks 'bán chạy' by revenue
     if by == 'qty':
         v = l.groupby('product_id').base_qty.sum()
     elif by == 'revenue':
@@ -770,6 +785,97 @@ def _deliveries(V, s):
     d = V.L.deliveries
     d = d.assign(day=pd.to_datetime(d.date).dt.normalize())
     return 'number', int(len(V.in_period(d, s['period'])))
+
+
+# ---- split rulebook sections (gen.rulebook_gen): tables/guests, services, vehicles
+def _visits(V, o):
+    v = V.L.visits.set_index('order_id')
+    return v.reindex(o.order_id)
+
+
+@intent('guests_total', 'guests')
+def _guests_total(V, s):
+    o = V.in_period(V.valid, s['period'])
+    g = _visits(V, o).guests
+    if V.R.guests_missing_as_one:
+        g = g.fillna(1)
+    return 'number', int(g.fillna(0).sum())
+
+
+@intent('revenue_per_guest', 'guests')
+def _revenue_per_guest(V, s):
+    o = V.in_period(V.valid, s['period'])
+    g = _visits(V, o).guests
+    if V.R.guests_missing_as_one:
+        g = g.fillna(1)
+    n = g.fillna(0).sum()
+    if n == 0:
+        raise Unanswerable('no guests')
+    return 'number', _as_number(half_up(V.order_rev.reindex(o.order_id).sum() / n, V.R.per_guest_round)
+                                if V.R.per_guest_round >= 0 else
+                                half_up(V.order_rev.reindex(o.order_id).sum() / n / 10 ** -V.R.per_guest_round)
+                                * 10 ** -V.R.per_guest_round)
+
+
+@intent('area_revenue', 'tables')
+def _area_revenue(V, s):
+    o = V.in_period(V.valid, s['period'])
+    a = _visits(V, o).area.values
+    return 'number', half_up(V.order_rev.reindex(o.order_id[a == s['area']]).sum())
+
+
+def table_revenue(V, s):
+    o = V.in_period(V.valid, s['period'])
+    t = _visits(V, o).table
+    keep = t.notna().values
+    v = V.order_rev.reindex(o.order_id[keep]).groupby(t[keep].values).sum()
+    v.index.name = 'table'
+    return v
+
+
+@intent('top_table', 'tables')
+def _top_table(V, s):
+    v = table_revenue(V, s)
+    if v.empty:
+        raise Unanswerable('no table orders')
+    return 'string', str(_rank(v, 1).table.iloc[0])
+
+
+def _service_mask(V, l):
+    g = l.product_id.map(V.L.products.set_index('product_id').group).fillna('').astype(str).str.strip().str.lower()
+    return g.str.startswith(V.R.service_prefix.lower())
+
+
+@intent('service_revenue', 'groups')
+def _service_revenue(V, s):
+    l = _item_lines(V, s)
+    m = _service_mask(V, l)
+    if s.get('part') == 'goods':                  # the rest: parts and goods (a service fee line is no good)
+        m = ~m & (l.kind != 'fee')
+    return 'number', half_up(l[m].amount.sum())
+
+
+@intent('service_share', 'groups')
+def _service_share(V, s):
+    l = _item_lines(V, s)
+    return 'percent', share(l[_service_mask(V, l)].amount.sum(), V.revenue(s['period']), V.R)
+
+
+def _plate_orders(V, s):
+    o = V.in_period(V.valid, s['period'])
+    p = _visits(V, o).plate
+    return p[p.notna()]
+
+
+@intent('vehicle_count', 'plates')
+def _vehicle_count(V, s):
+    return 'number', int(_plate_orders(V, s).nunique())
+
+
+@intent('repeat_vehicles', 'plates')
+def _repeat_vehicles(V, s):
+    c = _plate_orders(V, s).value_counts()
+    return 'number', int((c >= s.get('n', V.R.repeat_min)).sum())
 
 
 # ------------------------------------------------------------------ entry point

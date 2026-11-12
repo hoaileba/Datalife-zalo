@@ -138,6 +138,9 @@ def period_text(per, as_of, rng):
         if y == as_of.year:
             opts += ['dịp Tết năm nay', 'Tết năm nay']
         s = rng.choice(opts)
+    elif k == 'season':                       # a window named by the split rulebook
+        lab, y = per.get('label') or per['name'], per['year']
+        s = rng.choice([f'{lab} {y}', f'{lab} năm {y}'])
     else:
         raise ValueError(k)
     return s, (s if s.startswith(('từ', 'trong')) else 'trong ' + s)
@@ -519,6 +522,63 @@ T = {
         'Lý do khách trả hàng nhiều nhất {P} là gì', 'Khách có hài lòng với cách phục vụ của {S} không',
         '{P} khách ở đường {STREET} mua tổng cộng bao nhiêu tiền',
     ],
+    'qty_size:word': [
+        '{P} {S} bán được bao nhiêu sản phẩm size {SZ}', 'Tổng số món đồ size {SZ} bán ra {Pt} là bao nhiêu',
+        'Hàng size {SZ} {P} bán được mấy cái, tính mọi mẫu',
+    ],
+    'guests_total': [
+        '{P} {S} phục vụ bao nhiêu khách', 'Tổng số khách {P} là bao nhiêu', 'Có bao nhiêu khách đến ăn {Pt}',
+        '{P} {S} đón được mấy khách', 'Số lượt khách {P} là bao nhiêu',
+    ],
+    'revenue_per_guest': [
+        'Doanh thu bình quân một khách {P} là bao nhiêu', '{P} trung bình mỗi khách chi bao nhiêu tiền',
+        'Mỗi khách {Pt} mang lại bao nhiêu doanh thu, tính trung bình', 'Bình quân đầu người {P} là bao nhiêu tiền',
+    ],
+    'area_revenue': [
+        'Doanh thu ở {A} {P} là bao nhiêu', '{P} {A} bán được bao nhiêu tiền', '{A} {Pt} thu về bao nhiêu tiền',
+    ],
+    'top_table': [
+        'Bàn nào có doanh thu cao nhất {P}', '{P} bàn nào bán được nhiều tiền nhất', 'Bàn mang về nhiều doanh thu nhất {Pt} là bàn nào',
+    ],
+    'service_revenue': [
+        'Tiền công dịch vụ {P} là bao nhiêu', 'Doanh thu dịch vụ {P} được bao nhiêu', '{P} {S} thu được bao nhiêu tiền công',
+        'Tổng tiền làm dịch vụ {Pt} là bao nhiêu',
+    ],
+    'service_revenue:goods': [
+        'Tiền bán hàng hoá, không tính dịch vụ, {P} là bao nhiêu', '{P} bán hàng (không kể tiền công dịch vụ) được bao nhiêu tiền',
+        'Doanh thu phần hàng hoá ngoài dịch vụ {P} là bao nhiêu',
+    ],
+    'service_share': [
+        'Dịch vụ chiếm bao nhiêu % doanh thu {P}', 'Tỉ trọng doanh thu dịch vụ {P} là bao nhiêu phần trăm',
+        '{P} tiền công dịch vụ chiếm mấy phần trăm tổng doanh thu',
+    ],
+    'vehicle_count': [
+        '{P} {S} sửa cho bao nhiêu xe', 'Có bao nhiêu xe vào {S} {Pt}', 'Số xe đến làm {P} là bao nhiêu',
+    ],
+    'repeat_vehicles': [
+        '{P} có bao nhiêu xe quay lại', 'Bao nhiêu xe quay lại {S} {Pt}', 'Đếm số xe quay lại {Pt}',
+    ],
+    'repeat_vehicles:n': [
+        '{P} có bao nhiêu xe đến {S} từ {n} lần trở lên', 'Đếm số xe vào làm từ {n} lượt trở lên {Pt}',
+    ],
+    # facts a shop's sales export never records, per trade (S6: the data cannot answer, not 0)
+    'unanswerable:hotpot': ['Bàn nào khách ngồi lâu nhất {P}', 'Khách {P} có khen món lẩu Thái không',
+                            'Món nào bị khách chê nhiều nhất {P}'],
+    'unanswerable:restaurant': ['Bàn nào khách ngồi lâu nhất {P}', 'Món nào bị khách chê nhiều nhất {P}'],
+    'unanswerable:motorbike_repair': ['Xe nào sửa lâu nhất {P}', 'Thợ nào sửa xe nhanh nhất {S}',
+                                      'Xe Honda chiếm bao nhiêu phần trăm số xe {P}'],
+    'unanswerable:spa_salon': ['Khách nào hài lòng nhất với dịch vụ {P}', 'Kỹ thuật viên nào được khách khen nhiều nhất',
+                               'Bao nhiêu khách quay lại vì được giới thiệu {P}'],
+    'unanswerable:fashion': ['Màu nào được khách chọn nhiều nhất {P}', 'Khách mua áo có mặc vừa không',
+                             'Bao nhiêu khách đổi hàng vì chật {P}'],
+    'unanswerable:fruit_shop': ['Trái cây nhập từ vườn nào ngọt nhất', 'Bao nhiêu kg trái cây bị hư phải bỏ {P}',
+                                'Xoài cát Hòa Lộc lấy ở tỉnh nào'],
+    'unanswerable:milk_tea': ['Khách thích ít đường hay nhiều đường hơn {P}', 'Bao nhiêu ly bị khách chê nhạt {P}'],
+    'unanswerable:phone_shop': ['Máy nào bị bảo hành nhiều nhất {P}', 'Khách mua iPhone có trả góp không',
+                                'Bao nhiêu máy bán ra còn hạn bảo hành'],
+    'unanswerable:pet_shop': ['Giống chó nào đến tắm nhiều nhất {P}', 'Bé mèo nào được cắt tỉa lông đẹp nhất'],
+    'unanswerable:agri_supply': ['Bà con trồng lúa hay trồng rau mua nhiều phân hơn {P}',
+                                 'Ruộng của khách nào được mùa nhất'],
     'unanswerable:drug': [
         'Thuốc có hoạt chất {ING} người lớn nên uống mỗi lần mấy viên', 'Liều dùng của {I} cho trẻ em là bao nhiêu',
         '{I} có tác dụng phụ gì không',
@@ -602,6 +662,8 @@ def realize(spec, ctx: Ctx, rng, marked=False) -> str:
         kw.update(n=len(ps), START=f"{ps[0]['m']}/{ps[0]['y']}", END=f"{ps[-1]['m']}/{ps[-1]['y']}")
     elif it in ('revenue_change_pct', 'revenue_diff'):
         kw['R'] = prev_text(per, spec.get('ref'), as_of, rng)
+        if spec.get('ref_text') == 'neutral' and per['kind'] == 'this_month':
+            kw['R'] = rng.choice(['tháng trước', 'tháng trước đó'])     # which days: the rulebook says
         if kw['R'] is None:
             raise ValueError(f'cannot write the reference period of {spec}')
     elif it == 'revenue_trend_up':
@@ -697,12 +759,24 @@ def realize(spec, ctx: Ctx, rng, marked=False) -> str:
         kw['U'] = str(spec['unit'])
     elif it == 'qty_size':
         kw['SZ'] = spec['size'].upper()
+        if spec.get('style') == 'word':
+            key = 'qty_size:word'
+    elif it == 'area_revenue':
+        kw['A'] = mark(spec['area'])
+    elif it == 'service_revenue' and spec.get('part') == 'goods':
+        key = 'service_revenue:goods'
+    elif it == 'repeat_vehicles' and spec.get('n'):
+        kw['n'] = spec['n']
+        key = 'repeat_vehicles:n'
     elif it == 'unanswerable':
         names = list(ctx.staff.values()) or ['Lan', 'Minh Anh', 'Hoàng Nam']
         kw.update(NVN=mark(rng.choice(names)), STREET=rng.choice(STREETS))
         if 'P' not in kw:
             kw['P'], kw['Pt'] = period_text({'kind': 'this_month'}, as_of, rng)
         pool = list(T['unanswerable'])
+        trade = T.get(f'unanswerable:{ctx.industry}')
+        if trade and rng.random() < 0.6:
+            pool = list(trade)
         if ctx.ingredients and ctx.products:
             kw['ING'] = mark(rng.choice(ctx.ingredients))
             kw.setdefault('I', mark(rng.choice(list(ctx.products.values()))))
@@ -1208,4 +1282,7 @@ def sample_spec(L, as_of, rng, intent):
     raise KeyError(intent)
 
 
-ALL_INTENTS = sorted(INTENTS) + ['unanswerable']
+# intents of split-rulebook sections (gen.rulebook_gen) have no train phrasing to parse back: not in the round trip
+SECTION_INTENTS = {'guests_total', 'revenue_per_guest', 'area_revenue', 'top_table', 'service_revenue', 'service_share',
+                   'vehicle_count', 'repeat_vehicles'}
+ALL_INTENTS = sorted(set(INTENTS) - SECTION_INTENTS) + ['unanswerable']

@@ -23,7 +23,7 @@ replay ── sandbox, data, answer
 | `totals.py` | Totals by arithmetic, linear time (prefix sums + hash of the block start): rows sparser than every line of the block they sum (above or below; one-line blocks when laid out like the totals found), whose layout is mostly totals; a text that recurs only on rows equal to the sum since its last occurrence is a learned total label. `group_totals`: a group's first row laid out unlike its lines and holding their sum (an invoice row) | `sum_totals`, `recurring_totals`, `group_totals`, `move_totals` |
 | `columns.py` | Column typing from content; the decimal mark and the day/month order a column's own cells show | `type_column`, `to_series`, `decimal_mark`, `date_order` |
 | `data.py` | Grids → pandas tables in sandbox dtypes + column profiles (with dropped-row examples, text above the header); calendar table; disk cache | `load_business`, `Business`, `build_tables` |
-| `rules.py` | Rulebook as line units keyed by their words, numbers and operators (case, tone placement, punctuation, markdown ignored). Against the standard lines (the train rulebook, stored in `assets/cookbook_train.yaml`): changed/new lines (and every line under a new heading), the standard lines that are gone, or a rewrite (full text, whole cookbook) | `units`, `key`, `changes`, `compare`, `load_cookbook` |
+| `rules.py` | Rulebook as line units keyed by their words, numbers and operators (case, tone placement, punctuation, markdown ignored). Against the standard lines (the train rulebook, stored in `assets/cookbook_train.yaml`): changed/new lines (and every line under a new heading), the standard lines that are gone; a retyped line is aligned with the standard rule of the same name (table first cell, leading bold/code words) and keeps its recipe only with the same meaning; full text + whole cookbook only when many standard lines have no counterpart (another structure) | `units`, `key`, `split_rule`, `same_meaning`, `align`, `changes`, `compare`, `load_cookbook` |
 | `notes.py` | Noise measured on the data for `catalog.data_notes`: same-named keys vs their master table, values written several ways (case/spaces/missing accents), codes with several names, items in several units (units = words written after a number) | `data_notes` |
 | `catalog.py` | Lean catalog for the prompt (tables, columns, README, rulebook pointer, `rulebook_changes`); values the question mentions | `build_catalog`, `lookup` |
 | `helpers.py` | `dm` helpers for agent code; `TolerantFrame` (accent/case-tolerant column reads and writes). Ambiguous calls raise with the fix (top without a clear code, between on a non-date column) | `norm`, `to_num`, `to_date`, `between`, `dedup`, `drop_groups`, `top`, `factors` |
@@ -48,4 +48,18 @@ Data flow of one question: `runner.one` → `Businesses.get` (data + catalog, ca
 
 Outside `src/`: training data tools in `gen/` (see `docs/PLAN_TRAINDATA.md`); teacher runs `gen/teacher.py` (threads,
 one record per question), `gen/teacher_stats.py` (CSV + stats), prompt review `scripts/prompt_md.py`
-(guide: `docs/TEACHER_GEN.md`).
+(guide: `docs/TEACHER_GEN.md`). SFT hand-off (`docs/PLAN_SFT.md`): `gen/sft.py` (the one sample format, turns kept),
+`gen/package.py` (teacher runs → train/val package, prompts rebuilt with the current agent code, Gemma token counts
+via `gen/tokens.py`), `gen/validate.py` (package checks), `train/sft_lora.py` (LoRA, loss on the completion only).
+Augmentation of train shops (PLAN_SFT §3): `gen/reskin.py` (reskinned copies of the 30 shops: files/sheets/tables/
+columns/status-payment labels renamed, columns shuffled, README rewritten; every table checked equal to the original
+through `load_business`; uses `gen/shopio.py` to read/write CSV/XLSX/SQLite as grids), `gen/remap.py` (old -> new names
+in teacher code, reasoning, README, gold; stale-name check), `gen/reskin_replay.py` (teacher records replayed by
+`solve` on the copies with a scripted model: real prompts and observations, gold re-checked; output is a teacher run
+folder for `gen.package`, which caps copies with `--per-group`), `gen/rule_variants.py` (rulebook-variant splits on the
+five calibrated shops, oracle gold, `meta.jsonl` with `changed`; paraphrase checks in `gen/variants.py`).
+Synthetic shops of new trades with their own rulebooks (PLAN_SFT §4): `gen/rulebook_gen.py` (split rulebook = train
+rulebook + trade sections + changed defaults + dropped absent-trade sections + reworded lines, with the oracle `Rules`
+of exactly that text), `gen/build_v2.py` (`data_gen/syn_v2/<split>`, one rulebook per sub-split, held-out `val` split;
+render side files in `<split>/_render/`, outside the agent's `data/`), `scripts/check_syn.py` (load, gold vs an
+independent pandas recomputation on the reader's tables, distributions vs train, first-turn prompt tokens).

@@ -5,7 +5,7 @@ một định dạng gói:
 
 1. **Bước 1 (xong code, chờ cho phép chạy teacher):** 3000 câu train gốc → teacher DeepSeek (`gen.teacher`) → gói SFT
    (`gen.package`).
-2. **Bước 2 (kế hoạch):** augmentation trên shop train: câu hỏi, README, tên bảng/cột/file, rulebook, dữ liệu.
+2. **Bước 2:** reskin shop train (đã có mẫu, không gọi API) và biến thể rulebook (split sẵn, chờ teacher), §3.
 3. **Bước 3 (kế hoạch):** shop tổng hợp, ngành mới (`gen.build`).
 
 Liên quan: `docs/PLAN_TRAINDATA.md` (thiết kế bộ sinh, §7 trạng thái), `docs/TEACHER_GEN.md` (chạy teacher).
@@ -138,34 +138,99 @@ Gói mẫu dựng từ hai lượt nhỏ đã có: `outputs/sft/demo_smoke_try6`
   `gen.validate --replay` bắt được trường hợp chương trình không còn ra gold.
 - `data_gen/private_mock*` không rõ nguồn gốc: không dùng làm dữ liệu train khi chưa xác nhận.
 
-## 3. Bước 2: augmentation trên shop train (kế hoạch)
+## 3. Bước 2: augmentation trên shop train
 
-Nguyên tắc: mỗi augmentation là **một split mới** dưới `data_gen/<tên>/` (`questions.jsonl`, `answers.jsonl`,
-`rulebook.md`, `calendar.csv`, `data/`, `meta.jsonl` với `orig_id`, `intent`, `variant`), chạy `gen.teacher` trên split đó
-rồi gộp mọi run vào một gói: `gen.package --teacher outputs/teacher/train_v1 outputs/teacher/aug_v1 ...`. Không cần code
-mới ở phía gói. Hai luật bắt buộc để không rò rỉ: bản augment **giữ nguyên `business_id`** của shop gốc (shop giữ riêng
-khớp theo id) và **ghi `orig_id`** (hoặc đặt id `q_aug<k>_<x>`).
+Vấn đề: chỉ 30 shop (mỗi shop ~100 câu, cùng tên bảng/cột/nhãn) và một rulebook duy nhất → học sinh có thể học thuộc
+shop thay vì đọc catalog, và không bao giờ phải đọc rulebook. Hai hướng đã làm (chưa gọi API nào):
 
-| Hạng mục | Đã có | Còn thiếu | Nhãn |
+### 3.1 Reskin shop train (không cần teacher)
+
+| File | Làm gì |
+|---|---|
+| `gen/shopio.py` | đọc/ghi file của shop dạng lưới ô (CSV giữ dialect/BOM, XLSX qua calamine + `gen/xlsx.py`, SQLite giữ kiểu cột). Ghi lại nguyên trạng: 30/30 shop đọc ra bảng giống hệt |
+| `gen/reskin.py` | mỗi bản sao: đổi tên file/sheet/bảng SQLite (cụm từ đồng nghĩa, kiểu tên KiotViet/MISA/snake/có dấu), tên cột (bộ đồng nghĩa cùng nghĩa, giữ kiểu tên gốc: CamelCase, snake, không dấu), nhãn trạng thái/thanh toán (cùng loại, cùng nhóm `label_groups` mà agent tự tính, một kiểu cho cả shop), xáo thứ tự cột, viết lại README theo mức `full`/`partial`/`brief` (bỏ mô tả cột "trơn", giữ mô tả có thông tin riêng và mọi quy ước). Kiểm: `load_business` đọc 0 file lỗi, mọi bảng bằng bảng gốc sau ánh xạ tên/nhãn (cùng dòng, giá trị, dtype, dòng bị bỏ, `label_groups`); sai thì hoàn tác phần gây sai và ghi lại |
+| `gen/remap.py` | ánh xạ cũ → mới trong code teacher (chỉ chuỗi literal, f-string, comment, `df.cột`), lập luận (tên trong nháy/backtick/đậm; tên "đặc biệt" như snake/CamelCase/viết hoa/nhiều chữ không đứng đầu câu), README, gold (nhãn trong đáp án). Tên không đổi của shop được bảo vệ (`keep`: "trả hàng" trong nhãn "Đã trả hàng" không bị thay). `stale()`: còn tên/nhãn cũ → bỏ mẫu |
+| `gen/reskin_replay.py` | mỗi record đúng của teacher → chạy lại **chính vòng `solve`** trên bản sao, model là kịch bản các câu trả lời teacher đã ánh xạ: prompt là đúng prompt agent gửi trên bản sao, quan sát (explore, lỗi, kiểm tra) là kết quả thật trên dữ liệu bản sao. Giữ khi cùng số lượt, cùng trạng thái từng lượt, cùng loại đáp án và đúng gold. Ra một thư mục run teacher (`teacher_record/v1`) mà `gen.package` nhận như mọi run. Thinking của teacher không chép |
+| `gen/package.py` | thêm `--per-group N` (tối đa N record mỗi nhóm câu và mỗi rulebook; run liệt kê trước thắng) |
+| `tests_gen/test_reskin.py` | ánh xạ code/văn bản, `keep`, khoá cột có dấu, round-trip, reskin 3 shop thật (CSV/SQLite/XLSX theo tháng), end-to-end teacher giả → reskin → replay → gói → `validate --rebuild --replay`, `--per-group`, shop giữ riêng |
+
+Quyết định:
+- **Explore và lượt sửa lỗi giữ lại**, vì không ánh xạ quan sát bằng tay: `solve` chạy lại từng lượt trên bản sao nên lịch sử là output thật. Lượt nào lệch (bản sao báo lỗi ở chỗ bản gốc chạy được, hay ngược lại) thì bỏ cả record.
+- **Không đổi**: câu hỏi, tên hàng/khách (đáp án và data_lookup dựa vào), nhãn mơ hồ (`đã lấy`, `ok`, `Đang xử lý`, `Đang giao dịch`, `đang gửi`, `Không giao được`: lập luận teacher bàn về chúng), số liệu. Cột/tên có hai nghĩa trong train (vd "Trạng thái" của đơn và của khách) chỉ đổi sang tên chung.
+- Bản sao giữ `business_id` và id câu (nhóm = id gốc, `meta.jsonl` có `orig_id`), nên shop giữ riêng (biz_108/110/130) và mọi bản sao của nó đều sang val; `val_questions.jsonl`/`val_ids.txt` trong mỗi bản sao để đo học thuộc (PA trên shop val gốc so với bản reskin).
+- Một bản sao = một split đầy đủ (`data_gen/reskin_<k>/`, 2 bản, ~185 MB mỗi bản).
+
+Số liệu (2 bản, seed 0): 30/30 shop đạt kiểm tra ở cả 2 bản, 0 hoàn tác; mỗi bản đổi ~770 cột, ~141 nhãn, 127 file, ~180 sheet, 135 bảng, ~205 sheet xáo cột; README full/partial/brief = 15/11/4 và 16/11/3; 0 câu bỏ (không đáp án nào là tên cột/nhãn bị đổi). Replay từ train_v1 (+ smoke, try6; 2984 câu có record đúng, 2978 trong split): giữ **2936/2978** (bản 1) và **2932/2978** (bản 2); bỏ: lệch (cần thêm lượt) 20/26, lệch trạng thái lượt 12/12, còn tên cũ 10/8, sai gold 0/0. ~9 phút/bản, đỉnh ~4.1 GB RSS (4 luồng, một shop một lúc).
+
+### 3.2 Biến thể rulebook trên 5 shop đã hiệu chỉnh (cần teacher)
+
+`gen/rule_variants.py` → `data_gen/rulevar_<biến thể>/` (rulebook = biến thể, data = link sang bản reskin của shop để 5 shop
+không giống nhau ở mọi biến thể), `meta.jsonl` (`orig_id`, `intent`, `variant`, `changed`, `source` train|generated, `reskin`),
+tổng hợp ở `data_gen/rulevar_summary.json`. Câu: câu train của shop (oracle luật mặc định phải bằng gold train) + câu sinh
+(`gen.questions`, viết bằng `gen.surface`, phải parse lại ra cùng đáp án). Gold = oracle với luật biến thể. Chọn ~75% câu
+bị luật đổi đáp án, ~25% không đổi. Với `returns_count`/`delivering_out` bỏ các intent mà oracle dùng chung tập đơn hợp lệ
+nhưng dòng luật riêng của chúng không đổi (bán chạy, ế, hiệu ứng tăng giá, lãi gộp, tồn...): gold sẽ mâu thuẫn rulebook.
+Bộ nhớ: ~2.2 GB đỉnh mỗi biến thể (đo bằng `/usr/bin/time -v`); chạy mỗi biến thể một process (summary gộp).
+
+| Split | Câu | Đổi | Không đổi |
 |---|---|---|---|
-| S2a viết lại câu hỏi | `gen/augment_train.py` → `data_gen/train_aug` (3465 câu: bơm lỗi cách viết + diễn đạt lại kiểm bằng oracle trên 5 shop đã hiệu chỉnh), `gen/surface.py` | ghi `orig_id`/`intent` vào `meta.jsonl` (hiện chỉ dựa vào tên id) | gold của câu gốc |
-| Câu mới trên shop train (S2b) | oracle khớp 591/591 câu của biz_123/111/127/129/106 | bộ chọn tham số mới (tháng, sản phẩm, ngưỡng, as_of) cho 5 shop đó, dùng `gen/questions.py` trên ledger nạp từ shop train | oracle |
-| README augment | `gen/readme.py` (3 mức chi tiết) | `gen/augment_shop.py`: viết lại README (bỏ bớt, đổi thứ tự, đổi cách gọi cột) | gold không đổi (dữ liệu giữ nguyên) |
-| Tên file/bảng/sheet/cột | kho đồng nghĩa `gen/pools.py` | cùng `augment_shop.py`: đổi tên file/sheet/cột theo kho đồng nghĩa, cập nhật README cho khớp; kiểm `load_business` đọc được, catalog đổi đúng chỗ | gold không đổi, trừ câu có đáp án là tên cột (không có trong train) |
-| Rulebook | `gen/variants.py` (11 biến thể, oracle tham số hoá) | chạy biến thể trên 5 shop đã hiệu chỉnh (hiện chỉ trên shop tổng hợp qua `gen.build --variant`); diễn đạt lại rulebook không đổi nghĩa (kiểm bằng `rules.compare`: không sinh `rulebook_changes` giả) | oracle với luật đổi |
-| Dữ liệu (dòng) | ledger loader của 5 shop | thêm nhiễu cấp dòng (`gen/noise.py`) lên shop train đã hiệu chỉnh; chỉ những thay đổi không đổi đáp án, hoặc tính lại gold bằng oracle | oracle |
+| week_sunday | 123 | 92 | 31 |
+| returns_count | 220 | 165 | 55 |
+| delivering_out | 184 | 138 | 46 |
+| revenue_shipping | 156 | 117 | 39 |
+| revenue_voucher | 220 | 165 | 55 |
+| cancel_rate_no_returns | 220 | 165 | 55 |
+| this_month_full_prev | 39 | 29 | 10 |
+| tet_short | 4 | 3 | 1 |
+| shifts_split | 220 | 165 | 55 |
+| avg_purchase_simple | 44 | 33 | 11 |
+| pct_one_decimal | 220 | 165 | 55 |
+| paraphrase (diễn đạt lại, đáp án chuẩn) | 220 | 0 | 220 |
+| **Tổng** | **1870** | **1237** | **633** |
 
-Thứ tự đề xuất (rẻ và an toàn trước):
-1. Ghi `meta.jsonl` cho `train_aug`; chạy teacher trên `train_aug` (3465 câu, ~3.8k lượt, ~3 giờ, ~3 USD; cần cho phép).
-   Gói = train_v1 + aug_v1. Thêm `--per-group N` vào `gen.package` (giới hạn số mẫu mỗi nhóm câu, để một câu train
-   không nặng gấp 3 lần) và so `eval_loss`/PA với gói chỉ có train_v1.
-2. `augment_shop.py` (README + tên): kiểm bằng `load_business` và bằng `gen.validate --replay` trên chương trình teacher
-   cũ được ánh xạ tên cột (không cần gọi model để biết augment có phá đáp án không), rồi mới chạy teacher.
-3. Biến thể rulebook trên 5 shop đã hiệu chỉnh (dạy đọc `rulebook_changes`).
-4. Câu mới (S2b) và nhiễu dòng, sau khi 1–3 cho thấy có ích.
+Kiểm pipeline (mọi split): `load_rulebook` liệt kê đúng dòng đổi (1–2 dòng; paraphrase 6), mọi đoạn mới của biến thể có
+trong `rulebook_changes`, không split nào thành "rewrite", system prompt khác train (bỏ công thức của dòng đổi),
+catalog của shop có `rulebook_changes`, 0 file không đọc được.
 
-Rủi ro: lệch khỏi phân phối test (augment quá tay); học thuộc 30 shop càng nặng khi mỗi shop có nhiều bản sao; oracle
-chỉ đã kiểm trên 5 shop; diễn đạt lại có thể đổi nghĩa câu (S2a đã lọc bằng oracle, bơm lỗi thì không).
+Diễn đạt lại rulebook (`gen/variants.py`): `paraphrase_format` (bảng → gạch đầu dòng, bỏ đậm, huỷ/hủy, nháy cong) cho
+**0** `rulebook_changes` (test). `paraphrase_words` (6 dòng đổi chữ, cùng nghĩa) cho **6** thay đổi "giả": `datamate.rules`
+so theo chữ, nên một rulebook viết lại câu chữ sẽ mất công thức của các dòng đó và hiện chúng trong `rulebook_changes`.
+Không sửa được ở `src/` lúc này; split `rulevar_paraphrase` dạy đúng tình huống này (dòng "đổi" nhưng đáp án như chuẩn).
+
+Ước lượng teacher (`gen.teacher --dry-run`, 16 workers): 1870 câu, ~2056 lượt gọi, ~54 phút, ~1.6 USD (giá giả định
+0.07/0.007/0.28). Đề xuất chạy tất cả (1.9k câu; bỏ `tet_short` nếu muốn, chỉ 4 câu).
+
+### 3.3 Lệnh
+
+```
+PY=/mnt/ssd4t/dungnd4/zac_2026/envs/pd22/bin/python; export PYTHONIOENCODING=utf-8 PYTHONPATH=src:.
+# (đã chạy) bản sao + kiểm tra, ~4 phút, ~0.8 GB
+$PY -m gen.reskin --out data_gen --copies 2 --workers 3
+# (đã chạy) mẫu trên bản sao, không gọi API, ~9 phút/bản, ~4.1 GB đỉnh; --resume khi có record teacher mới
+for k in 1 2; do $PY -m gen.reskin_replay --teacher outputs/teacher/train_v1 outputs/teacher/smoke outputs/teacher/try6 \
+    --split data_gen/reskin_$k --out outputs/teacher/reskin_$k --workers 4; done
+# gói: gốc + 2 bản (mỗi câu tối đa 3 record; --per-group 2 để nhẹ hơn)
+$PY -m gen.package --teacher outputs/teacher/train_v1 outputs/teacher/reskin_1 outputs/teacher/reskin_2 --out outputs/sft/train_v1_reskin
+$PY -m gen.validate outputs/sft/train_v1_reskin --rebuild --replay
+# đo học thuộc sau train: agent trên shop val gốc và bản reskin
+#   data/train + ids của biz_108/110/130 (val_questions.jsonl của gói) và data_gen/reskin_<k> + val_ids.txt
+# (đã chạy) biến thể rulebook, mỗi biến thể một process
+for v in week_sunday returns_count ... paraphrase; do $PY -m gen.rule_variants --out data_gen --variants $v \
+    --reskin data_gen/reskin_1,data_gen/reskin_2; done
+# CẦN NGƯỜI DÙNG CHO PHÉP: teacher trên các split biến thể (~1.6 USD, ~1 giờ ở 16 workers)
+for s in data_gen/rulevar_*/; do n=$(basename $s); $PY -m gen.teacher --split $s --out outputs/teacher/$n --all \
+    --workers 16 --concurrency 16 --price 0.07,0.007,0.28 --max-usd 1 --yes; done
+$PY -m gen.package --teacher outputs/teacher/train_v1 outputs/teacher/reskin_1 outputs/teacher/reskin_2 outputs/teacher/rulevar_* --out ...
+```
+
+Rủi ro / chưa kiểm:
+- Bản reskin chỉ đổi tên, không đổi bố cục hay dữ liệu: học sinh vẫn có thể nhớ số liệu, giá trị cột, tên hàng của 30 shop.
+- README mức `brief`/`partial` bỏ mô tả cột trơn, nhưng lập luận teacher có thể vẫn nhắc nghĩa cột lấy từ README gốc.
+- Đồng nghĩa cột/nhãn chọn tay: có thể còn cặp lệch sắc thái; kiểm bằng máy chỉ đảm bảo gold không đổi.
+- Gold biến thể đúng theo oracle; oracle chỉ được xác nhận với luật mặc định (591/591), chưa với luật biến thể.
+- `paraphrase_words`: `rules.compare` coi diễn đạt lại là thay đổi (nêu trên).
+- ~1.3% mẫu reskin (36 + 38) có nhãn viết thường không nháy trong một danh sách nhãn ("trả hàng (trả hàng, Đã trả hàng)", "cancel") vẫn là nhãn cũ: lập luận nhắc một nhãn không còn trên bản sao (stale check không bắt; code và đáp án đúng).
+- Chưa đo trên học sinh: lợi ích của reskin/biến thể chỉ biết sau khi train và đo val gốc vs val reskin.
 
 ## 4. Bước 3: shop tổng hợp và ngành mới (kế hoạch)
 
@@ -193,6 +258,45 @@ Thứ tự:
 
 Rủi ro: shop tổng hợp "dễ" hơn hoặc khác kiểu với test (model học bộ sinh); oracle sai ở ý định chưa kiểm; chi phí
 teacher tăng nhanh; tỉ lệ dữ liệu tổng hợp quá cao làm giảm điểm trên phân phối train/test.
+
+### 4.1 syn_v2 (12/11, Hướng 3: ngành mới, rulebook riêng; chưa gọi API)
+
+Private test có ngành không có trong train/public và **rulebook riêng** của bộ (docs/zac/data.md). Một split dùng chung
+một rulebook, nên `syn_v2` là 8 split con, mỗi split một rulebook do `gen/rulebook_gen.py` ghép:
+
+| Thành phần | Nội dung |
+|---|---|
+| Ngành mới (`gen/assets/new_industries.yaml`) | +6: `fruit_shop` (bán theo ký, số lượng lẻ 1,35 kg), `fashion` (size trong tên `... size M`), `milk_tea` (size (M)/(L) + topping), `spa_salon` (dịch vụ, 5 kỹ thuật viên), `hotpot` (bàn, khu vực, số khách, khăn lạnh), `phone_shop`; ngành cũ thêm: `motorbike_repair` có biển số xe, `mother_baby`/`cosmetics`/`agri_supply` có lô + hạn dùng; nhà hàng tổng hợp có bàn/số khách. Shop ngành mới giữ 60–95 % danh mục |
+| Sổ cái / xuất file | bảng `visits` (bàn, khu vực, số khách, biển số) → cột trong danh sách hoá đơn, không có thì lặp ở mọi dòng hàng (README ghi rõ); SQLite có bảng `luot_phuc_vu`. Rulebook tính phí giao / voucher đơn vào doanh thu → file luôn có cột phí giao / giảm giá đơn (`add_money_columns`), không dùng họ B. Mỗi đơn mỗi mặt hàng một dòng (hai dòng giống hệt là lỗi xuất file theo §8) |
+| Rulebook của split | rulebook train + mục §6 cho ngành có mặt (bàn/khách, dịch vụ/tiền công, xe quay lại, size chữ, trà sữa, hàng cân ký, vụ Đông Xuân/Hè Thu, mùa tựu trường, hàng có hạn dùng, topping/khăn lạnh) với định nghĩa thay thế; luật mặc định đổi gán theo split (`gen/build_v2.py` FORCE: mọi biến thể của `gen/variants.py` + 3 mới — bán chạy theo doanh thu, N ngày gần nhất không gồm hôm nay, Tết từ 25 Chạp); bỏ mục ngành train vắng mặt; diễn đạt lại cùng nghĩa; `val` viết lại toàn bộ (agent nhận cả văn bản + cả cookbook). Mọi nghĩa đổi là một trường `Rules`, gold theo đúng chữ; `meta.jsonl` có `moved` (luật đổi làm đổi đáp án) |
+| Ý định mới (`gen/oracle.py`) | `guests_total`, `revenue_per_guest`, `area_revenue`, `top_table`, `service_revenue` (+ phần hàng hoá), `service_share`, `vehicle_count`, `repeat_vehicles`; `qty_size` cho size chữ; hạn dùng cho ngành có lô; kỳ `season`. Chỉ hỏi khi rulebook của split có mục tương ứng (`questions.allowed`) |
+| Câu hỏi (`mix='train'`) | loại kỳ theo tỉ lệ đo trên train; họ định dạng phân tầng theo tỉ lệ train; không hỏi số đơn khi file không có mã đơn; gần như không có đáp án 0; không lặp câu kỳ tuyệt đối ở as_of khác; bỏ câu có hoà trong top k; "so với tháng trước" để rulebook quyết; câu hiệu ứng tăng giá chỉ nêu giá mới khi file thấy được ngày tăng; câu không trả lời được riêng từng ngành |
+
+Split (`data_gen/syn_v2`, 71 shop, 4615 câu, ~8 phút dựng với 3 tiến trình, đỉnh 2 GB): t1 (rulebook train + mục ngành),
+t2–t5, t7 (luật đổi), t6 (diễn đạt lại nhiều + luật đổi), mỗi split 9 shop × 65 câu; `val` (8 shop `hotpot` +
+`spa_salon`, luật đổi và định nghĩa mục riêng không có ở split train nào, rulebook viết lại toàn bộ, chủ yếu họ P). Họ P
+chỉ có ở `val` và 2 shop của t5 (họ giữ riêng trên ngành đã thấy). Chi tiết: `manifest.json`.
+
+Kiểm (không gọi model, `scripts/check_syn.py`, bản dựng cuối): 0/71 shop có file không đọc được; gold so với lời giải
+pandas độc lập trên bảng của reader (không dùng code oracle): **2280/2280** khớp (18 ý định, đủ 10 họ); kiểu đáp án
+number 61 % / percent 22 % / date 6 % / list 5 % / string 3 % / unanswerable 3 % (train 63/19/5/6/3/2); kỳ "tháng" 55–62 %
+(train 64 %); nhiễu câu hỏi khớp train; 13 đáp án 0; 1072 câu có đáp án đổi theo chữ của rulebook split (`moved`); token
+lượt đầu (tokenizer Gemma thật, 710 câu) p50 13.6k, p99 20.8k, max 20.9k < 24576 (val dài nhất: nhận cả rulebook +
+cookbook). Reviewer độc lập: vòng 1 NOT PROUD (voucher/phí giao không có trong file, câu số đơn trên file không mã đơn,
+"so với tháng trước", tăng giá không thấy ngày, tồn đơn vị lớn, hoà trong list), vòng 2 ALMOST (bản dựng cũ, cột tiền
+lộ luật, lệch tỉ lệ percent), đã sửa hết; vòng 3 **PROUD** (230/230 gold tự tính lại khớp, t5/t7/val dựng lại giống từng byte, `moved` khớp). Lưu ý: tín hiệu luật đổi của val chỉ 65/520 câu; danh mục ngành mới nhỏ (15–31 mặt hàng).
+
+Lệnh:
+```
+$PY -m gen.build_v2 --out data_gen/syn_v2 --jobs 3                       # không gọi API, ~8 phút
+$PY scripts/check_syn.py data_gen/syn_v2/{t1,t2,t3,t4,t5,t6,t7,val} --what load,cross,dist,tokens --sample 1000
+# CẦN NGƯỜI DÙNG CHO PHÉP (DeepSeek, 16 luồng): mỗi split ~585 câu ≈ 650 lượt, ~17 phút, ~0.5 USD (giá giả định)
+for s in t1 t2 t3 t4 t5 t6 t7 val; do
+  $PY -m gen.teacher --split data_gen/syn_v2/$s --out outputs/teacher/syn_v2_$s --config config.deepseek.yaml \
+      --all --workers 16 --concurrency 16 --price 0.07,0.007,0.28 --max-usd 1.5 --yes; done
+$PY -m gen.package --teacher outputs/teacher/train_v1 outputs/teacher/syn_v2_* --out outputs/sft/v2 \
+    --val-industries hotpot,spa_salon --val-families P
+```
 
 ## 5. Bàn giao: danh sách kiểm
 - `gen.validate <gói> --rebuild --replay` sạch; `stats.json` không có `prompt.drift`, `tokens.exact = true`.

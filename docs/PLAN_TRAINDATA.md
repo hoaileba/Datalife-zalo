@@ -150,9 +150,11 @@ questions: intent × tham số (từ sổ cái) × khuôn câu × lớp biến �
 | Biến thể rulebook (11) | `gen/variants.py` | mỗi biến thể được `rules.compare` của v4 nhận là `rulebook_changes`; `--variant` giữ phần lớn câu bị luật đổi đáp án |
 | Dựng split | `gen/build.py` | 12 shop × 100 câu trong 2 phút 18 giây; catalog v4 dựng được, 0 file không đọc được |
 | S2a: viết lại câu train | `gen/augment_train.py` | 3465 câu (2748 bản bơm lỗi + 1176 bản diễn đạt lại đã kiểm bằng oracle) |
-| Xuất SFT từ log v4 | `gen/sft.py` | 20/20 mẫu từ lượt DeepSeek cũ trên train |
-| Trộn, giới hạn theo ý định, giữ riêng shop/ngành/họ | `gen/mix.py`, `scripts/train_intents.py` | – |
-| LoRA SFT | `train/sft_lora.py` | **chưa chạy** (máy này không có torch); cần kiểm chat template Gemma có hỗ trợ `assistant_only_loss` |
+| Xuất SFT, gói giao tay (xem `docs/PLAN_SFT.md`) | `gen/sft.py`, `gen/package.py`, `gen/validate.py`, `gen/tokens.py` | `tests_gen/test_package.py`; gói từ smoke + try6: 15/15 prompt dựng lại khớp, 12/12 chương trình chạy lại ra gold |
+| Trộn, giới hạn theo ý định, giữ riêng shop/ngành/họ | `gen/package.py` (thay `gen/mix.py`), `scripts/train_intents.py` | `tests_gen/test_package.py` |
+| Shop train đổi tên (reskin), mẫu SFT không cần teacher | `gen/reskin.py`, `gen/shopio.py`, `gen/remap.py`, `gen/reskin_replay.py` | `tests_gen/test_reskin.py`; mọi bảng đọc lại bằng `load_business` khớp bảng gốc sau ánh xạ tên (xem `docs/PLAN_SFT.md` §3) |
+| Biến thể rulebook trên 5 shop đã hiệu chỉnh | `gen/rule_variants.py`, `gen/variants.py` (thêm diễn đạt lại) | `data_gen/rulevar_summary.json` (rulebook_changes, system prompt, dry-run teacher) |
+| LoRA SFT | `train/sft_lora.py` | chỉ `--dry-run` đã chạy (tokenizer Gemma 4 thật); **chưa train** (máy này không có torch). Tự tokenize, loss chỉ trên completion |
 
 ### Lệnh không gọi API (chạy thoải mái)
 ```
@@ -174,7 +176,7 @@ $PY -m pytest -q tests_gen
 | S3 syn_v1 (100 shop) | 10000 | ~10.7k | ~8 giờ | ~11 USD |
 | S4 biến thể (11 × 4 shop × 50) | 2200 | ~2.4k | ~2 giờ | ~2.5 USD |
 
-Sau đó chạy `gen.sft` trên log của từng lượt (chỉ giữ câu đúng gold) → `gen.mix` → `train/sft_lora.py`. Chia eval: giữ riêng shop, và giữ riêng một ngành mới cùng họ P/S.
+Sau đó `gen.package --teacher <các run>` (chỉ giữ câu đúng gold) → `gen.validate` → `train/sft_lora.py` (xem `docs/PLAN_SFT.md`). Chia eval: giữ riêng shop, và giữ riêng một ngành mới cùng họ P/S.
 
 ### Việc còn thiếu
 - Họ I (trộn nhiều nguồn) và A′ (một dòng mỗi hoá đơn) chưa có renderer. Nhà hàng chưa có số bàn, số khách.

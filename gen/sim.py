@@ -24,7 +24,8 @@ TRAIN_META = {   # orders/day range, Tết multiplier, mean lines/order, pre-T�
     'cafe': dict(shop_word='quán', label='cà phê', tet=0.5, pre_tet=1.0, orders=[60, 160], lines=1.6),
     'building': dict(shop_word='cửa hàng', label='vật liệu xây dựng', tet=0.5, pre_tet=1.2, orders=[20, 40], lines=1.8),
     'pharmacy': dict(shop_word='nhà thuốc', label='nhà thuốc', tet=1.2, pre_tet=1.1, orders=[40, 90], lines=1.9),
-    'restaurant': dict(shop_word='quán', label='nhà hàng', tet=0.5, pre_tet=1.0, orders=[40, 90], lines=3.0),
+    'restaurant': dict(shop_word='quán', label='nhà hàng', tet=0.5, pre_tet=1.0, orders=[40, 90], lines=3.0,
+                       visits='tables', takeaway=0.15),
 }
 
 SURNAMES = ('Nguyễn Trần Lê Phạm Hoàng Huỳnh Phan Vũ Võ Đặng Bùi Đỗ Hồ Ngô Dương Lý Đoàn Trịnh Đinh Mai Lưu Tô Hà '
@@ -71,8 +72,11 @@ def make_spec(industry, rng, business_id='syn_001', caps_drop=()):
                 cancel=float(rng.uniform(0.01, 0.04)), returned=float(rng.uniform(0.003, 0.015)),
                 debt=float(rng.uniform(0.01, 0.03)), promo=float(rng.uniform(0.0, 0.15)),
                 remote=float(rng.uniform(0.0, 0.15)), expenses=bool(rng.random() < 0.35),
-                lots=industry == 'pharmacy', deliveries=industry == 'building' or bool(rng.random() < 0.1),
-                price_changes=float(rng.uniform(0.15, 0.4)), caps_drop=tuple(caps_drop))
+                lots=industry == 'pharmacy' or bool(meta.get('lots')),
+                deliveries=industry == 'building' or bool(rng.random() < 0.1),
+                price_changes=float(rng.uniform(0.15, 0.4)), caps_drop=tuple(caps_drop),
+                decimal_units=tuple(meta.get('decimal_units', ())), visits=meta.get('visits'),
+                takeaway=float(meta.get('takeaway', 0.1)), staff=int(meta.get('staff', 3)))
 
 
 class _Stock:
@@ -135,7 +139,8 @@ def simulate(spec, seed=0) -> Ledger:
     meta = _meta(ind)
     cat = catalogs.load()[ind]
     # ---------------- products
-    keep = max(15, int(len(cat) * rng.uniform(0.75, 1.0)))
+    keep = max(15, int(len(cat) * rng.uniform(0.75, 1.0) if ind in TRAIN_META or ind == 'restaurant'
+                       else len(cat) * rng.uniform(0.6, 0.95)))  # new trades: shops of one trade differ more
     idx = sorted(rng.choice(len(cat), size=min(keep, len(cat)), replace=False))
     if ind == 'restaurant':
         fee = [i for i, e in enumerate(cat) if e['kind'] == 'fee']
@@ -162,7 +167,8 @@ def simulate(spec, seed=0) -> Ledger:
         drugs = pd.DataFrame([dict(product_id=p['product_id'], ingredient=cat[i].get('ingredient'),
                                    rx=bool(cat[i].get('rx'))) for p, i in zip(prods, idx)])
     pids = list(P.product_id)
-    sellable = [p for p, k in zip(P.product_id, P.kind) if k != 'fee']
+    sellable = [p for p, k in zip(P.product_id, P.kind) if k not in ('fee', 'addon')]
+    addons = [p for p, k in zip(P.product_id, P.kind) if k == 'addon']
     pop = rng.zipf(1.6, size=len(sellable)).astype(float)
     pop = np.minimum(pop, 40)
     pop /= pop.sum()
@@ -205,8 +211,32 @@ def simulate(spec, seed=0) -> Ledger:
     C = pd.DataFrame(customers)
     cweights = rng.pareto(1.2, size=len(C)) + 0.2
     cweights /= cweights.sum()
-    staff = pd.DataFrame([dict(staff_id=f'NV{i:03d}', name=person_name(rng), role=r)
-                          for i, r in enumerate(['owner', 'cashier', 'sales'], 1)])
+    n_staff = int(spec.get('staff', 3))
+    roles = (['owner', 'cashier', 'sales'] + ['sales'] * 8)[:n_staff]
+    staff = pd.DataFrame([dict(staff_id=f'NV{i:03d}', name=person_name(rng), role=r) for i, r in enumerate(roles, 1)])
+    staff_p = np.array([0.3, 0.45, 0.25] if n_staff == 3 else rng.dirichlet(np.full(n_staff, 3.0)))
+    staff_p = staff_p / staff_p.sum()
+    # visits: restaurant tables/guests, repair-shop vehicles (plates)
+    vis_kind = spec.get('visits')
+    visits = []
+    areas = []
+    if vis_kind == 'tables':
+        pool = [('Tầng 1', 'T1-{:02d}', 12), ('Tầng 2', 'T2-{:02d}', 10), ('Sân vườn', 'SV{:02d}', 8),
+                ('Phòng VIP', 'VIP{}', 3), ('Khu A', 'A{:02d}', 10), ('Khu B', 'B{:02d}', 10)]
+        pick = rng.choice(len(pool), size=int(rng.integers(2, 4)), replace=False)
+        areas = [pool[i] for i in sorted(pick)]
+        tables = [(a, f.format(j)) for a, f, n in areas for j in range(1, n + 1)]
+        tw = rng.pareto(2.0, size=len(tables)) + 0.5
+        tw /= tw.sum()
+    plate_of = {}
+    plate_pool = []
+    if vis_kind == 'plates':
+        def plate():
+            return (f"{rng.choice([59, 51, 50, 61, 72, 63])}{rng.choice(list('BCDFGHKLMNPSTUVXYZ'))}"
+                    f"{int(rng.integers(1, 10))}-{int(rng.integers(100, 1000))}.{int(rng.integers(10, 100))}")
+        plate_pool = [plate() for _ in range(int(spec['n_customers'] * 1.5))]
+        pw = rng.exponential(1.0, size=len(plate_pool)) + 0.05
+        pw /= pw.sum()
     suppliers = pd.DataFrame([dict(supplier_id=f'NCC{i:03d}', name='Cty ' + ' '.join(person_name(rng).split()[::2]))
                               for i in range(1, 6)])
     # ---------------- Tết windows
@@ -304,6 +334,23 @@ def simulate(spec, seed=0) -> Ledger:
             k = min(6, 1 + rng.geometric(1 / meta['lines']) - 1 if meta['lines'] > 1 else 1)
             k = max(1, k)
             chosen = list(dict.fromkeys(rng.choice(sellable, size=k, p=pop)))
+            vis = None
+            if vis_kind == 'tables':
+                if rng.random() < spec.get('takeaway', 0.1):
+                    vis = dict(order_id=oid, table=None, area='Mang về', guests=None, plate=None)
+                else:
+                    a, t = tables[int(rng.choice(len(tables), p=tw))]
+                    g = int(min(14, max(1, round(rng.gamma(2.2, 1.6)))))
+                    vis = dict(order_id=oid, table=t, area=a, guests=g, plate=None)
+            elif vis_kind == 'plates':
+                if cust is not None:                       # a regular customer brings one of their bikes
+                    mine = plate_of.setdefault(cust, [])
+                    if not mine or (rng.random() < 0.3 and len(mine) < 12):
+                        mine.append(plate_pool[int(rng.integers(len(plate_pool)))])
+                    pl = mine[int(rng.integers(len(mine)))]
+                else:
+                    pl = plate_pool[int(rng.choice(len(plate_pool), p=pw))]
+                vis = dict(order_id=oid, table=None, area=None, guests=None, plate=pl)
             olines, ln = [], 0
             status = 'completed'
             r = rng.random()
@@ -322,6 +369,8 @@ def simulate(spec, seed=0) -> Ledger:
                 q = int(rng.choice([1, 1, 1, 2, 2, 3, 4, 5, 6, 10], p=[.3, .15, .1, .15, .08, .08, .04, .04, .03, .03]))
                 if ind == 'building' and f == 1 and bunit[p] in ('viên', 'kg', 'm'):
                     q *= int(rng.choice([10, 50, 100]))
+                if f == 1 and bunit[p] in spec.get('decimal_units', ()):
+                    q = float(min(8.0, max(0.2, round(float(rng.lognormal(0.1, 0.6)), 2))))   # weighed: 1.35 kg
                 base_q = q * f
                 taken = []
                 if kind[p] == 'goods' and status != 'cancelled':
@@ -333,16 +382,40 @@ def simulate(spec, seed=0) -> Ledger:
                     disc = float(round(q * uprice * rng.choice([0.05, 0.1]) / 1000) * 1000)
                 ln += 1
                 ucost = float(round(stock.avg.get(p, base_cost[p]) * f))
+                gross = float(q * uprice) if float(q).is_integer() else float(math.floor(q * uprice + 0.5))
                 olines.append(dict(order_id=oid, line_no=ln, product_id=p, unit=unit, qty=q, base_qty=base_q,
-                                   unit_price=float(uprice), line_discount=disc, amount=float(q * uprice - disc),
+                                   unit_price=float(uprice), line_discount=disc, amount=gross - disc,
                                    unit_cost=ucost))
                 if kind[p] == 'goods' and status != 'cancelled':
                     move(p, created, 'out_sale', -base_q, oid)
                     for lot, lq in taken:
                         line_lots.append(dict(order_id=oid, line_no=ln, lot=lot, base_qty=lq, returned_base_qty=0))
+            if addons and olines:
+                if vis_kind == 'tables':                       # one khăn lạnh per guest, most dine-in tables
+                    if vis and vis['guests'] and rng.random() < 0.8:
+                        ad = addons[int(rng.integers(len(addons)))]
+                        ln += 1
+                        pr = price_at(ad, day)
+                        olines.append(dict(order_id=oid, line_no=ln, product_id=ad, unit=bunit[ad], qty=vis['guests'],
+                                           base_qty=vis['guests'], unit_price=float(pr), line_discount=0.0,
+                                           amount=float(pr * vis['guests']), unit_cost=0.0))
+                else:                                          # toppings on some drinks: one line per topping
+                    tops = {}                                  # (two identical lines of one order would read as an
+                    for _ in range(sum(1 for l in olines if kind[l['product_id']] == 'made')):   # export duplicate, §8)
+                        if rng.random() < 0.45:
+                            ad = addons[int(rng.integers(len(addons)))]
+                            tops[ad] = tops.get(ad, 0) + int(rng.choice([1, 1, 1, 2]))
+                    for ad, qa in tops.items():
+                        ln += 1
+                        pr = price_at(ad, day)
+                        olines.append(dict(order_id=oid, line_no=ln, product_id=ad, unit=bunit[ad], qty=qa,
+                                           base_qty=qa, unit_price=float(pr), line_discount=0.0,
+                                           amount=float(pr * qa), unit_cost=0.0))
             if not olines:
                 on[0] -= 1
                 continue
+            if vis is not None:
+                visits.append(vis)
             sub = sum(l['amount'] for l in olines)
             if fee_pid and rng.random() < 0.13 + 0.1 * (len(olines) > 3):
                 ln += 1
@@ -358,7 +431,7 @@ def simulate(spec, seed=0) -> Ledger:
             if cust is not None and rng.random() < spec['debt'] * 3 and status != 'cancelled':
                 method = 'debt'
             orders.append(dict(order_id=oid, created=created, customer_id=cust,
-                               staff_id=staff.staff_id.iloc[int(rng.choice(3, p=[0.3, 0.45, 0.25]))],
+                               staff_id=staff.staff_id.iloc[int(rng.choice(n_staff, p=staff_p))],
                                channel=channel, status=status, subtotal=sub, discount=disc, shipping=ship, vat=0.0,
                                total=total, payment_method=method, promo='KM01' if disc else None, area=None))
             if status == 'cancelled':
@@ -438,7 +511,8 @@ def simulate(spec, seed=0) -> Ledger:
              lots=pd.DataFrame(lots, columns=COLUMNS['lots']),
              line_lots=pd.DataFrame(line_lots, columns=COLUMNS['line_lots']),
              expenses=pd.DataFrame(expenses, columns=COLUMNS['expenses']),
-             deliveries=pd.DataFrame(deliveries, columns=COLUMNS['deliveries']))
+             deliveries=pd.DataFrame(deliveries, columns=COLUMNS['deliveries']),
+             visits=pd.DataFrame(visits, columns=COLUMNS['visits']))
     if drugs is not None:
         T['drugs'] = drugs
     caps = {'customers', 'customer_ids', 'customer_groups', 'staff', 'time', 'channel', 'payment_method', 'debt',
@@ -452,6 +526,10 @@ def simulate(spec, seed=0) -> Ledger:
         caps.add('expenses')
     if deliveries:
         caps.add('deliveries')
+    if vis_kind == 'tables' and visits:
+        caps |= {'tables', 'guests'}
+    if vis_kind == 'plates' and visits:
+        caps.add('plates')
     caps -= set(spec.get('caps_drop', ()))
     shop = dict(business_id=spec['business_id'], name=f"{meta['label'].title()} {person_name(rng).split()[-1]}",
                 industry=ind, start=start, end=end, caps=caps, shop_word=meta['shop_word'], spec=spec)

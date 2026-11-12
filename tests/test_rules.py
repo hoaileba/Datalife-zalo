@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from datamate.rules import COOKBOOK, changes, compare, key, load_cookbook, load_train_units, train_lines, units
+from datamate.rules import SEPARATOR, COOKBOOK, changes, compare, key, load_cookbook, load_train_units, train_lines, units
 
 ROOT = Path(__file__).resolve().parents[1]
 BOOK = '# Rulebook\n\n## 1. Đơn\n| Luật | Mặc định |\n|---|---|\n| Đơn huỷ | không tính |\n| Đơn mới | tính |\n'
@@ -95,3 +95,48 @@ def test_rulebook_file_read_tolerantly(tmp_path):
     assert load_rulebook(book)[2] == expected
     book.write_bytes(BOOK.encode('utf-16'))                                          # not UTF-8
     assert load_rulebook(book)[2] == expected
+
+
+def test_retyped_rule_aligned_by_name_keeps_or_drops_its_recipe():
+    from datamate.rules import align, same_meaning, split_rule
+    assert split_rule('| Tuần | bắt đầu **thứ Hai** |') == ('Tuần', 'bắt đầu **thứ Hai**')
+    assert split_rule('- **Tuần** — mặc định: bắt đầu **thứ Hai**')[0] == 'Tuần'
+    assert split_rule('- `number`: định dạng số')[0] == 'number' and split_rule('- một dòng thường')[0] is None
+    assert same_meaning('bắt đầu **thứ Hai**', 'mặc định: bắt đầu **thứ Hai**')                # retyped, same words
+    assert not same_meaning('bắt đầu **thứ Hai**', 'bắt đầu **Chủ nhật**')                    # bold phrase changed
+    assert not same_meaning('kể cả hôm nay, ngày cuối là hôm nay', 'không kể hôm nay, ngày cuối là hôm nay')  # polarity
+    assert not same_meaning('ca sáng 06:00–13:59', 'ca sáng 06:00–11:59')                      # number changed
+    bullet = BOOK.replace('| Đơn huỷ | không tính |', '- **Đơn huỷ** — mặc định: không tính')
+    assert compare(bullet, TRAIN) == {'changes': [], 'gone': set(), 'full': False}               # same rule, other layout
+    edited = BOOK.replace('| Đơn mới | tính |', '- **Đơn mới**: chưa tính')
+    assert [s for *_, s, _ in align(edited, TRAIN)][-1] == 'edited'
+    assert compare(edited, TRAIN) == {'changes': ['1. Đơn: - **Đơn mới**: chưa tính'], 'gone': {key('| Đơn mới | tính |')},
+                                      'full': False}
+
+
+def test_rewritten_train_rulebook_as_bullets_keeps_every_recipe():
+    train = ROOT / 'data' / 'train' / 'rulebook.md'
+    if not train.exists():
+        pytest.skip('train data not present')
+    import re
+    text = train.read_text(encoding='utf-8')
+    lines, out = text.splitlines(), []
+    for i, l in enumerate(lines):                                            # every 2-cell table row as a bullet
+        if SEPARATOR.fullmatch(l) or (i + 1 < len(lines) and SEPARATOR.fullmatch(lines[i + 1])):
+            continue                                                         # table rules and header rows go
+        m = re.fullmatch(r'\|([^|]+)\|([^|]+)\|', l.strip())
+        out.append(f'- **{m[1].strip().replace("**", "")}** — mặc định: {m[2].strip()}' if m else l)
+    bullets = '\n'.join(out)
+    c = compare(bullets, load_train_units())
+    assert not c['full'] and c['changes'] == []
+    from datamate.prompt import SYSTEM, system_prompt
+    assert system_prompt(frozenset(c['gone'])) == SYSTEM                     # only header rows and table rules went
+
+
+def test_an_edit_wins_over_a_copy_and_headings_alone_are_no_standard():
+    edited = BOOK + '- **Đơn mới**: chưa tính\n'           # same section: the standard row stays, an edited copy follows
+    c = compare(edited, TRAIN)
+    assert key('| Đơn mới | tính |') in c['gone'] and any('chưa tính' in x for x in c['changes'])
+    assert compare('# R\n## 1. Đơn\n## 2. Khác', TRAIN)['full'] and not compare('', TRAIN)['full']
+    for odd in ['|', '||', '| |', '**', '- ****', '- ``', '\x00\x01', '🙂' * 500, '| a | b | c | d | e |']:
+        compare(odd, TRAIN)                                                       # never raises
