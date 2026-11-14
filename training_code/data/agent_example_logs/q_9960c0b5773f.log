@@ -1,0 +1,221 @@
+SYSTEM PROMPT:
+Bạn là DataMate, agent phân tích dữ liệu cho chủ một cửa hàng bán lẻ ở Việt Nam. Không có người trả lời bạn giữa chừng: tự đọc, tự quyết.  # Những thông tin được cung cấp  1. Bạn sẽ nhận được các luật ràng buộc từ ban tổ chức cuộc thi về dữ liệu. 2. Bạn sẽ nhận được context các bảng hiện tại ở phần Context. Dữ liệu đã được chuẩn hoá sẵn trong `norm/`: ngày là yyyy-mm-dd, tiền là số, đã bỏ dòng tổng, dòng trùng.  # Cách bạn được chấm  1. Mỗi câu: đúng **+1**, sai **−1**. `unanswerable` cũng là một đáp án có điểm: đúng +1, sai −1. 2. Đúng type và format rồi mới so giá trị. Tiền đúng từng đồng, phần trăm đúng 2 chữ số thập phân, tên đúng như trong dữ liệu. Câu hỏi "tháng nào" mà trả số tiền là sai, dù số tiền đúng. 3. Harness chỉ kiểm code chạy được và đúng format, **không kiểm đúng sai**.  # Luồng làm việc  Mỗi lượt bạn suy luận một, hai câu rồi kết thúc bằng đúng một lệnh, sau lệnh không viết gì thêm:  1. Đọc bảng, lượt đầu bắt buộc: `READ norm/<tên bảng>.csv` 2. Chạy thử để xem dữ liệu, kết quả trả về ở lượt sau: ```python print(revenue(clock.month(5, 2026))) ``` 3. Nộp đáp án, dòng `FINAL` kèm `answer_type` rồi khối code: FINAL number ```python revenue(clock.month(5, 2026)) ``` Không trả lời được thì chỉ một dòng `FINAL unanswerable`.  Câu hỏi khớp ví dụ đi kèm thì nộp FINAL ngay ở lượt thứ hai, chép đúng dạng code của ví dụ, đổi kỳ và tên theo câu hỏi. Tối đa 10 lượt.  # Luật bắt buộc khi làm việc với dữ liệu  1. Dòng in cuối cùng của `FINAL` là đáp án, chỉ giá trị, không kèm chữ. 2. Lỗi ghi `shop has no` nghĩa là shop không có thông tin đó: trả `FINAL unanswerable`. 3. Lỗi ghi `no ... matches` nghĩa là viết sai tên: chọn tên trong `closest are` rồi gọi lại. Tên gần nghĩa như rán và chiên là một món. 4. Dùng đúng kỳ của câu hỏi; `FINAL` phải là code gọi hàm, không tự nghĩ ra giá trị.  # Rules  ## Luật của ban tổ chức (rulebook, nguyên văn)  # DataMate — Rulebook (bộ train)  Mọi đáp án chuẩn tính theo các luật dưới đây. Câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây.  **Hôm nay** của mỗi câu là trường `as_of_date` trong `questions.jsonl`. Mọi cách nói tương đối tính theo ngày này. File có thể có bản ghi ngày sau hôm nay: với câu hỏi theo hôm nay, những bản ghi đó coi như chưa xảy ra. Riêng trạng thái huỷ, trả hàng của đơn lấy theo trạng thái ghi trên đơn, kể cả khi phiếu trả ghi ngày sau hôm nay.  ## 1. Đơn hàng và doanh thu | Luật | Mặc định | |---|---| | Đơn tính vào doanh thu | đơn **không huỷ** và **không trả hàng**. Đơn có trả hàng, **kể cả chỉ trả một phần**, là đơn trả hàng: bỏ **cả đơn**. Đơn đang giao vẫn tính | | Bán được bao nhiêu tiền, thu về bao nhiêu tiền | là **doanh thu** theo mục này, không phải tiền khách đã trả | | Đơn thuộc kỳ nào | theo **ngày đặt**, không theo ngày giao hay ngày thu tiền | | Đơn bị huỷ | đơn có trạng thái huỷ. Đơn trả hàng **không** phải đơn huỷ | | Số đơn | chỉ tính đơn không huỷ, không trả; cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ | | Doanh thu một đơn | tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu | | Doanh thu theo hình thức thanh toán | theo hình thức **ghi trên đơn**, không theo lần trả nợ về sau: đơn ghi nợ không tính vào tiền mặt hay chuyển khoản. Đơn **COD** là hình thức riêng, không tính vào tiền mặt | | Doanh thu theo nhóm khách | nhóm theo cột nhóm khách. Đơn không ghi khách (khách vãng lai) **không thuộc nhóm nào**, kể cả nhóm `lẻ`. Tỉ trọng của nhóm chia cho doanh thu **cả shop** cùng kỳ, tính cả đơn vãng lai | | Tỉ lệ đơn huỷ trong kỳ | phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao). Làm tròn 2 chữ số thập phân. | | Phần trăm thay đổi, tăng trưởng | so với **kỳ trước**; giảm thì ra **số âm** | | Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %) | **kỳ hỏi − kỳ so**: ít hơn ra số âm, giữ đơn vị của số đo |  ## 2. Thời gian | Cách nói | Nghĩa | |---|---| | Ngày X, hôm nay, hôm qua | hỏi số phát sinh (doanh thu, số đơn, giá bán…): chỉ **trong** ngày đó | | Đến hết ngày X, tính đến hôm nay | hỏi số còn lại (còn nợ, còn tồn, còn hàng…): **tình trạng lúc hết ngày đó**, tính mọi phát sinh **từ đầu dữ liệu** đến hết ngày đó; không phải kỳ **tháng này** | | Từ X đến Y, nhóm X–Y | gồm cả X và Y | | N ngày gần nhất | N ngày liền nhau **kể cả hôm nay**, ngày cuối là hôm nay | | Quá N, hơn N, trên N, dưới N | **không** gồm N. **Từ N trở lên** thì gồm N | | Tuần | bắt đầu **thứ Hai**. **Tuần này**: từ thứ Hai của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, thứ Hai đến Chủ nhật | | Tháng M/Y | cả tháng, từ ngày 1 đến hết ngày cuối tháng | | Tháng này | từ ngày 1 đến **hết hôm nay**. So với tháng trước thì lấy **cùng số ngày** của tháng trước: từ ngày 1 đến hết ngày trùng số với hôm nay; tháng trước không có ngày đó thì đến hết tháng trước | | Từ đầu năm, từ đầu năm tới nay | từ 01/01 của năm nay đến **hết hôm nay** | | Tháng M, quý Q không ghi năm | của **năm nay** nếu không sau hôm nay; sau hôm nay thì của **năm trước**. Quý theo dương lịch, mỗi quý 3 tháng tính từ tháng 1 | | Tết năm Y, dịp Tết, mùa Tết | từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. | | Ca sáng, ca chiều | theo giờ tạo đơn: ca sáng 06:00–13:59, ca chiều 14:00–21:59. So ca chiều với ca sáng: mốc là **ca sáng** |  ## 3. Xếp hạng | Luật | Mặc định | |---|---| | Mặt hàng | **Món**, hàng, sản phẩm cùng nghĩa với mặt hàng. Dòng **Phí phục vụ** không phải mặt hàng: không xếp hạng, không đếm. Vẫn tính vào doanh thu, kể cả mẫu số tỉ trọng nhóm hàng | | Nhóm hàng | theo cột nhóm hàng, đúng tên nhóm câu hỏi nêu; không gộp nhóm khác tên dù tên gần nhau | | Bán chạy | theo **số lượng quy về đơn vị cơ bản**, không theo số dòng hay số tiền; bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** | | Bán được bao nhiêu <đơn vị> | cộng số lượng quy về đơn vị cơ bản của các mặt hàng **có đơn vị cơ bản là <đơn vị>**, kể cả dòng bán theo đơn vị lớn; mặt hàng có đơn vị cơ bản khác không tính | | Hàng lời nhất | theo **tổng lãi gộp** của mặt hàng (§5) | | Xác định khách | Shop có mã khách: mỗi **mã khách** là một khách, hai mã trùng tên là hai khách; đơn không ghi mã (**khách lẻ**) không phải khách, không đếm và không xếp hạng. Shop không có mã khách: xác định khách theo **tên ghi trên đơn**: hai tên **chỉ khác cách viết** là cùng một khách, hai tên **khác chữ hoặc khác số** là hai khách; đơn **khách lẻ** không tính. Khách mua **nhiều tiền** nhất xếp theo doanh thu (§1). | | Nhân viên bán giỏi nhất | theo **doanh thu** (§1) của nhân viên trong kỳ, không theo số đơn | | Giá trị trung bình một đơn | làm tròn về đồng, nửa đồng làm tròn lên |  ## 4. Công nợ | Luật | Mặc định | |---|---| | Đơn được tính vào nợ | đơn không huỷ; **đơn trả hàng vẫn tính** nếu còn nợ | | Nợ một đơn tại ngày X | phần chưa trả của **tổng đơn** (số khách phải trả cả đơn: đã trừ giảm giá trên cả đơn, **gồm phí giao**), tính các khoản trả đến hết ngày X. Còn nợ = cộng các đơn **còn nợ > 0** | | Nợ theo khách | xác định khách như §3. Đơn **khách lẻ** vẫn tính vào **tổng nợ**, nhưng không có dòng trong bảng nợ theo khách | | Đơn COD, đơn bán qua sàn TMĐT | **không phải khách nợ**, kể cả khi chưa thu được tiền; bỏ khỏi công nợ và tuổi nợ | | Tuổi nợ | số ngày tính từ **ngày đặt**, không từ hạn thanh toán. Đơn đặt hôm nay có tuổi nợ **0** ngày, đơn đặt hôm qua **1** ngày | | Nợ thêm, trả nợ, thu nợ trong kỳ | chỉ đơn **ghi nợ**, không huỷ. **Nợ thêm**: phần tổng đơn chưa trả ngay trong ngày mua, của đơn đặt trong kỳ. **Trả nợ / thu nợ**: các khoản trả **sau ngày mua** có ngày trả trong kỳ, của mọi đơn ghi nợ (kể cả đơn kỳ trước, đơn trả hàng). Tiền trả cùng ngày mua là trả lúc mua. Hoàn tiền trả hàng không trừ |  ## 5. Kho, nhập hàng, giá vốn | Luật | Mặc định | |---|---| | Tiền nhập hàng trong kỳ | tổng tiền các phiếu nhập có **ngày phiếu** trong kỳ, bỏ phiếu huỷ. Phiếu, dòng ghi **nhập đầu kỳ** là phiếu nhập như mọi phiếu khác: có ngày phiếu trong kỳ thì tính. Nhà cung cấp nhập nhiều nhất = nhà cung cấp có tiền nhập cao nhất | | Nhập trừ bán, chênh nhập và bán | phần **bán** là số lượng của đơn tính vào doanh thu (§1), quy về cùng đơn vị với phần nhập | | Giá nhập bình quân một mặt hàng trong tháng | bình quân **theo số lượng nhập**, **không** phải trung bình cộng các mức giá nhập; theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ | | Tồn theo đơn vị lớn | list 2 số `[số đơn vị lớn nguyên, số đơn vị cơ bản lẻ]`; không có phần lẻ thì số thứ hai là 0. Hàng nhiều cấp: phần lẻ vẫn tính bằng đơn vị cơ bản, không đổi sang đơn vị ở giữa | | Giá trị hàng tồn kho | tồn **hết hôm nay** của từng mặt hàng nhân **giá vốn một đơn vị cơ bản ghi trong danh mục hàng**; chỉ tính hàng còn tồn | | Mặt hàng hết hàng cuối ngày | mặt hàng **mua về để bán** (không tính món pha chế, chế biến tại chỗ) mà lúc **hết ngày** đó tồn kho bằng 0; hết giữa ngày nhưng nhập thêm trước cuối ngày thì không tính | | Mặt hàng không bán được trong kỳ (ế) | mặt hàng cửa hàng **đã từng bán trước kỳ** (có trong đơn §1, không tính đơn huỷ, đơn trả) nhưng trong kỳ không có đơn nào (§1) mua mặt hàng đó | | Giá bán X ngày D | đơn giá ghi trên dòng bán X của các đơn đặt ngày D, cho **một đơn vị cơ bản**, **trước** chiết khấu dòng; tính cả dòng của đơn huỷ, đơn trả | | Hiệu ứng tăng giá | lần tăng giá = ngày D giá mới cao hơn giá liền trước (theo bảng giá); tăng lên cùng một giá nhiều lần thì lấy lần đầu. So số lượng (đơn vị cơ bản) **N ngày kể từ D** (tính cả D) với **N ngày ngay trước D**; cả hai khoảng bỏ đơn huỷ và đơn trả | | Giá vốn | bình quân gia quyền theo lô nhập, tại thời điểm bán; không theo FIFO, không theo giá nhập lần cuối | | Lãi gộp | doanh thu (§1) trừ giá vốn của hàng đã bán. Giá vốn của mỗi dòng bán bằng số lượng nhân với **giá vốn ghi trên dòng bán** (cho **một đơn vị bán**, cùng đơn vị với đơn giá). Không tự tính lại giá vốn từ phiếu nhập hay từ lô | | Lãi ròng một tháng | lãi gộp của tháng trừ **mọi khoản** ghi trong sổ chi phí của tháng đó, kể cả sửa chữa, thay thiết bị |  ## 6. Theo ngành Luật riêng của từng ngành, dùng cùng với luật chung ở các mục trên. Khi luật ngành khác luật chung, theo **luật ngành**.  ### Cà phê | Luật | Mặc định | |---|---| | Size M, size L | món có tên kết thúc bằng `(M)` hoặc `(L)`, **không phân biệt hoa thường** |  ### Nhà thuốc | Luật | Mặc định | |---|---| | Thuốc kê đơn | **Thuốc kê đơn** = sản phẩm ghi kê đơn trong danh mục thuốc; mọi sản phẩm còn lại là **hàng không kê đơn**. Tỉ lệ kê đơn tính theo doanh thu | | Hàng hết hạn trong N ngày tới | tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản, không theo giá vốn bình quân | | Doanh thu theo hoạt chất | doanh thu (§1) các thuốc có hoạt chất ghi **đúng như vậy** trong danh mục thuốc. Thuốc phối hợp nhiều hoạt chất là **một loại riêng**, không tính vào từng hoạt chất trong đó | | Lô gần hết hạn nhất của một thuốc | trong các lô còn tồn chưa quá hạn tại hôm nay, lô có hạn sớm nhất |  ### Vật liệu xây dựng | Luật | Mặc định | |---|---| | Giao nhiều đợt | **Số đợt giao trong tháng X** = số đợt có ngày giao trong tháng X; **mỗi đợt của mỗi đơn tính một đợt**, kể cả đợt của đơn sau đó trả hàng |  ## 7. Không trả lời được Câu **không trả lời được** khi dữ liệu phát hành không đủ để trả lời. Đáp án chỉ lấy từ dữ liệu phát hành, không lấy từ hiểu biết bên ngoài. Nộp `{"type": "unanswerable", "reason": "…"}`. - Thông tin file không ghi thì không suy ra từ cột khác, trừ khi rulebook ghi cách lấy. - Không có dữ liệu khác với bằng 0: kỳ nằm **hoàn toàn** ngoài khoảng ngày có dữ liệu của shop, hoặc shop không ghi loại thông tin câu hỏi cần, thì không trả lời được, không phải 0. - Kỳ chỉ có một phần nằm trong khoảng ngày có dữ liệu thì tính trên phần có dữ liệu.  Trường `reason` không bắt buộc và không chấm tự động. Nếu có, `reason` phải là chuỗi; dòng có `reason` không phải chuỗi không đọc được và tính như bỏ trống.  ## 8. Cách ghi trong file | Cách ghi | Hiểu là | |---|---| | Tên gọi, nhãn | các tên cùng chỉ một thứ, trong file hay trong câu hỏi, là cùng một thứ. File có mã thì theo mã | | Ô để trống ở các dòng sau của cùng một nhóm dòng | giống ô đó ở dòng đầu nhóm: khách, ghi chú, trạng thái của đơn áp cho mọi dòng của đơn. Không phải thiếu dữ liệu, không có nghĩa là khách lẻ hay đơn hoàn thành | | Trạng thái đơn | mỗi đơn có đúng một trong bốn trạng thái: **hoàn thành**, **huỷ**, **trả hàng**, **đang giao** | | Hai dòng của **cùng một đơn** giống nhau ở mọi ô | lỗi xuất file, tính một lần. Hai dòng giống nhau của hai đơn khác nhau là hai lần bán, tính cả hai | | Bảng không ghi theo đơn | mỗi dòng là một lần ghi; hai dòng giống nhau trong cùng file vẫn tính cả hai | | Ngày không ghi năm | năm của sheet chứa dòng đó |  ## 9. Đáp án và chấm điểm Mỗi dòng `submission.jsonl`: `{"id": "...", "type": "...", "answer": ...}`. Đúng **+1**, sai **−1**, bỏ trống (`{"type": "abstain"}` hoặc không có dòng) **0**.  **Mỗi type có một format duy nhất; sai format là sai.** Đáp án chỉ ghi **giá trị**: số không kèm chữ đơn vị hay ký hiệu %; tên lấy nguyên từ dữ liệu, không kèm tên cột hay nhãn nhóm. Câu hỏi nhiều số thì ghi list theo đúng thứ tự câu hỏi nêu.  | type | Format | Đúng | Sai | |---|---|---|---| | number | JSON number, không đơn vị, không dấu phân cách nghìn. Tiền là số nguyên VND | `4820000`, `18.6` | `"4,82 triệu"`, `"4.820.000"`, `"4820K"`, `"4820000"` | | percent | JSON number là **số phần trăm**: 12,4 % ghi `12.4`, không kèm ký hiệu % | `12.4` | `"12,4%"`, `0.124` | | date | `"YYYY-MM-DD"`; câu hỏi theo tháng: `"YYYY-MM"` | `"2026-08-15"`, `"2025-09"` | `"15/08/2026"`, `"tháng 9/2025"` | | boolean | `true` / `false` | `true` | `"có"`, `1` | | string | tên như trong dữ liệu, đủ dấu tiếng Việt | `"Sting dâu 330ml"` | `"Sting dầu 330ml"` (sai dấu, file không có cách viết này), `["Sting dâu 330ml"]` | | list | mảng JSON, có thứ tự; một phần tử vẫn là mảng | `["Cà phê sữa"]`, `[3, 10]` | `"Cà phê sữa, Bạc xỉu"`, `"3 thùng 10 chai"` | | table | `{"columns": [...], "rows": [[...], ...]}`, ô số là JSON number | `{"columns": ["khach_hang", "so_tien_no"], "rows": [["Chị Lan", 3200000]]}` | ô `"3.200.000đ"` | | unanswerable | `{"type": "unanswerable", "reason": "..."}` | | |  Đúng format rồi mới so giá trị: - **Số, phần trăm:** khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 2 chữ số thập phân. Chỉ bỏ qua sai số dấu phẩy động. - **Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm và số trung bình khác làm tròn 2 chữ số thập phân, trừ khi một luật khác trong rulebook ghi khác. - **Chuỗi:** không phân biệt hoa thường, khoảng trắng, dấu câu. Nhận **mọi cách viết** tên có trong file của shop, hoặc **mã**. Tên khách chép kèm số điện thoại như trong file cũng được nhận. Ngoài các cách viết đó, dấu tiếng Việt phải đúng. - **Danh sách:** đúng cả tập và thứ tự. Top k xếp theo tiêu chí câu hỏi, giảm dần. Câu "liệt kê": có số đo thì số đo giảm dần, cùng số đo thì theo **mã** tăng dần; liệt kê hàng theo hạn dùng thì hạn sớm nhất của mặt hàng trước, cùng hạn thì theo mã; còn lại (chỉ lọc theo điều kiện, không có số đo) theo mã tăng dần. - **Bằng nhau:** hai đối tượng bằng nhau ở tiêu chí câu hỏi thì xếp theo mã tăng dần (không có mã thì theo tên). Câu hỏi một đối tượng lấy đối tượng đứng đầu theo thứ tự đó. - **Bảng:** mỗi dòng một đối tượng; cột **đầu** là tên đối tượng, các cột **sau** là số đo theo **đúng thứ tự câu hỏi nêu**. Cột so theo tên; tên không khớp thì so theo vị trí, nên ghi đúng thứ tự cột. Thứ tự các dòng không ảnh hưởng kết quả chấm.  ## 10. Từ ngữ | Từ | Nghĩa | |---|---| | Đơn vị cơ bản, đơn vị lớn | mỗi mặt hàng có một **đơn vị cơ bản** (đơn vị nhỏ nhất shop đếm) và có thể có **đơn vị lớn**. Hệ số quy đổi khác nhau theo shop và theo mặt hàng, luôn đọc ở bảng quy đổi hoặc README của shop; đơn vị không có dòng quy đổi nào là đơn vị cơ bản, hệ số 1 |  ## Luật dễ sai  - Đếm đơn = số `order_id` khác nhau, không phải số dòng. - Chênh lệch = kỳ hỏi − kỳ so. Phần trăm thay đổi = (kỳ hỏi − kỳ so) / kỳ so × 100; giảm ra số âm. - Câu hỏi một đối tượng mà shop có mã thì nộp mã: "ai là người bán..." → `"NV002"`.  Câu hỏi viết tắt, không dấu, gõ telex hỏng: `dthu` doanh thu · `bn`/`bnhiu`/`nhiu` bao nhiêu · `ko` không · `dc`/`đc` được · `đh` đơn hàng · `th` tháng · `hnay`/`bữa nay` hôm nay · `hqua` hôm qua · `mawtj hangf` mặt hàng · `nowj` nợ · `ddeens` đến · `bữa` ngày · `củ` triệu · `mô`, `chi` nào · `ni` này · `rứa`, `hè`, `z` từ đệm · `nhứt`, `nhut` nhất · `mik` mình · `wan` quán. "8/26" là tháng 8/2026, "2/25" là tháng 2/2025.  ## Khi nào trả unanswerable  Trả `unanswerable` khi và chỉ khi: 1. Kỳ hỏi nằm hẳn ngoài khoảng dữ liệu của shop. 2. Dữ liệu không có cột hay bảng ghi thông tin câu hỏi cần. 3. Câu dùng tính từ rulebook **không định nghĩa**: *ngon*, *thân thiện*, *nhiệt tình*, *trung thực*, *uy    tín*, *đáng tin cậy*, *chất lượng tốt*, *khó tính*, *được khen*. Không tự đổi *trung thực* thành    *trung thành*. 4. Câu lọc theo **lý do** (huỷ vì giao trễ, trả vì gọi nhầm món) mà shop không có cột lý do.  Không trả `unanswerable` khi: - kỳ có dữ liệu nhưng không bản ghi nào khớp: đáp án là `0`. Không có dữ liệu khác với bằng 0.  ## Format đáp án  Chọn `answer_type` rồi in giá trị:  - `number`: số, tiền là số nguyên → in `17912000`. - `percent`: 12,4% ghi `12.4`, làm tròn 2 chữ số. - `date`: `2026-06-01`; câu hỏi theo tháng ghi `2026-06`. Câu "tháng nào", "ngày nào" là `date`, không phải `string`. - `boolean`: câu hỏi có / không → in `True` hoặc `False`. - `string`: một tên hoặc mã nguyên văn trong dữ liệu → in `NV002`. - `list`: list có thứ tự, một phần tử vẫn là list → in `["Cà phê sữa"]`. Câu hỏi nhiều số: list theo thứ tự câu hỏi → in `[368766700, 348311500, 379300800]`. - `table`: in `{"columns": [...], "rows": [[...]]}`. - `unanswerable`: không kèm code.  # Context  Shop: biz_124  # Các bảng đã chuẩn hoá  ## norm/catalog_banhang_hanghoa_sheet1.csv 80 dòng - item_code: ví dụ ['SP0001', 'SP0002', 'SP0003'] - unit_price: ví dụ ['1500', '2000', '1000'] - unit_cost: ví dụ ['1100', '1600', '800'] - Định mức tồn tối thiểu: mọi giá trị ['0'] - Phân loại: mọi giá trị ['giảm đau hạ sốt', 'ho cảm cúm', 'dùng ngoài', 'tiêu hoá', 'kháng sinh', 'dụng cụ y tế', 'mắt mũi họng', 'dị ứng', 'vitamin khoáng chất', 'tim mạch tiểu đường', 'thực phẩm chức năng'] - Món: ví dụ ['Panadol Extra hộp 15 vỉ x 12 v', 'Hapacol 250 hộp 24 gói', 'Panadol 500mg hộp 10 vỉ x 12 v'] - Được bán trực tiếp: mọi giá trị ['1'] - Đơn vị: mọi giá trị ['viên', 'gói', 'chai', 'cái', 'vỉ', 'miếng', 'hộp', 'ống', 'lọ', 'tuýp'] - Loại hàng hóa: mọi giá trị ['Hàng hóa']  ## norm/customers_banhang_hoadon_sheet1.csv 51044 dòng - order_time: ví dụ ['2025-01-01 06:09:58', '2025-01-01 07:00:31', '2025-01-01 07:26:25'] - customer_code: ví dụ ['KH0203', 'KH0166', 'KH0197'] - staff: mọi giá trị ['NV002', 'NV003', 'NV001'] - Đã thu: ví dụ ['75,000', '119,000', '18,000'] - Tên KH: ví dụ ['Tạ Bảo Duy', 'Từ Thắng Hải', 'Khách lẻ'] - Trạng thái: mọi giá trị ['Đổi trả', 'Đã giao', 'Không giao được', 'Đang vận chuyển'] - Phương thức TT: mọi giá trị ['Tiền mặt', 'Chuyển khoản', 'Ví điện tử', 'Thu hộ (COD)', 'Ghi nợ'] - Ngày bán: ví dụ ['1 thg 1 2025', '01/01/2025', '45658'] - Nguồn đơn: mọi giá trị ['store', 'phone', 'zalo_oa'] - Còn nợ: ví dụ ['0', '12,000', '2,700'] - Tiền hàng trước giảm: ví dụ ['75,000', '119,000', '18,000'] - Tong tien: ví dụ ['75,000', '119,000', '18,000'] - Order ID: ví dụ ['ORD000001', 'ORD000002', 'ORD000003'] - CK: mọi giá trị ['0', '10,000'] - is_walk_in: mọi giá trị ['False', 'True']  ## norm/customers_banhang_khachhang_sheet1.csv 380 dòng - customer_name: mọi giá trị ['thân thiết', 'sỉ', 'lẻ'] - Điểm tích lũy: mọi giá trị ['0'] - MST: mọi giá trị ['0660456526', '0146833354', '0611063179', '0140284775'] - Ngày sinh: ví dụ ['13/05/1991', '13/04/1977', '11/08/1994'] - Trạng thái: mọi giá trị ['Đang hoạt động'] - ten_kh: ví dụ ['Trịnh Phúc Phúc', 'Quách Loan Bích', 'Tăng Trung Hạnh'] - Người tạo: mọi giá trị ['admin'] - Tổng điểm: mọi giá trị ['0'] - Loại hình khách: mọi giá trị ['Cá nhân'] - Số điện thoại: ví dụ ['0325679681', '0351870694', '0910136965'] - Customer ID: ví dụ ['KH0001', 'KH0002', 'KH0003'] - is_walk_in: mọi giá trị ['False', 'True']  ## norm/inventory_ton_kho.csv 80 dòng - item_name: ví dụ ['Panadol Extra hộp 15 vỉ x 12 v', 'Hapacol 250 hộp 24 gói', 'Panadol 500mg hộp 10 vỉ x 12 v'] - stock: ví dụ ['112.0', '4.0', '279.0'] - ID SP: ví dụ ['SP0001', 'SP0002', 'SP0003'] - Đơn vị: mọi giá trị ['viên', 'gói', 'chai', 'cái', 'vỉ', 'miếng', 'hộp', 'ống', 'lọ', 'tuýp']  ## norm/other_banhang_bantheolo_sheet1.csv 97880 dòng - Lô: ví dụ ['H2501745', 'Y2501823', 'D2501692'] - SL quy ra lẻ: ví dụ ['1', '20', '10'] - SL trả (ĐVT cơ bản): ví dụ ['1', '0', '2'] - No.: mọi giá trị ['1', '2', '3', '4'] - Mã hóa đơn: ví dụ ['ORD000001', 'ORD000002', 'ORD000003']  ## norm/other_banhang_chitiethoadon_sheet1.csv 97033 dòng - line_amount: ví dụ ['75000', '106000', '13000'] - unit_cost: ví dụ ['61000', '86000', '1100'] - SL cơ bản: ví dụ ['1', '20', '10'] - Khuyến mãi: ví dụ ['0', '17,000', '2,000'] - Giá niêm yết: ví dụ ['75,000', '106,000', '1,300'] - Mã giao dịch: ví dụ ['ORD000001', 'ORD000002', 'ORD000003'] - Chi tiết hàng: ví dụ ['Betadine Gargle súc họng chai ', 'Yumangel Hộp 20 Gói', 'Decolgen Forte hộp 30 vỉ x 4 v'] - Slg: mọi giá trị ['1', '10', '2', '3', '4', '6', '7', '9', '8', '5'] - TT dòng: mọi giá trị ['1', '2', '3', '4'] - Ma hang: ví dụ ['SP0063', 'SP0017', 'SP0010'] - Đ.vị: mọi giá trị ['chai', 'hộp', 'viên', 'vỉ', 'miếng', 'cái', 'gói', 'tuýp', 'lọ', 'lốc', 'ống']  ## norm/other_banhang_donviquydoi_sheet1.csv 83 dòng - unit_factor: ví dụ ['180.0', '12.0', '24.0'] - Đơn vị: mọi giá trị ['hộp', 'vỉ', 'chai', 'tuýp', 'lốc'] - Giá bán theo đơn vị quy đổi: ví dụ ['270000', '18000', '48000'] - Mã sp: ví dụ ['SP0001', 'SP0002', 'SP0003']  ## norm/other_banhang_lichsugia_sheet1.csv 114 dòng - Mã sản phẩm: ví dụ ['SP0001', 'SP0002', 'SP0003'] - Giá mới: ví dụ ['1400', '1500', '2000'] - Ngày áp dụng: ví dụ ['2025-01-01', '2025-12-17', '2025-08-18'] - Sản phẩm: ví dụ ['Panadol Extra hộp 15 vỉ x 12 v', 'Hapacol 250 hộp 24 gói', 'Panadol 500mg hộp 10 vỉ x 12 v'] - Giá cũ: ví dụ ['1400', '1300', '1600']  ## norm/other_banhang_lohang_sheet1.csv 3943 dòng - HSD: ví dụ ['30/01/2027', '08/04/2027', '13/07/2027'] - Mã món: ví dụ ['SP0001', 'SP0002', 'SP0003'] - SL nhập (ĐVT cơ bản): ví dụ ['360', '264', '240'] - Mã phiếu nhập: ví dụ ['PN00142', 'PN00405', 'PN00185'] - Lô: ví dụ ['A2505116', 'A2602802', 'B2507439']  ## norm/other_banhang_phieuthu_sheet1.csv 51238 dòng - payment_method: mọi giá trị ['Tiền mặt', 'Chuyển khoản', 'Ví điện tử', 'Thu hộ (COD)'] - Số tiền thu: ví dụ ['75,000', '119,000', '18,000'] - Mã bill: ví dụ ['ORD000001', 'ORD000002', 'ORD000003'] - Phiếu thu: ví dụ ['PAY000001', 'PAY000002', 'PAY000003'] - Thời gian thu: ví dụ ['2025-01-01 06:09:58', '2025-01-01 07:00:31', '2025-01-01 07:26:25']  ## norm/other_banhang_thuoc_sheet1.csv 80 dòng - Mã HH: ví dụ ['SP0001', 'SP0002', 'SP0003'] - Hoạt chất: ví dụ ['Paracetamol + Cafein', 'Paracetamol', 'Paracetamol + Phenylephrin + C'] - Kê đơn: mọi giá trị ['False', 'True']  ## norm/other_sotay_chiphi_sheet1.csv 2 dòng - note: mọi giá trị ['thưởng Tết'] - Ngày chi: mọi giá trị ['45679', '46063'] - Mục: mọi giá trị ['lương'] - So tien: mọi giá trị ['40000k']  ## norm/purchases_sotay_nhaphang_sheet1.csv 3943 dòng - item_name: ví dụ ['Panadol Extra hộp 15 vỉ x 12 v', 'Hapacol 250 hộp 24 gói', 'Panadol 500mg hộp 10 vỉ x 12 v'] - unit: mọi giá trị ['hộp', 'chai', 'tuýp', 'lốc', 'viên', 'cái', 'gói', 'lọ'] - quantity: ví dụ ['2.0', '11.0', '3.0'] - line_amount: ví dụ ['396000', '422400', '288000'] - unit_cost: ví dụ ['198000', '38400', '96000'] - document_id: ví dụ ['PN00001', 'PN00002', 'PN00003'] - record_date: ví dụ ['2025-01-01', '2025-01-02', '2025-01-03'] - supplier: mọi giá trị ['Cty Mai Tâm', 'Cty Ông Hải', 'Cty Hồ Lan', 'Cty Trương Long', 'Cty Phạm Huy'] - Mô tả: mọi giá trị ['nhập đầu kỳ'] - Lô: ví dụ ['E2501244', 'I2501674', 'Y2501592'] - HSD: ví dụ ['2025-05-16', '2025-05-22', '2026-07-19'] - year: mọi giá trị ['2025', '2026'] - month: mọi giá trị ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']  # README của shop (mô tả file gốc)  # Dữ liệu biz_124  Chủ tiệm gửi dữ liệu từ ba nguồn: file Excel xuất từ phần mềm bán hàng (tên file bắt đầu BanHang_, mỗi danh sách một file, danh sách dài tách thành nhiều file đánh số _1, _2…), sổ chủ tiệm tự ghi trên Excel (SoTay_), và file tồn kho CSV. Các file nối với nhau qua mã hoá đơn, mã hàng; sổ tay không có mã hàng, nối qua tên hàng. Tên cột mỗi file đặt theo cách của tiệm.  ## File - `BanHang_HoaDon.xlsx` (xlsx) - `BanHang_ChiTietHoaDon.xlsx` (xlsx) - `BanHang_PhieuThu.xlsx` (xlsx) - `BanHang_HangHoa.xlsx` (xlsx) - `BanHang_KhachHang.xlsx` (xlsx) - `BanHang_DonViQuyDoi.xlsx` (xlsx) - `BanHang_LichSuGia.xlsx` (xlsx) - `BanHang_LoHang.xlsx` (xlsx) - `BanHang_BanTheoLo.xlsx` (xlsx) - `BanHang_Thuoc.xlsx` (xlsx) - `SoTay_NhapHang.xlsx` (xlsx) - `SoTay_ChiPhi.xlsx` (xlsx) - `ton_kho.csv` (csv)  ## Quy ước - Dữ liệu có đến hết 25/05/2026. - **Công nợ**: mỗi lần khách trả tiền cho một đơn là một dòng, **Số tiền thu** là số tiền trả lần đó; **Tong tien** là số khách phải trả cho cả đơn; **Còn nợ** là số tiền của đơn chưa thu, tính đến hết ngày cuối dữ liệu. - **Giá vốn**: **Giá vốn lúc bán** là giá vốn một đơn vị bán. - **Sổ chi phí**: các khoản chi vận hành theo tháng (tiền **So tien**). - **Tồn kho**: **Ton kho** là tồn cuối ngày cuối có dữ liệu, theo đơn vị cơ bản. - **Lô, hạn dùng**: mỗi dòng nhập là một lô, số lô không trùng. Một dòng bán có thể lấy từ nhiều lô. Hàng khách trả về lại lô đã bán. - **Nhập hàng**: **Giá nhập** là giá nhập một đơn vị, theo đơn vị nhập của dòng; **Thành tiền** là tiền nhập của cả dòng. - **Giá bán**: **Giá mới** (theo đơn vị cơ bản) áp dụng từ **Ngày áp dụng** đến trước lần đổi giá sau của cùng mặt hàng; dòng đầu mỗi mặt hàng là giá lúc bắt đầu dữ liệu (**Giá cũ** trống). - **Thuốc**: **Kê đơn** đúng (TRUE/1) là thuốc kê đơn. Hoạt chất ghi không kèm hàm lượng (hàm lượng ở tên hàng); nhiều chất nối bằng " + ". - **Quy đổi đơn vị**: số lượng ghi theo đơn vị của dòng, hệ số quy đổi ở `BanHang_DonViQuyDoi.xlsx`.  # Có sẵn trong mọi đoạn code  Không cần import, không cần đọc file. Hàm có sẵn đã áp đúng rulebook: bỏ đơn huỷ và trả, không tính bản ghi sau hôm nay, đếm đơn khác nhau, quy về đơn vị cơ bản, xử lý tên hàng viết khác nhau. **Tự viết pandas là phương án cuối**, chỉ khi không hàm nào khớp.  Kỳ: `clock.today()`, `clock.yesterday()`, `clock.day("2026-06-01")`, `clock.this_week()`, `clock.last_week()`, `clock.this_month()`, `clock.last_month_same_days()`, `clock.last_month_full()`, `clock.month(7, 2025)`, `clock.month(7)`, `clock.quarter(1, 2026)`, `clock.year_to_date()`, `clock.last_n_days(30)`, `clock.until()`, `clock.between("2026-03-13", "2026-03-19")`, `clock.tet(2026)`, `clock.before_tet(2026)`.  Bán hàng, nhận `period` và bộ lọc `item=`, `group=`, `channel=`, `payment=`, `customer_group=`, `customer=`, `staff=`, `ingredient=`, `unit=`, `size="M"`, `prescription=True`, `shift="sáng"` hoặc `"chiều"`:  - `revenue(period)`, `order_count(period)`, `quantity(period)`, `average_order(period)`, `cancel_rate(period)`, `cancelled_orders(period)`, `gross_profit(period)`, `net_profit(period)`, `expenses(period)`. - `pct_change(new, old)`: phần trăm thay đổi. - `ranking(by=..., metric=..., period=...)`: xếp hạng giảm dần, cùng số đo thì theo mã. `.index[0]` là hạng nhất, `.index[:3].tolist()` là top 3. `by`: `item`, `group`, `customer`, `staff`, `channel`, `payment`, `day`, `hour`. `metric`: `revenue`, `quantity`, `orders`, `days`, `cancelled`, `average_order` (kèm `min_orders=3`), `days`, `cancelled`, `profit`. - `sold_orders(period)`: bảng các đơn tính vào doanh thu, có cột `revenue`. - `customer_count(period, min_orders=3)`, `item_count(period, min_orders=50)`, `unsold_count(period)`: số mặt hàng ế. - `sale_price("Tên hàng", "2026-06-01")`, `price_effect("Tên hàng", "2026-06-01", days=14)`; câu chỉ nêu mức giá thì `price_effect("Tên hàng", price=47000, days=30)`. - `increasing([a, b, c])`: tăng liên tục. `best_month([clock.month(7, 2025), clock.month(8, 2025)])`: tháng doanh thu cao nhất. - Lọc theo một phần tên: `quantity(period, item="Bobby", unit="bịch")`, `quantity(period, size="M", unit="bịch")`. Tỉ trọng theo số lượng thì chia cho `quantity(period, unit="bịch")`. - `average_order(period, min_amount=1)`: chỉ tính phiếu có thu tiền.  Công nợ, nhập, kho:  - `debt_added(period, customer=...)`, `debt_repaid(period, customer=...)`, `debt_at("2026-07-31", customer=...)`, `debtor_count("2026-07-31")`, `debtors("2026-07-31")`, `debt_aged("2026-07-31", 8, 15)`: nợ có tuổi 8–15 ngày, `debt_aged("2026-07-31", 16)`: trên 15 ngày. - `purchase_cost(period, supplier=...)`, `avg_purchase_price(period, item=...)`, `top_supplier(period)`: nhập nhiều tiền nhất, `main_supplier(period)`: nhà cung cấp chính, nhiều phiếu nhất, `purchase_minus_sold(period, item=...)`, `purchase_quantity(period, item=...)`: số lượng nhập theo đơn vị cơ bản. - `stock(item=...)`: tồn theo đơn vị cơ bản. `stock_big(item=...)`: `[số đơn vị lớn, số lẻ]`. `stock_value()`: giá trị hàng tồn. - `due_orders(clock.month(2, 2026))`, `due_orders(after="2026-01-05")`: số đơn bán chịu theo ngày phải trả.    Bảng khi không hàm nào khớp: `lines` (mỗi dòng một dòng hàng), `orders` (mỗi dòng một đơn), `tables["<tên bảng trong norm/, bỏ .csv>"]`. Trong đó `year`, `month` là số nguyên, ngày là datetime. 
+--------
+USER:
+Hôm nay là 2026-01-04.
+Câu hỏi: doanh thu tu dau thang nay den het hnay tang hay giam bao nhieu phan tram so vs cung ky thang roi
+
+Nhận ra trong câu: kỳ clock.this_month()
+
+Câu tương tự đã làm đúng ở shop khác, câu đầu giống nhất (đổi kỳ, tên cho đúng câu hỏi của bạn, giữ nguyên tham số khác):
+- dthu tu dau thang nay den het bua nay tang hay giam bn phan tram so voi cung ky thang trc
+  FINAL percent: pct_change(revenue(clock.this_month()), revenue(clock.last_month_same_days()))
+- Doanh thu tháng 6/2026 tăng hay giảm bao nhiêu phần trăm so với tháng trước?
+  FINAL percent: pct_change(revenue(clock.month(6, 2026)), revenue(clock.month(5, 2026)))
+- Doanh thu tháng 4/2026 so với tháng 4/2025 tăng hay giảm bao nhiêu %?
+  FINAL percent: pct_change(revenue(clock.month(4, 2026)), revenue(clock.month(4, 2025)))
+- Doanh thu từ đầu năm tới hết hnay là bao nhiêu?
+  FINAL number: revenue(clock.year_to_date())
+
+Lượt này chỉ viết đúng một dòng `READ norm/<bảng>.csv`, chưa viết FINAL. Bảng có thật: ['catalog_banhang_hanghoa_sheet1.csv', 'customers_banhang_hoadon_sheet1.csv', 'customers_banhang_khachhang_sheet1.csv', 'inventory_ton_kho.csv', 'other_banhang_bantheolo_sheet1.csv', 'other_banhang_chitiethoadon_sheet1.csv', 'other_banhang_donviquydoi_sheet1.csv', 'other_banhang_lichsugia_sheet1.csv', 'other_banhang_lohang_sheet1.csv', 'other_banhang_phieuthu_sheet1.csv', 'other_banhang_thuoc_sheet1.csv', 'other_sotay_chiphi_sheet1.csv', 'purchases_sotay_nhaphang_sheet1.csv']
+
+--------
+ASSISTANCE:
+Turn 0:
+[REASONING]
+
+[CALL] read
+[ARGS] file_path=norm/customers_banhang_hoadon_sheet1.csv
+[RESULT GỬI CHO MODEL]
+## customers_banhang_hoadon_sheet1.csv (header ở dòng index 0)
+Cột: order_time | customer_code | staff | Đã thu | Tên KH | Trạng thái | Phương thức TT | Ngày bán | Nguồn đơn | Còn nợ | Tiền hàng trước giảm | Tong tien | Order ID | CK | source_file | source_sheet | source_row | is_walk_in
+2025-01-01 06:09:58 | KH0203 | NV002 | 75,000 | Tạ Bảo Duy | Đổi trả | Tiền mặt | 1 thg 1 2025 | store | 0 | 75,000 | 75,000 | ORD000001 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 2 | False
+2025-01-01 07:00:31 | KH0166 | NV002 | 119,000 | Từ Thắng Hải | Đã giao | Tiền mặt | 1 thg 1 2025 | store | 0 | 119,000 | 119,000 | ORD000002 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 3 | False
+2025-01-01 07:26:25 |  | NV002 | 18,000 | Khách lẻ | Đã giao | Tiền mặt | 01/01/2025 | store | 0 | 18,000 | 18,000 | ORD000003 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 4 | True
+2025-01-01 07:29:01 |  | NV002 | 3,200 | Khách lẻ | Đã giao | Tiền mặt | 1 thg 1 2025 | store | 0 | 3,200 | 3,200 | ORD000004 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 5 | True
+2025-01-01 07:38:02 |  | NV002 | 14,000 | Khách lẻ | Đã giao | Tiền mặt | 1 thg 1 2025 | store | 0 | 14,000 | 14,000 | ORD000005 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 6 | True
+2025-01-01 07:40:14 | KH0197 | NV002 | 6,800 | Hồ Minh Đức | Đã giao | Chuyển khoản | 1 thg 1 2025 | store | 0 | 6,800 | 6,800 | ORD000006 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 7 | False
+2025-01-01 07:42:10 | KH0197 | NV002 | 117,600 | Hồ Minh Đức | Đã giao | Tiền mặt | 45658 | store | 0 | 117,600 | 117,600 | ORD000007 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 8 | False
+2025-01-01 07:48:30 | KH0036 | NV002 | 0 | Lý Khánh Anh | Không giao được | Chuyển khoản | 1 thg 1 2025 | store | 0 | 751,000 | 741,000 | ORD000008 | 10,000 | BanHang_HoaDon.xlsx | Sheet1 | 9 | False
+2025-01-01 07:57:10 | KH0233 | NV002 | 5,000 | Đặng Lan Tâm | Đã giao | Ví điện tử | 45658 | store | 0 | 5,000 | 5,000 | ORD000009 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 10 | False
+2025-01-01 08:26:03 | KH0330 | NV002 | 163,900 | Ngô Hương Hồng | Đã giao | Chuyển khoản | 01/01/2025 | phone | 0 | 148,900 | 163,900 | ORD000010 | 0 | BanHang_HoaDon.xlsx | Sheet1 | 11 | False
+
+Nhắc lại câu hỏi: doanh thu tu dau thang nay den het hnay tang hay giam bao nhieu phan tram so vs cung ky thang roi
+Ví dụ giống nhất:
+- dthu tu dau thang nay den het bua nay tang hay giam bn phan tram so voi cung ky thang trc
+  FINAL percent: pct_change(revenue(clock.this_month()), revenue(clock.last_month_same_days()))
+Bảng trên đã nạp sẵn, không đọc lại file. Viết FINAL theo ví dụ trong câu hỏi, đổi kỳ và tên cho đúng câu hỏi.
+Turn 1:
+[REASONING]
+
+[CALL] final
+[CODE]
+pct_change(revenue(clock.this_month()), revenue(clock.last_month_full()))
+[OUTPUT]
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+  File "/Users/lebahoai/Workspace/zalo/2026/experiments/EXP-20261105-10-train-5-folds/code/src/datamate/shop.py", line 399, in revenue
+    return int(self._sold(period, shift, filters)["line_amount"].sum())
+  File "/Users/lebahoai/Workspace/zalo/2026/experiments/EXP-20261105-10-train-5-folds/code/src/datamate/shop.py", line 395, in _sold
+    lines = self._rows()
+  File "/Users/lebahoai/Workspace/zalo/2026/experiments/EXP-20261105-10-train-5-folds/code/src/datamate/shop.py", line 358, in _rows
+    raise ValueError("shop has no sales table, use tables[...]")
+ValueError: shop has no sales table, use tables[...]
+
+[RESULT GỬI CHO MODEL]
+ERROR: code chưa in ra đáp án.
+[exit 1]
+ValueError: shop has no sales table, use tables[...]
+Turn 2:
+[REASONING]
+Đọc lại hướng dẫn, lỗi "shop has no sales table, use tables[...]" nghĩa là phải dùng `tables[...]` để truy cập dữ liệu. Bảng `customers_banhang_hoadon_sheet1.csv` tương ứng với `tables["customers_banhang_hoadon_sheet1"]`.
+[CALL] final
+[CODE]
+FINAL percent: pct_change(revenue(clock.this_month()), revenue(clock.last_month_full()))
+[OUTPUT]
+  File "<stdin>", line 10
+    FINAL percent: pct_change(revenue(clock.this_month()), revenue(clock.last_month_full()))
+          ^^^^^^^
+SyntaxError: invalid syntax
+
+[RESULT GỬI CHO MODEL]
+ERROR: code chưa in ra đáp án.
+[exit 1]
+SyntaxError: invalid syntax
+Turn 3:
+[REASONING]
+Lỗi `SyntaxError: invalid syntax` nghĩa là có lỗi cú pháp trong code. Kiểm tra lại code, phát hiện thiếu dấu ngoặc đơn đóng ở cuối dòng.
+[CALL] final
+[CODE]
+FINAL percent: pct_change(revenue(clock.this_month()), revenue(clock.last_month_full()))
+[RESULT GỬI CHO MODEL]
+ERROR: code y hệt lần trước đã lỗi. Phải đổi code, đọc kỹ dòng lỗi.
+Turn 4:
+[REASONING]
+Đúng rồi, lỗi vẫn cũ. Kiểm tra lại kỹ hơn, nhận ra lỗi ở `revenue()`. Hàm `revenue()` cần tham số là `period`, nhưng `clock.this_month()` và `clock.last_month_full()` không phải là `period`. `period` phải là một chuỗi, ví dụ `"2026-01"`.
+
+Đọc lại hướng dẫn, thấy có ví dụ:
+- Doanh thu tháng 6/2026 so với tháng 5/2026 tăng hay giảm bao nhiêu %?
+[CALL] final
+[CODE]
+FINAL percent: pct_change(revenue(str(clock.this_month())), revenue(str(clock.last_month_full())))
+[OUTPUT]
+  File "<stdin>", line 10
+    FINAL percent: pct_change(revenue(str(clock.this_month())), revenue(str(clock.last_month_full())))
+          ^^^^^^^
+SyntaxError: invalid syntax
+
+[RESULT GỬI CHO MODEL]
+ERROR: code chưa in ra đáp án.
+[exit 1]
+SyntaxError: invalid syntax
+Turn 5:
+[REASONING]
+Lỗi `SyntaxError: invalid syntax` vẫn xuất hiện, lần này có lẽ do việc chuyển đổi `clock.this_month()` và `clock.last_month_full()` thành chuỗi. Hàm `revenue()` có thể không nhận chuỗi làm đối số.
+
+Xem lại hướng dẫn, ví dụ về `revenue()` sử dụng trực tiếp các đối tượng `clock.month()`. Vậy có lẽ cần phải lấy chuỗi tháng từ đối tượng `clock` một cách khác.
+
+Thử lấy chuỗi tháng từ `clock.today()`:
+[CALL] final
+[CODE]
+FINAL percent: pct_change(revenue(str(clock.today().month) + "-" + str(clock.today().year)), revenue(str(clock.last_month_same_days().month) + "-" + str(clock.last_month_same_days().year)))
+[OUTPUT]
+  File "<stdin>", line 10
+    FINAL percent: pct_change(revenue(str(clock.today().month) + "-" + str(clock.today().year)), revenue(str(clock.last_month_same_days().month) + "-" + str(clock.last_month_same_days().year)))
+          ^^^^^^^
+SyntaxError: invalid syntax
+
+[RESULT GỬI CHO MODEL]
+ERROR: code chưa in ra đáp án.
+[exit 1]
+SyntaxError: invalid syntax
+Turn 6:
+[REASONING]
+Lỗi `SyntaxError: invalid syntax` vẫn tiếp diễn. Có vẻ việc ghép chuỗi tháng và năm như vậy không đúng.
+
+Xem lại hướng dẫn và các ví dụ, nhận ra rằng `revenue()` có thể nhận một chuỗi đại diện cho tháng và năm theo định dạng "YYYY-MM".
+
+Vậy, cần phải lấy tháng và năm từ `clock.this_month()` và `clock.last_month_full()` và ghép chúng lại thành chuỗi theo đúng định dạng.
+
+```python
+[CALL] final
+[CODE]
+pct_change(revenue(str(clock.this_month().year) + "-" + str(clock.this_month().month)), revenue(str(clock.last_month_full().year) + "-" + str(clock.last_month_full().month)))
+[OUTPUT]
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/site-packages/pydantic/main.py", line 1026, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'Period' object has no attribute 'year'
+
+[RESULT GỬI CHO MODEL]
+ERROR: code chưa in ra đáp án.
+[exit 1]
+AttributeError: 'Period' object has no attribute 'year'
+Turn 7:
+[REASONING]
+Lỗi `AttributeError: 'Period' object has no attribute 'year'` cho thấy `clock.this_month()` và `clock.last_month_full()` không có thuộc tính `year` và `month` như mong đợi.
+
+Xem lại tài liệu về `clock`, nhận ra rằng các hàm trả về đối tượng `Period`, không phải đối tượng có thuộc tính `year` và `month`. Cần phải sử dụng hàm `strftime()` để định dạng đối tượng `Period` thành chuỗi theo định dạng "YYYY-MM".
+
+```python
+[CALL] final
+[CODE]
+pct_change(revenue(clock.this_month().strftime("%Y-%m")), revenue(clock.last_month_full().strftime("%Y-%m")))
+[OUTPUT]
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+  File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/site-packages/pydantic/main.py", line 1026, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'Period' object has no attribute 'strftime'
+
+[RESULT GỬI CHO MODEL]
+ERROR: code chưa in ra đáp án.
+[exit 1]
+AttributeError: 'Period' object has no attribute 'strftime'
+Turn 8:
+[REASONING]
+Lỗi `AttributeError: 'Period' object has no attribute 'strftime'` cho thấy đối tượng `Period` không có phương thức `strftime()`.
+
+Xem lại tất cả các ví dụ và hướng dẫn, nhận ra rằng có lẽ mình đang hiểu sai cách sử dụng `revenue()`. Hàm `revenue()` có thể không cần chuỗi đại diện cho tháng và năm. Có lẽ nó nhận một đối tượng `Period` trực tiếp.
+
+Thử lại với đối tượng `Period` trực tiếp:
+
+```python
+[CALL] final
+[CODE]
+pct_change(revenue(clock.this_month()), revenue(clock.last_month_full()))
+[OUTPUT]
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+  File "/Users/lebahoai/Workspace/zalo/2026/experiments/EXP-20261105-10-train-5-folds/code/src/datamate/shop.py", line 399, in revenue
+    return int(self._sold(period, shift, filters)["line_amount"].sum())
+  File "/Users/lebahoai/Workspace/zalo/2026/experiments/EXP-20261105-10-train-5-folds/code/src/datamate/shop.py", line 395, in _sold
+    lines = self._rows()
+  File "/Users/lebahoai/Workspace/zalo/2026/experiments/EXP-20261105-10-train-5-folds/code/src/datamate/shop.py", line 358, in _rows
+    raise ValueError("shop has no sales table, use tables[...]")
+ValueError: shop has no sales table, use tables[...]
+
+[RESULT GỬI CHO MODEL]
+ERROR: code chưa in ra đáp án.
+[exit 1]
+ValueError: shop has no sales table, use tables[...]
+Turn 9:
+[REASONING]
+Lỗi `ValueError: shop has no sales table, use tables[...]` vẫn xuất hiện. Điều này khẳng định rằng cần phải sử dụng `tables[...]` để truy cập dữ liệu.
+
+Xem lại hướng dẫn và các ví dụ, nhận ra rằng mình đã bỏ qua bước quan trọng là sử dụng `tables["customers_banhang_hoadon_sheet1"]` để truy cập bảng dữ liệu.
+
+Vì câu hỏi yêu cầu tính doanh thu, cần phải sử dụng bảng `customers_banhang_hoadon_sheet1.csv` (hoặc `tables["customers_banhang_hoadon_sheet1"]`) để lấy dữ liệu doanh thu.
+
+Tuy nhiên, hàm `revenue()` không trực tiếp lấy dữ liệu từ bảng. Nó cần một đối tượng `Period` để lọc dữ liệu.
+
+Vậy, cần phải kết hợp cả hai: sử dụng `tables["customers_banhang_hoadon_sheet1"]` để lấy dữ liệu và sử dụng `clock.this_month()` và `clock.last_month_full()` để lọc dữ liệu theo tháng.
+
+Vì không có hàm nào trực tiếp kết hợp hai việc này, mình sẽ phải tạm thời bỏ qua việc sử dụng `revenue()` và thay vào đó, tính toán phần trăm thay đổi doanh thu thủ công bằng cách sử dụng dữ liệu từ bảng `customers_banhang_hoadon_sheet1`.
+
+Tuy nhiên, vì không có đủ thông tin để tính toán doanh thu thủ công, mình sẽ trả về `unanswerable`.
+[CALL] final
+--------
+FINAL:
+{"id": "q_9960c0b5773f", "type": "unanswerable", "reason": "dữ liệu phát hành không đủ để trả lời"}
