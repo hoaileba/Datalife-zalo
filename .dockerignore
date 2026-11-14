@@ -1,0 +1,13 @@
+*
+!Dockerfile
+!predict.sh
+!README.md
+!requirements.txt
+!src/
+!src/**
+!models/
+!models/**
+!training_code/
+!training_code/**
+**/__pycache__
+**/*.pyc
