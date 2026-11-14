@@ -150,17 +150,14 @@ git clone git@github.com:hoaileba/Datalife-zalo.git && cd Datalife-zalo
 git checkout submission
 ```
 
-**Bước 2. Chép dữ liệu train và tải weights.** Bộ train của ban tổ chức (thư mục có `questions.jsonl`, `answers.jsonl`,
+**Bước 2. Chép dữ liệu train.** Weights không cần tải trước: Dockerfile tự tải gemma-4-12B-it đúng revision đã ghim và kiểm SHA-256 trong lúc build (cần mạng khi build, khi chạy thì không). Bộ train của ban tổ chức (thư mục có `questions.jsonl`, `answers.jsonl`,
 `calendar.csv`, `rulebook.md`, `data/`, `split/`) không nằm trong git; xin anh Hoài thư mục `train/` rồi:
 
 ```bash
 pip install -U huggingface_hub hf_transfer
-bash training_code/download_model.sh          # ~24 GB vào models/gemma-4-12B-it, tự kiểm SHA-256 của weights
 bash training_code/stage_data.sh <đường dẫn tới train>   # chép train vào training_code/data/train, ghi data_manifest.json
 ```
 
-Kiểm: `ls models/gemma-4-12B-it` có `model.safetensors`, `tokenizer.json`, `config.json`; `training_code/data_manifest.json`
-có dòng `models/gemma-4-12B-it/model.safetensors`.
 
 **Bước 3. Build image.** Thay `<team_name>` bằng tên đội viết thường.
 
