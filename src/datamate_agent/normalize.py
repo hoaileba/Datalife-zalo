@@ -155,7 +155,7 @@ class TableReport(FrozenModel):
 
 def discover(shop_dir: Path, *, sample_rows: int) -> tuple[TableHead, ...]:
     heads: list[TableHead] = []
-    for path in sorted(p for p in shop_dir.rglob("*") if p.is_file() and p.name not in HIDDEN_FILES):
+    for path in sorted(p for p in shop_dir.rglob("*") if p.is_file() and p.name not in HIDDEN_FILES and not p.name.startswith(".")):
         fmt_kind = TABLE_SUFFIXES.get(path.suffix.lower())
         if fmt_kind is None:
             continue

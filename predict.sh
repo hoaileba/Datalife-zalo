@@ -19,6 +19,7 @@ PYTHON="${DATAMATE_PYTHON:-python3}"
 mkdir -p "$RESULT_DIR/logs" "$WORK_DIR"
 export PYTHONPATH="$CODE_DIR/deps:$CODE_DIR/src"
 export PYTHONUNBUFFERED=1 PYTHONWARNINGS=ignore
+export VLLM_USE_FLASHINFER_SAMPLER=0
 started=$(date +%s)
 echo "[predict.sh] start $(date -Iseconds) data=$DATA_DIR result=$RESULT_DIR"
 

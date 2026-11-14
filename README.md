@@ -154,7 +154,7 @@ git checkout submission
 `calendar.csv`, `rulebook.md`, `data/`, `split/`) không nằm trong git; xin anh Hoài thư mục `train/` rồi:
 
 ```bash
-pip install -U "huggingface_hub[cli]"
+pip install -U huggingface_hub hf_transfer
 bash training_code/download_model.sh          # ~24 GB vào models/gemma-4-12B-it, tự kiểm SHA-256 của weights
 bash training_code/stage_data.sh <đường dẫn tới train>   # chép train vào training_code/data/train, ghi data_manifest.json
 ```
