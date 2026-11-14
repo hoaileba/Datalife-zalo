@@ -39,33 +39,37 @@ def format_problem(row: dict) -> str | None:
     return None
 
 
+def submission_row(question_id: str, row: dict | None) -> tuple[dict, str | None]:
+    """Một dòng file nộp từ đáp án agent, kèm lý do nếu phải đổi: trống hoặc sai định dạng thành abstain, phần trăm làm tròn 2 chữ số."""
+    row = row or {"id": question_id, "type": None, "answer": None}
+    if row.get("type") in (None, "abstain"):
+        return {"id": question_id, "type": "abstain"}, "blank to abstain"
+    problem = format_problem(row)
+    if problem is not None:
+        return {"id": question_id, "type": "abstain"}, f"abstain: {problem}"
+    if row["type"] == "unanswerable":
+        return {"id": question_id, "type": "unanswerable", "reason": NO_DATA_REASON}, None
+    answer = row["answer"]
+    change = None
+    if row["type"] == "percent" and round(answer, 2) != answer:
+        change = "percent rounded"
+        answer = round(answer, 2)
+    if row["type"] == "number" and isinstance(answer, float) and answer.is_integer():
+        answer = int(answer)
+    return {"id": question_id, "type": row["type"], "answer": answer}, change
+
+
 def build_submission(answers_path: Path, questions_path: Path, out_path: Path) -> collections.Counter[str]:
-    """File nộp đúng thứ tự câu hỏi: câu trống hoặc sai định dạng thành abstain, phần trăm làm tròn 2 chữ số."""
+    """File nộp đúng thứ tự câu hỏi, mỗi dòng qua submission_row."""
     answers = {json.loads(line)["id"]: json.loads(line) for line in answers_path.read_text(encoding="utf-8").splitlines() if line.strip()}
     ids = [json.loads(line)["id"] for line in questions_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     changes: collections.Counter[str] = collections.Counter()
     rows = []
     for question_id in ids:
-        row = answers.get(question_id) or {"id": question_id, "type": None, "answer": None}
-        if row.get("type") in (None, "abstain"):
-            changes["blank to abstain"] += 1
-            rows.append({"id": question_id, "type": "abstain"})
-            continue
-        problem = format_problem(row)
-        if problem is not None:
-            changes[f"abstain: {problem}"] += 1
-            rows.append({"id": question_id, "type": "abstain"})
-            continue
-        if row["type"] == "unanswerable":
-            rows.append({"id": question_id, "type": "unanswerable", "reason": NO_DATA_REASON})
-            continue
-        answer = row["answer"]
-        if row["type"] == "percent" and round(answer, 2) != answer:
-            changes["percent rounded"] += 1
-            answer = round(answer, 2)
-        if row["type"] == "number" and isinstance(answer, float) and answer.is_integer():
-            answer = int(answer)
-        rows.append({"id": question_id, "type": row["type"], "answer": answer})
+        row, change = submission_row(question_id, answers.get(question_id))
+        if change is not None:
+            changes[change] += 1
+        rows.append(row)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
     return changes

@@ -162,6 +162,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--model", default=None)
     parser.add_argument("--seed", type=int, default=20261103)
     parser.add_argument("--parallel", type=int, default=2)
+    parser.add_argument("--mode", choices=("rewrite", "normalize"), default="rewrite")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     questions = [json.loads(line) for line in args.questions.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -178,6 +179,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     def one(row: dict[str, Any]) -> Rewrite:
         names = linked_names(str(row["question"]), entities[str(row["business_id"])])
         try:
+            if args.mode == "normalize":
+                from .question_normalize import normalize_question
+
+                return normalize_question(row, names=names, complete=complete, model=args.model)
             return rewrite(row, names=names, complete=complete, model=args.model)
         except (openai.OpenAIError, httpx.HTTPError, ValueError) as error:
             return Rewrite(id=str(row["id"]), original=str(row["question"]), rewritten=None, problem=f"api error: {type(error).__name__}: {str(error)[:120]}", model=args.model)

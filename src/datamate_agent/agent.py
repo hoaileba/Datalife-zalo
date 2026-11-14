@@ -179,7 +179,7 @@ def preamble(as_of: str) -> str:
 
 
 def local_runner(shop_dir: Path, *, as_of: str) -> RunCode:
-    env = {**os.environ, "PYTHONPATH": str(SRC_DIR), "PYTHONWARNINGS": "ignore"}
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, (str(SRC_DIR), os.environ.get("PYTHONPATH")))), "PYTHONWARNINGS": "ignore"}
 
     def run(code: str) -> CodeResult:
         try:

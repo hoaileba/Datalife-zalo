@@ -1,15 +1,20 @@
-ARG BASE_IMAGE=python:3.10-slim
-FROM ${BASE_IMAGE}
+ARG VLLM_IMAGE=vllm/vllm-openai:v0.32.0
+FROM ${VLLM_IMAGE}
 
-WORKDIR /app
-COPY pyproject.toml ./
-COPY docker/constraints.txt docker/constraints.txt
-COPY src ./src
-RUN pip install --no-cache-dir -c docker/constraints.txt .
+ENTRYPOINT []
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    NCCL_P2P_DISABLE=1 \
+    PYTHONUNBUFFERED=1
 
-ENV PYTHONPATH=/app/src \
-    PYTHONWARNINGS=ignore \
-    PYTHONUNBUFFERED=1 \
-    LLM_BACKEND=vllm
+WORKDIR /code
+COPY requirements.txt /code/requirements.txt
+RUN python3 -m pip install --no-cache-dir --target /code/deps -r /code/requirements.txt
+COPY models/ /code/models/
+COPY training_code/ /code/training_code/
+COPY predict.sh README.md /code/
+COPY src/ /code/src/
+RUN chmod +x /code/predict.sh
 
-ENTRYPOINT ["python", "-m", "datamate_agent.pipeline", "--dataset", "/data", "--work", "/work", "--out", "/output/submission.jsonl"]
+CMD ["bash", "/code/predict.sh"]

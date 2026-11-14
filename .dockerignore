@@ -1,8 +1,13 @@
 *
-!pyproject.toml
 !Dockerfile
-!docker/
-!docker/**
+!predict.sh
+!README.md
+!requirements.txt
 !src/
 !src/**
-src/**/__pycache__
+!models/
+!models/**
+!training_code/
+!training_code/**
+**/__pycache__
+**/*.pyc

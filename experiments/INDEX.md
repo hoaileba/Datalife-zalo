@@ -38,3 +38,5 @@ Append-only. Cập nhật ngay khi mở và khi đóng một thực nghiệm. Lu
 | `EXP-20261107-04-example-selection` | P0 | Thư viện từ train_*, gemma xếp lại ví dụ khi TF-IDF không chắc, prompt v11 | v10+rerank+thư viện +0,876, file nộp +0,878 local (strict +0,850); v11 +0,849 đã bỏ | | | `closed` | `EXP-20261107-03-gates-public1000` |
 | `EXP-20261108-01-gemma4-vllm` | P0 | gemma-4-12B-it qua vLLM, cùng pipeline, 100 câu public | +0,920 so với gemma-3 +0,930 cùng 100 câu; 3 câu lỗi do trả lời không dừng | | | `closed` | `EXP-20261107-04-example-selection` |
 | `EXP-20261108-02-gemma4-public1000` | P0 | gemma-4-12B-it qua vLLM, 1000 câu public (100 câu từ EXP-20261108-01 + 900 câu mới) | +0,943 lenient (+0,915 strict), file nộp out/submission.jsonl; gemma-3 +0,878 cùng pipeline; 13 câu trống do trả lời không dừng | | | `closed` | `EXP-20261108-01-gemma4-vllm` |
+
+| `EXP-20261109-01-controlled-query-norm-public1000` | P0 | Controlled LLM query normalization thay free-form rewrite; đủ 1000 câu public, Gemma-4 vLLM | chưa chạy | chưa chạy | chưa chạy | `open` | `EXP-20261108-02-gemma4-public1000` |
