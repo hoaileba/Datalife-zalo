@@ -13,16 +13,32 @@ import re
 
 import pandas as pd
 
-from .data import INDEX_LIMIT, RAW_SUFFIX, UNIT_SUFFIX, is_text
+from .data import INDEX_LIMIT, RAW_SUFFIX, SECTION_COL, SOURCE_COL, START_COL, UNIT_SUFFIX, is_text
 from .helpers import norm
 
+
+TABLE_NOTES = (   # how every table was read: the same for all shops (system prompt section 4)
+    'Tables are read from the source files with their ORIGINAL column headers. Only format fixes were applied: '
+    'header detection (a two-row header joined as "upper / lower"; rows above the header shown as text_above_header: '
+    'they may say what the export covers); rows that are not records removed, counted in dropped_rows with examples: '
+    'blank, repeated header, totals (a total label, or numbers equal to the sum of their block), one-cell notes '
+    'after the data, signature footers; one-cell rows heading sections become the column '
+    f'"{SECTION_COL}"; partitions of one table (monthly sheets, files named _1/_2/_2026) concatenated, with '
+    f'"{SOURCE_COL}" naming the origin sheet/file. Numbers, quantities and dates are parsed from content (decimal '
+    'mark and day/month order as the column\'s own cells show, noted when it matters); when the '
+    f'source held text, "<col>{RAW_SUFFIX}" keeps the original (listed only where some cells did not parse). '
+    f'Quantities written with a unit ("2 gói") keep the unit in "<col>{UNIT_SUFFIX}". Line tables where only the '
+    'first line of an order carries the order cells (id, date, status, customer) have those cells filled down to '
+    f'the following lines of the order (noted on the columns; "{START_COL}" marks the lines that carried them). NOT '
+    'applied: duplicate removal, status normalization, entity merging, unit conversion: apply the rulebook and '
+    'README in code.')
 
 NOTE_PARTS = {
     'joins': 'a column name shared by several tables, checked against the table where it is unique (the master): values '
              'and rows of the other tables that the master does not have will not join.',
     'spelling_variants': 'one value written several ways that differ only in case, spaces or missing accents: group '
-                         'by the code; without a code, by dm.name_key(column, master column): an unaccented form goes with '
-                         'its one accented form (plain dm.norm also merges names that differ by a tone mark, '
+                         'by the code; without a code, by kit.name_key(column, master column): an unaccented form goes with '
+                         'its one accented form (plain kit.norm also merges names that differ by a tone mark, '
                          'which are different names).',
     'code_names': 'one code written with several names on its rows: group by the code, take the name from the master.',
     'units': 'items written in several units in one table: convert to the base unit before summing quantities.'}

@@ -62,5 +62,19 @@ class FakeLLM:
         return Reply(reply if isinstance(reply, str) else render_action(reply), 'stop', None, 0.0)
 
 
-def program(lines, answer_type='number', plan='p'):
-    return {'action': 'python', 'plan': plan, 'answer_type': answer_type, 'code_lines': lines}
+def program(lines, answer_type='number', plan='p', checked=False):
+    """A scripted reply: the last `result = X` becomes the result dict of that type (None: lines kept as they are)."""
+    lines = list(lines)
+    if answer_type == 'explore':
+        lines = lines[:-1] if lines and lines[-1].startswith('result = ') else lines
+        lines.append("result = {'type': 'look'}")
+    elif answer_type and lines and lines[-1].startswith('result = '):
+        value = lines[-1][len('result = '):]
+        lines[-1] = f"result = {{'type': {answer_type!r}, 'answer': {value}" + (", 'checked': True}" if checked else '}')
+    return {'action': 'python', 'plan': plan, 'code': '\n'.join(lines)}
+
+
+def decision(kind, reason='', checked=False):
+    """A reply whose program only decides: abstain or unanswerable."""
+    extra = (f", 'reason': {reason!r}" if reason else '') + (", 'checked': True" if checked else '')
+    return program([f"result = {{'type': {kind!r}{extra}}}"], None)

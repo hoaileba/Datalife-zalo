@@ -133,8 +133,9 @@ class Prices:
 
 class Recorder:
     """The LLM seen by one question: forwards to the shared client and keeps each call (exact messages, reply, error)."""
-    def __init__(self, llm, system_sha, inline_system):
+    def __init__(self, llm, system_sha, inline_system, prefill=()):
         self.llm, self.system_sha, self.inline_system, self.calls = llm, system_sha, inline_system, []
+        self.prefill = list(prefill)                 # forced first turns (gen.forced): replayed, never sent to the model
 
     def _messages(self, messages):
         if self.inline_system:
@@ -147,6 +148,12 @@ class Recorder:
                 'message_chars': [len(m.get('content') or '') for m in messages]}
         self.calls.append(call)
         t0 = time.monotonic()
+        if call['index'] < len(self.prefill):        # a forced turn: the host runs it like a model reply
+            from datamate.llm import Reply
+            reply = Reply(self.prefill[call['index']], 'stop', None, 0.0, meta={'injected': True})
+            call.update(output=reply.text, reasoning='', finish='stop', usage=None, seconds=0.0, meta=reply.meta,
+                        output_chars=len(reply.text), reasoning_chars=0, injected=True)
+            return reply
         try:
             reply = self.llm.chat(messages, **kw)
         except Exception as exc:
@@ -157,8 +164,52 @@ class Recorder:
         return reply
 
 
-def select_questions(split: Path, a):
-    qs = read_jsonl(split / 'questions.jsonl')
+def splits_of(root: Path):
+    """[root] for one split; the mini splits under it for a folder of worlds (gen.world: one split per question)."""
+    if (root / 'questions.jsonl').exists():
+        return [root]
+    return sorted(p for p in root.iterdir() if p.is_dir() and (p / 'questions.jsonl').exists())
+
+
+class Worlds:
+    """Businesses of many splits (business ids are unique across worlds); a split's data is dropped from memory once
+    its last selected question is done."""
+    def __init__(self, split_of, cache, left):
+        self.split_of, self.cache, self.left = split_of, cache, dict(left)
+        self.items, self.lock = {}, threading.Lock()
+
+    def rulebook(self, split):
+        return load_rulebook(split / 'rulebook.md')
+
+    def get(self, q):
+        split = self.split_of[q['id']]
+        with self.lock:
+            if split not in self.items:
+                text, stats, changed, _ = self.rulebook(split)
+                self.items[split] = (Businesses(split, text, self.cache, changed), stats)
+            bs, stats = self.items[split]
+        return bs.get(q['business_id']) + (stats,)
+
+    def done(self, q):
+        split = self.split_of[q['id']]
+        with self.lock:
+            self.left[split] -= 1
+            if self.left[split] <= 0:
+                self.items.pop(split, None)
+
+
+def select_questions(splits, a, split_of=None):
+    qs = []
+    for s in splits:
+        for q in read_jsonl(s / 'questions.jsonl'):
+            qs.append(q)
+            if split_of is not None:
+                split_of[q['id']] = s
+    if getattr(a, 'redo_from', None):                      # second pass: the questions a first run did not get right
+        last = {}
+        for row in read_jsonl(Path(a.redo_from) / 'index.jsonl'):
+            last[row['id']] = row['outcome']
+        qs = [q for q in qs if q['id'] in last and last[q['id']] != 'correct']
     if a.business:
         qs = [q for q in qs if q.get('business_id') in set(a.business)]
     if a.ids or a.ids_file:
@@ -188,6 +239,7 @@ def main(argv=None):
     ap.add_argument('--seed', type=int, default=0, help='shuffle seed of the selection')
     ap.add_argument('--ids', nargs='*')
     ap.add_argument('--ids-file')
+    ap.add_argument('--redo-from', help='teacher run folder: only its questions not answered correctly (two-pass teacher)')
     ap.add_argument('--business', nargs='*')
     ap.add_argument('--shard', help='k/n: this process takes every n-th question from k (several machines/keys)')
     ap.add_argument('--samples', type=int, default=1, help='runs per question (sample k uses seed config.seed + k)')
@@ -197,6 +249,8 @@ def main(argv=None):
     ap.add_argument('--max-calls', type=int, help='override agent.max_calls')
     ap.add_argument('--price', help='USD per 1M tokens: input_miss,input_hit,output (cost per call and budget)')
     ap.add_argument('--max-usd', type=float, help='stop starting new questions once the estimated cost reaches this (needs --price)')
+    ap.add_argument('--teacher-note', help='markdown appended to the system prompt for the teacher only (gen.package rebuilds '
+                    'the student prompts with the agent code, so the student never sees it)')
     ap.add_argument('--inline-system', action='store_true', help='store the full system prompt in every call (default: a reference + sha256)')
     ap.add_argument('--resume', action='store_true', help='skip records already in <out>/logs (see --retry)')
     ap.add_argument('--allow-test', action='store_true', help='allow public_test/private_test splits')
@@ -206,12 +260,20 @@ def main(argv=None):
     ap.add_argument('--export-every', type=int, default=200,
                     help='rewrite <out>/sft/ (gen.package, recorded prompts) every N finished records, in the background, and at the end')
     ap.add_argument('--dry-run', action='store_true', help='print the selection and the estimate, no model calls')
+    ap.add_argument('--prefill', help='JSONL {id, replies: [text, ...]} (gen.forced): forced first turns replayed before the '
+                    'model is called; the host runs them as usual (error / flag), the teacher writes the turns after')
     a = ap.parse_args(argv)
 
     split, out = Path(a.split), Path(a.out)
+    prefill = {}
+    if a.prefill:
+        for line in open(a.prefill, encoding='utf-8'):
+            if line.strip():
+                d = json.loads(line)
+                prefill[d['id']] = d
     if any(t in str(split.resolve()) for t in TEST_SPLITS) and not a.allow_test:
         raise SystemExit('refusing a test split for training data (pass --allow-test only with explicit permission)')
-    if not (a.limit or a.all or a.ids or a.ids_file):
+    if not (a.limit or a.all or a.ids or a.ids_file or a.redo_from):
         raise SystemExit('choose the questions: --limit N, --all, --ids or --ids-file')
     load_dotenv()
     cfg = load_config(a.config)
@@ -230,7 +292,9 @@ def main(argv=None):
             raise SystemExit(f"set {llm_cfg['base_url_env']} (base URL of the model server)")
         os.environ[llm_cfg['base_url_env']] = default
 
-    questions = select_questions(split, a)
+    splits = splits_of(split)
+    split_of = {}
+    questions = select_questions(splits, a, split_of)
     jobs = [(q, k) for q in questions for k in range(a.samples)]
     name = lambda q, k: f"{q['id']}.json" if a.samples == 1 else f"{q['id']}__s{k}.json"
     (out / 'logs').mkdir(parents=True, exist_ok=True)
@@ -262,9 +326,14 @@ def main(argv=None):
     if len(todo) > cfg['run'].get('dev_limit', 6) and not a.yes:
         raise SystemExit(f"{len(todo)} runs > dev limit {cfg['run'].get('dev_limit', 6)}: pass --yes once the user approved it")
 
-    rulebook, rulebook_stats, changed, system = load_rulebook(split / 'rulebook.md')
+    rulebook, rulebook_stats, changed, system = load_rulebook(splits[0] / 'rulebook.md')
+    if a.teacher_note:
+        system = system.rstrip('\n') + '\n\n' + Path(a.teacher_note).read_text(encoding='utf-8').strip() + '\n'
     system_sha = sha(system)
-    gold = {g['id']: g for g in read_jsonl(split / 'answers.jsonl')} if (split / 'answers.jsonl').exists() else {}
+    gold = {}
+    for s in {split_of[q['id']] for q in questions}:
+        if (s / 'answers.jsonl').exists():
+            gold.update({g['id']: g for g in read_jsonl(s / 'answers.jsonl')})
     cfg_text = yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False)
     (out / 'config.yaml').write_text(cfg_text, encoding='utf-8')
     (out / 'system_prompt.md').write_text(system, encoding='utf-8')
@@ -291,7 +360,10 @@ def main(argv=None):
         raise SystemExit(f'preflight call to {base_url} failed: {type(exc).__name__}: {str(exc)[:300]}')
     prices = Prices(a.price)
     cache = Path(cfg['run']['cache_dir']); cache = cache if cache.is_absolute() else ROOT / cache
-    businesses = Businesses(split, rulebook, writable_dir(cache, out / 'cache'), changed)
+    left = {}
+    for q, k in todo:
+        left[split_of[q['id']]] = left.get(split_of[q['id']], 0) + 1
+    worlds = Worlds(split_of, writable_dir(cache, out / 'cache'), left)
     shared = {}                                            # one client per sample seed (seed is part of the request)
     def client(k):
         if k not in shared:
@@ -319,14 +391,18 @@ def main(argv=None):
         rec = {'schema': SCHEMA, 'run_id': run_id, 'id': q['id'], 'sample': k, 'business_id': q.get('business_id'),
                'question': q.get('question'), 'as_of': q.get('as_of_date'), 'question_row': q,
                'gold': gold.get(q['id']),
-               'input': {'split': str(split), 'config_sha256': run_info['config_sha256'], 'system_prompt_sha256': system_sha,
+               'input': {'split': str(split_of[q['id']]), 'config_sha256': run_info['config_sha256'], 'system_prompt_sha256': system_sha,
                          'model': llm_cfg['model'], 'temperature': llm_cfg.get('temperature'), 'seed': llm_cfg['seed'] + k,
                          'max_calls': cfg['agent']['max_calls'], 'max_tokens': llm_cfg['max_tokens'],
                          'extra_body': llm_cfg.get('extra_body'), 'rulebook': rulebook_stats},
                'started_at': started_at, 'thread': threading.current_thread().name}
-        recorder = Recorder(client(k), system_sha, a.inline_system)
+        forced = prefill.get(q['id']) or {}
+        recorder = Recorder(client(k), system_sha, a.inline_system, forced.get('replies', ()))
+        if forced:
+            rec['forced'] = forced.get('kind', 'forced')
         try:
-            business, catalog, path = businesses.get(q['business_id'])
+            business, catalog, path, rb_stats = worlds.get(q)
+            rec['input']['rulebook'] = rb_stats
             rec['input'].update(catalog_sha256=sha(json.dumps(catalog, ensure_ascii=False, sort_keys=True, default=str)),
                                 catalog_chars=len(json.dumps(catalog, ensure_ascii=False, default=str)))
             result = solve({'id': q['id'], 'question': q['question'], 'as_of': q['as_of_date']},
@@ -337,6 +413,7 @@ def main(argv=None):
         except Exception:                                  # noqa: BLE001 - host failure: recorded, the run goes on
             kind, answer = 'abstain', None
             rec.update(reason='host_error', error=traceback.format_exc()[-5000:], trace=[], calls=len(recorder.calls))
+        worlds.done(q)
         line = submission_line(q['id'], kind, answer)
         if not format_ok(line):
             rec['raw_answer'] = {'type': kind, 'answer': answer}

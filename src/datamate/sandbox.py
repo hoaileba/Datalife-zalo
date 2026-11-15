@@ -45,9 +45,10 @@ class Execution:
         return f"{e.get('type')}: {e.get('message')}{where}{values}{hint}"
 
 
-def execute(code: str, tables_path: Path, as_of: str, limits: Limits | None = None) -> Execution:
+def execute(code: str, tables_path: Path, as_of: str, limits: Limits | None = None, typed: bool = True) -> Execution:
+    """typed: result must be the agent's {"type", "answer"} dict (shape.typed); False: any value (replay of old programs)."""
     limits = limits or Limits()
-    request = json.dumps({'code': code, 'tables_path': str(Path(tables_path).resolve()), 'as_of': str(as_of), 'max_stdout': limits.max_stdout,
+    request = json.dumps({'code': code, 'typed': typed, 'tables_path': str(Path(tables_path).resolve()), 'as_of': str(as_of), 'max_stdout': limits.max_stdout,
                           'limits': [limits.memory_bytes, limits.cpu_seconds, limits.file_bytes]})
     env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'PYTHONPATH': SRC, 'PYTHONIOENCODING': 'utf-8',
            'PYTHONHASHSEED': '0', 'OMP_NUM_THREADS': '1', 'OPENBLAS_NUM_THREADS': '1', 'MKL_NUM_THREADS': '1'}

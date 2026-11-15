@@ -29,7 +29,7 @@ R=[
 ('purchase', r'nhap|phieu nhap|nha cung cap|ncc'),
 ('net_profit', r'lai rong|loi rong|chi phi'),
 ('gross_profit', r'lai|loi|gia von'),
-('unsold', r'\be\b|khong ban.*(duoc|ra)|ko ai mua|khong ai mua'),
+('unsold', r'\b(hang|mon|mat hang|bi|nhung|bao nhieu|may) e\b|\be (am|hang)\b|khong ban.*(duoc|ra)|ko ai mua|khong ai mua'),   # a bare 'e' is the 'em' prefix
 ('price_on_day', r'gia bao nhieu|don gia|gia ban|gia mot'),
 ('cancel_rate', r'(ti|ty) le.*huy|% don.*huy|phan tram don.*huy|huy.*(%|phan tram)'),
 ('cancel_count', r'huy'),

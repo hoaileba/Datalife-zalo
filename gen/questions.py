@@ -62,7 +62,10 @@ def allowed(intent, industry, rules):
         return True
     if intent in INDUSTRY_ONLY and industry in INDUSTRY_ONLY[intent]:
         return True
-    return any(sec in rules.sections and industry in trades for sec, trades in SECTION_ONLY.get(intent, {}).items())
+    from . import industries
+    own = industries.sections(industry)           # a generated trade: its sections follow from its traits
+    return any(sec in rules.sections and (industry in trades or sec in own)
+               for sec, trades in SECTION_ONLY.get(intent, {}).items())
 RELATIVE = ['today', 'yesterday', 'this_month', 'last_week', 'this_week', 'last_n_days', 'ytd']
 RANKED = {'top_items', 'top_customers', 'top_staff', 'top_supplier', 'best_day', 'best_month', 'top_table'}
 
@@ -79,12 +82,25 @@ class Sampler:
         self.full_months = [m for m in months if P.month_end(*m) <= self.end]
         self.views = {}
 
-    def stock_date_ok(self, date):
-        """Stock at `date` can be read from the files: a stock card, or end stock rolled back with purchases."""
+    def stock_date_ok(self, date, item=None):
+        """Stock at `date` can be read from the files: a stock card, or end stock rolled back with purchases when no
+        goods came back after `date` (review B5-2: half the returned orders return only some lines, which most files
+        do not show, so a roll-back over a return is not derivable)."""
         caps = self.L.shop['caps']
         if 'stock' not in caps:
             return True                       # asked anyway: the oracle answers unanswerable
-        return 'stock_history' in caps or 'purchases' in caps or date == self.end
+        if 'stock_history' in caps or date >= self.end:
+            return True
+        if 'purchases' not in caps:
+            return False
+        mv = self.L.stock_moves
+        if len(mv) and 'kind' in mv:
+            back = mv[(mv['kind'] == 'in_return') & (pd.to_datetime(mv['time']) >= pd.Timestamp(date) + pd.Timedelta(days=1))]
+            if item is not None and 'product_id' in back:
+                back = back[back['product_id'] == item]
+            if len(back):
+                return False
+        return True
 
     def view(self, as_of):
         if as_of not in self.views:
@@ -103,7 +119,8 @@ class Sampler:
         """Season windows of the split rulebook for this trade that start in the data and end by as_of."""
         out = []
         for key, label, *_ in self.R.seasons:
-            if SEASON_TRADES.get(key) != self.L.shop.get('industry'):
+            from . import industries
+            if (SEASON_TRADES.get(key) or industries.season_trade(key)) != self.L.shop.get('industry'):
                 continue
             for y in range(self.start.year, as_of.year + 2):
                 spec = {'kind': 'season', 'name': key, 'year': y, 'label': label}
@@ -273,7 +290,10 @@ class Sampler:
             p = self.month()
             o = V.in_period(V.valid, p)
             n = o[o.customer_id.notna()].groupby('customer_id').order_id.nunique()
-            return S(n=self.threshold(n.values, money=False) if len(n) else 3, period=p)
+            k = self.threshold(n.values, money=False) if len(n) else 3
+            if intent == 'customers_min_orders_share':
+                k = max(2, k)                 # 'at least 1 order' among buyers is 100 % by definition
+            return S(n=k, period=p)
         if intent == 'items_min_orders':
             p = self.month()
             l = V.in_period(V.vlines, p)
@@ -336,7 +356,13 @@ class Sampler:
             u = L.products[L.products.kind != 'fee'].base_unit.value_counts()
             return S(unit=u.index[int(rng.integers(min(3, len(u))))], period=per)
         if intent == 'qty_size':
-            if L.shop.get('industry') == 'fashion':
+            from . import industries
+            ind = L.shop.get('industry')
+            if industries.is_generated(ind):
+                sz = industries.sizes(ind)
+                style = 'word' if industries.traits(ind).get('sizes') == 'word' else 'paren'
+                return S(size=str(sz[int(rng.integers(len(sz)))]), style=style, period=per) if sz else None
+            if ind == 'fashion':
                 return S(size=str(rng.choice(['S', 'M', 'L', 'XL'])), style='word', period=per)
             return S(size=rng.choice(['M', 'L']), period=per)
         if intent in ('guests_total', 'revenue_per_guest', 'top_table'):
@@ -356,7 +382,7 @@ class Sampler:
             if pid is None or not self.stock_date_ok(as_of):
                 return None
             date = as_of if rng.random() < 0.7 else as_of - dt.timedelta(days=int(rng.integers(1, 60)))
-            if not self.stock_date_ok(date):
+            if not self.stock_date_ok(date, pid):
                 date = as_of
             if intent == 'stock_big_small':
                 big = self.item_unit(pid, big=True)

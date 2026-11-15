@@ -12,7 +12,7 @@ Errors (exit 1):
     train question (q_aug<k>_<x>) has its original in data/train;
   - completion: parses with datamate.prompt.parse_action and is its own normal form (render_action of the parse);
     a final turn is not an explore, an explore turn has a program;
-  - prompt: the user message carries the sample's question, as_of and remaining_calls;
+  - prompt: the user message carries the sample's question, as_of and turn (later turns: a <turn> tag at the end);
   - lengths: every sample within the package max_len (recounted with the Gemma tokenizer when --recount);
   - split: no question group on both sides, no held-out shop in train; every val sample's question is in val_questions.jsonl;
   - --rebuild: each prompt equals what datamate.prompt.messages builds now (needs the source data);
@@ -25,6 +25,7 @@ import argparse
 import collections
 import hashlib
 import json
+import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -39,6 +40,7 @@ from gen.sft import AUG_ID, teacher_turns  # noqa: E402
 FORBIDDEN = ('public_test', 'private_test')
 FILES = ('train.jsonl', 'val.jsonl', 'train_meta.jsonl', 'val_meta.jsonl', 'stats.json', 'README.md', 'val_questions.jsonl')
 FINAL_TYPES = (*COMPUTED, 'unanswerable', 'abstain')
+NONFINAL_KINDS = ('looked', 'not_finalized')       # gen.sft.imitable: a look, a flagged answer later confirmed
 
 
 def _jsonl(path: Path):
@@ -164,21 +166,25 @@ def check(pkg, stats=None, rebuild=False, replay=False, recount=False, tokenizer
                 continue
             if prompt.render_action(action) != text:
                 r.error('completion_form', f'{where}: not in the normal form render_action writes')
+            if action.get('action') != 'python' or (m.get('final') and 'result' not in (action.get('code') or '')):
+                r.error('completion_type', f'{where}: no program (a final turn ends with result = {{...}})')
             if m.get('final'):
-                if action['answer_type'] not in FINAL_TYPES:
-                    r.error('completion_type', f'{where}: final turn with answer type {action["answer_type"]}')
-                elif m.get('gold_type') and action['answer_type'] != m['gold_type']:
+                if m.get('answer_type') not in FINAL_TYPES:
+                    r.error('completion_type', f'{where}: final turn with answer type {m.get("answer_type")}')
+                elif m.get('gold_type') and m['answer_type'] != m['gold_type']:
                     r.counts['final_type_differs_from_gold'] += 1
-            elif action['answer_type'] != prompt.EXPLORE or action['action'] != 'python':
-                r.error('completion_type', f'{where}: non-final turn that is not an explore program')
+            elif m.get('answer_type') not in NONFINAL_KINDS:
+                r.error('completion_type', f'{where}: non-final turn that is neither a look nor a confirmed answer')
             # prompt content
             user = msgs[1]['content']
             if m.get('question') and m['question'].strip() not in user:
                 r.error('prompt_question', f'{where}: question text not in the user message')
             if m.get('as_of') and f'as_of="{m["as_of"]}"' not in user:
                 r.error('prompt_question', f'{where}: as_of {m["as_of"]} not in the user message')
-            if f'remaining_calls="{(m.get("max_calls") or 3) - (m.get("turn") or 0)}"' not in user:
-                r.error('prompt_question', f'{where}: remaining_calls does not match turn {m.get("turn")}')
+            calls, turn = m.get('max_calls') or 3, m.get('turn') or 0
+            last = re.sub(r'\n?<last_turn>.*?</last_turn>\s*$', '', msgs[-1]['content'], flags=re.S)   # the last turn's note
+            if f'turn="1/{calls}"' not in user or (turn and not last.endswith(f'<turn>{turn + 1}/{calls}</turn>')):
+                r.error('prompt_question', f'{where}: turn tags do not match turn {turn}')
             if isinstance(m.get('turn'), int) and len(msgs) > 2 + 2 * m['turn']:
                 r.error('roles', f'{where}: {len(msgs)} messages for turn {m["turn"]}')
             # lengths
@@ -282,7 +288,11 @@ def _replay(sides, r, workers):
         if not run.ok:
             return s['id'], 'error'
         try:
-            kind, answer = retype(action['answer_type'], finalize(action['answer_type'], run.result))
+            res = run.result if isinstance(run.result, dict) else {}
+            if res.get('type') in ('unanswerable', 'abstain'):
+                kind, answer = res['type'], None
+            else:
+                kind, answer = retype(res.get('type'), finalize(res.get('type'), res.get('answer')))
         except AnswerError:
             return s['id'], 'invalid'
         g = gold[m['split']].get(m['id'])

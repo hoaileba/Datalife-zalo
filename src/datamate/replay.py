@@ -31,7 +31,7 @@ def replay(run: Path, split: Path, cfg) -> dict:
         for e in (e for e in log.get('trace', []) if e['event'] == 'execution'):
             stats['programs'] += 1
             stats['ran_before'] += e['ok']
-            run_now = execute(e['code'], tables, q['as_of_date'], Limits(wall_seconds=cfg['sandbox']['wall_seconds']))
+            run_now = execute(e['code'], tables, q['as_of_date'], Limits(wall_seconds=cfg['sandbox']['wall_seconds']), typed=False)
             stats['ran_now'] += run_now.ok
             try:
                 kind = json.loads(models[e['turn']]['output']).get('answer_type')

@@ -119,25 +119,39 @@ SALES2 = ('Mã đơn,Ngày,Khách hàng,Sản phẩm,SL,Thành tiền,Trạng th
           'D2,02/03/2026,Trần Thị Bình,Trà đào,1,35000,Đã hủy,Chuyển khoản\n'
           'D3,15/03/2026,Nguyễn Văn An,Bạc xỉu,3,90000,Hoàn thành,Chuyển khoản\n'
           'D4,16/03/2026,Lê Văn Cường,Trà đào,2,70000,Trả hàng,Tiền mặt\n')
-SUM = ("df = dm.dedup(tables['ban_hang'])\n"
+SUM = ("df = kit.dedup(tables['ban_hang'])\n"
        "assert set(df['Trạng thái']) <= {'Hoàn thành', 'Đã hủy', 'Trả hàng'}, 'unmapped label'\n"
        "result = int(df[df['Trạng thái'] == 'Hoàn thành']['Thành tiền'].sum())")
 REPLIES = {
-    'sum': {'action': 'python', 'answer_type': 'number', 'code': SUM,
+    'sum': {'action': 'python', 'code': SUM,
             'plan': "ASKED: doanh thu. Bảng `ban_hang`, cột 'Thành tiền'; nhãn 'Hoàn thành' tính, 'Đã hủy' và 'Trả hàng' bỏ."},
-    'explore': {'action': 'python', 'answer_type': 'explore', 'plan': "Xem nhãn của cột 'Trạng thái'.",
-                'code': "print(tables['ban_hang']['Trạng thái'].value_counts())"},
-    'keyerror': {'action': 'python', 'answer_type': 'number', 'plan': 'p', 'code': "result = tables['ban_hang']['Không có'].sum()"},
-    'cash': {'action': 'python', 'answer_type': 'number', 'plan': "Đơn 'Tiền mặt' không huỷ, không trả.",
+    'explore': {'action': 'python', 'plan': "Xem nhãn của cột 'Trạng thái'.",
+                'code': "print(tables['ban_hang']['Trạng thái'].value_counts())\nresult = {'type': 'look'}"},
+    'keyerror': {'action': 'python', 'plan': 'p', 'code': "result = tables['ban_hang']['Không có'].sum()"},
+    'cash': {'action': 'python', 'plan': "Đơn 'Tiền mặt' không huỷ, không trả.",
              'code': "df = tables['ban_hang']\nresult = int(df[(df['Phương thức thanh toán'] == 'Tiền mặt') & "
                      "(df['Trạng thái'] == 'Hoàn thành')]['Thành tiền'].sum())"},
-    'spaced': {'action': 'python', 'answer_type': 'number', 'plan': 'p',       # a spelling only the tolerant read accepts
+    'spaced': {'action': 'python', 'plan': 'p',       # a spelling only the tolerant read accepts
                'code': "df = tables['ban_hang']\nresult = int((df['Trạng thái '] == 'Hoàn thành').sum())"},
 }
+
+
+def _v5(code):                       # prompt v5: the last `result = X` becomes the result dict
+    head, _, value = code.rpartition('result = ')
+    return code if value.startswith('{') else f"{head}result = {{'type': 'number', 'answer': {value}}}"
+
+
+for _r in REPLIES.values():
+    _r['code'] = _v5(_r['code'])
+REPLIES['sum_fix'] = dict(REPLIES['sum'], plan='CAUSE: BIND - the column did not exist.\n' + REPLIES['sum']['plan'])
+for _r in REPLIES.values():                  # the clean answer form gen.sft.form_problem requires
+    cause, _, rest = _r['plan'].rpartition('\n') if _r['plan'].startswith('CAUSE:') else ('', '', _r['plan'])
+    _r['plan'] = (cause + '\n' if cause else '') + f'REASON:\n{rest}\nASKED: x | y | z | shape: one number\nRULES:\n- [r] -> r\nPLAN:\nBIND: ban_hang'
+
 QUESTIONS = {                                  # text -> (gold, replies)
     'Doanh thu tháng này?': ({'type': 'number', 'answer': 140000}, ['sum']),
     'Doanh thu tháng 3 là bao nhiêu?': ({'type': 'number', 'answer': 140000}, ['explore', 'sum']),
-    'Tổng tiền các đơn hoàn thành?': ({'type': 'number', 'answer': 140000}, ['keyerror', 'sum']),
+    'Tổng tiền các đơn hoàn thành?': ({'type': 'number', 'answer': 140000}, ['keyerror', 'sum_fix']),
     'Doanh thu tiền mặt tháng 3?': ({'type': 'number', 'answer': 50000}, ['cash']),
     'Có mấy dòng hoàn thành?': ({'type': 'number', 'answer': 2}, ['spaced']),
 }
@@ -278,7 +292,7 @@ def test_header_groups_keep_marks_and_labels_keep_their_group():
         for cat, pool in style.items():
             assert any(reskin.label_concept(x) for x in pool), cat
     assert reskin.label_concept('Đã hủy') == ('order status', 'cancelled')
-    assert reskin.label_concept('Đã hoàn hàng') is None
+    assert reskin.label_concept('Đã hoàn hàng') == ('order status', 'returned')   # train status words (catalog.LABEL_WORDS)
 
 
 def test_a_kept_name_is_not_mapped_by_its_spelling():

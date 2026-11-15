@@ -50,7 +50,7 @@ def test_catalog_hides_lossless_raw_and_groups_empty_columns():
 def test_catalog_prefix_and_lookup(split, tmp_path):
     b = load_business(split / 'data' / 'biz_1', split / 'calendar.csv')
     catalog = build_catalog(b, 'RULES')
-    assert [d['name'] for d in catalog['documents']] == ['README.md', 'rulebook.md'] and catalog['schemas'][-1]['table'] == 'calendar'
+    assert catalog['rulebook'] == 'RULES' and 'Quán demo' in catalog['readme'] and catalog['schemas'][-1]['table'] == 'calendar'
     hits = lookup('khach nguyen van an mua gi', b)
     assert hits[0]['value'] == 'Nguyễn Văn An' and hits[0]['match'] == 'mentioned in question'
     assert not lookup('bao nhieu don', b)                            # everyday words never match
@@ -341,7 +341,7 @@ def test_data_notes_failure_drops_only_the_notes(monkeypatch):
     shop.profiles = []
     monkeypatch.setattr(notes, '_joins', lambda *a: 1 / 0)
     catalog = build_catalog(shop, 'R')
-    assert 'data_notes' not in catalog and catalog['documents'][1]['text'] == 'R'
+    assert 'data_notes' not in catalog and catalog['rulebook'] == 'R'
 
 
 def test_header_title_rows_years_bools_and_dateless_sheets(tmp_path):
@@ -357,3 +357,11 @@ def test_header_title_rows_years_bools_and_dateless_sheets(tmp_path):
     grid = type('G', (), {'rows': [['Mã', 'SL'], ['A', 1]]})
     parsed = {f'Kho.xlsx:{s}': {'labels': ['Mã', 'SL'], 'grid': grid, 'data': [1]} for s in ('Đầu kỳ', 'Cuối kỳ')}
     assert partition_groups(parsed) == [['Kho.xlsx:Đầu kỳ'], ['Kho.xlsx:Cuối kỳ']]   # no dates: kept apart, no crash
+
+
+def test_label_groups_know_the_train_status_words():
+    from datamate.catalog import label_groups
+    col = {'name': 'TT', 'all_values': [(v, 1) for v in ('ok', 'Không giao được', 'Đang xử lý', 'hàng trả về', 'Đang giao dịch')]}
+    groups = label_groups([{'table': 't', 'columns': [col]}])[0]['labels']
+    assert groups == {'cancelled': ['Không giao được'], 'returned': ['hàng trả về'], 'completed': ['ok'],
+                      'delivering': ['Đang xử lý', 'Đang giao dịch']}

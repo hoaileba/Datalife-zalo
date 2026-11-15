@@ -39,8 +39,9 @@ def guard_prints(tree):
     for stmt in tree.body:
         if (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call) and isinstance(stmt.value.func, ast.Name)
                 and stmt.value.func.id == 'print'):
-            warn = ast.Expr(ast.Call(ast.Name('print', ast.Load()), [ast.Constant(f'[host] print on line {stmt.lineno} failed; ignored')], []))
-            stmt = ast.Try(body=[stmt], handlers=[ast.ExceptHandler(ast.Name('Exception', ast.Load()), None, [warn])],
+            warn = ast.parse(f"print('[host] print on line {stmt.lineno} failed (' + type(__print_error__).__name__ + ': ' "
+                             "+ str(__print_error__)[:300] + '); ignored')").body[0]       # the error says what to fix (a column name)
+            stmt = ast.Try(body=[stmt], handlers=[ast.ExceptHandler(ast.Name('Exception', ast.Load()), '__print_error__', [warn])],
                            orelse=[], finalbody=[])
             ast.copy_location(stmt, stmt.body[0]); ast.fix_missing_locations(stmt)
         body.append(stmt)

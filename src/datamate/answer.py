@@ -11,7 +11,7 @@ import math
 import re
 from decimal import Decimal, ROUND_HALF_UP
 
-from .helpers import norm
+from .helpers import norm, says_unanswerable
 
 COMPUTED = ('number', 'percent', 'string', 'date', 'boolean', 'list', 'table')
 SCALARS = ('number', 'percent', 'string', 'date', 'boolean')
@@ -78,20 +78,20 @@ def finalize(answer_type, value):
             value = value['rows'][0][0]
         if isinstance(value, list):
             if len(value) != 1:
-                raise AnswerError(f'Answer type {answer_type} needs one value, the result is a list of {len(value)}')
+                raise AnswerError(f'Type {answer_type} needs one value, the result is a list of {len(value)}')
             value = value[0]
     if answer_type in ('number', 'percent'):
         n = _number(value)
         if n is None:
-            raise AnswerError(f'Answer type {answer_type} needs a finite number, got {value!r}'[:200])
+            raise AnswerError(f'Type {answer_type} needs a finite number, got {value!r}'[:200])
         return n
     if answer_type == 'string':
         if not isinstance(value, str) or not value.strip() or value.strip().lower() in BLANK_TEXT:
-            raise AnswerError(f'Answer type string needs a non-empty name, got {value!r}'[:200])
+            raise AnswerError(f'Type string needs a non-empty name, got {value!r}'[:200])
         return value
     if answer_type == 'boolean':
         if not isinstance(value, bool):
-            raise AnswerError(f'Answer type boolean needs True or False, got {value!r}'[:200])
+            raise AnswerError(f'Type boolean needs True or False, got {value!r}'[:200])
         return value
     if answer_type == 'date':
         return _date(value)
@@ -105,7 +105,7 @@ def finalize(answer_type, value):
             value = [value]
         return [_cell(v) for v in value]
     if not isinstance(value, dict) or 'columns' not in value:
-        raise AnswerError('Answer type table needs a DataFrame: one row per object, first column the name, then the measures')
+        raise AnswerError('Type table needs a DataFrame: one row per object, first column the name, then the measures')
     if not value['columns']:
         raise AnswerError('The table has no columns')
     return {'columns': column_names(value['columns']), 'rows': [[_cell(c) for c in row] for row in value['rows']]}
@@ -120,7 +120,6 @@ def column_names(columns):
 
 BLANK_TEXT = {'nan', 'none', 'null', 'nat', '<na>'}
 NUMBER_TEXT = re.compile(r'-?[1-9]\d*(\.\d+)?|-?0\.\d+')       # not a code: no leading zero, no letters
-UNANSWERABLE_TEXT = {'unanswerable', 'khong tra loi duoc', 'khong the tra loi'}
 DATE_TEXT = re.compile(r'\d{4}-\d{2}(-\d{2})?')
 
 
@@ -128,7 +127,7 @@ def retype(answer_type, answer):
     """(answer_type, answer) with a date or month written as text submitted as a date: the format has one type per kind."""
     if answer_type == 'string' and isinstance(answer, str) and DATE_TEXT.fullmatch(answer.strip()):
         return 'date', answer.strip()
-    if isinstance(answer, str) and norm(answer) in UNANSWERABLE_TEXT:      # the program concluded it, as a value
+    if says_unanswerable(answer):                       # the program concluded it, as a value
         return 'unanswerable', None
     return answer_type, answer
 
@@ -150,7 +149,7 @@ def issues(answer_type, answer, question):
         found.append('a value is a number written as text: give numbers as numbers')
     asked = PERCENT_IN_NAME.sub(' ', question)      # "Povidine 10%", "giảm hơn 5%": a number with %, not the asked unit
     if ('%' in asked or PERCENT_WORDS.search(norm(asked))) and answer_type != 'percent':
-        found.append(f'the question asks for a percentage but the Answer type is {answer_type}')
+        found.append(f'the question asks for a percentage but the type is {answer_type}')
     return found
 
 

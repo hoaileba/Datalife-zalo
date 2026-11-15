@@ -26,8 +26,8 @@ from .data import _fingerprint, load_business
 from .grids import decode_text
 from .eval import format_ok, health, score
 from .llm import LLM
-from .prompt import system_prompt
-from .rules import compare, load_train_units, units
+from .prompt import SYSTEM
+from .rules import units
 from .solve import Context, solve
 
 
@@ -51,22 +51,12 @@ def select(questions, limit, seed):
     random.Random(seed).shuffle(questions)
     return sorted(questions[:limit], key=lambda q: (q['business_id'], q['id']))
 
-ONLY_CHANGES = ('The standard rules are in the cookbook of the system prompt (section 4). The rules of this set that '
-                'differ from the standard or are new are listed in rulebook_changes, word for word: they win.')
-STANDARD = 'This set uses the standard rules: they are in the cookbook of the system prompt (section 4).'
-FULL = ("This set's rulebook differs from the standard in most lines, so here it is in full. It wins over the cookbook "
-        'of the system prompt wherever they differ.\n\n')
-
-
 def load_rulebook(path: Path):
-    """(rulebook document for the prompt, counts, changed lines for catalog.rulebook_changes, system prompt). The
-    cookbook of the system prompt carries the standard (train) rules minus the ones this set changed or dropped; the
-    changed and new lines are listed word for word; a rewritten rulebook is sent whole with the whole cookbook."""
+    """(rulebook text for the prompt, counts, changed lines, system prompt). v5 sends the rulebook word for word and
+    one system prompt for every set; the empty changed list keeps the 4-value form the gen/ and scripts/ callers use."""
     text = decode_text(path.read_bytes()) if path.is_file() else ''     # a missing or odd file never stops the run
-    diff = compare(text, load_train_units())
-    stats = {'units': len(units(text)), 'changed': len(diff['changes']), 'gone': len(diff['gone']), 'full': diff['full']}
-    system = system_prompt(frozenset(diff['gone']))
-    return (FULL + text if diff['full'] else ONLY_CHANGES if diff['changes'] else STANDARD), stats, diff['changes'], system
+    text = text.strip() or '(no rulebook was given)'
+    return text, {'units': len(units(text)), 'chars': len(text)}, [], SYSTEM
 
 
 def snapshot(out: Path, cfg, system):
@@ -137,6 +127,31 @@ def write_submission(out, questions, lines):
         for q in questions:
             f.write(json.dumps(lines.get(q['id']) or submission_line(q['id'], 'abstain'), ensure_ascii=False) + '\n')
     os.replace(out / 'submission.jsonl.tmp', out / 'submission.jsonl')
+    records = out / 'logs' / 'answers.jsonl'                  # a retried question: keep only its last record
+    if records.exists():
+        last = {r['id']: r for r in read_jsonl(records)}
+        records.write_text(''.join(json.dumps(r, ensure_ascii=False, default=str) + '\n' for r in last.values()), encoding='utf-8')
+
+
+def organizer_record(line, log, elapsed):
+    """One line of logs/answers.jsonl in the organizers' log format: id, answer, elapsed_ms, thinking (model
+    reasoning per call, null when none was generated), code and output of the executed programs in call order."""
+    trace = log.get('trace') or []
+    thinking = [e.get('reasoning') or '' for e in trace if e.get('event') == 'model']
+    runs = [e for e in trace if e.get('event') == 'execution']
+    return {'id': line['id'], 'answer': {'type': line['type'], 'answer': line['answer']},
+            'elapsed_ms': max(0, int(elapsed * 1000)), 'thinking': thinking if any(thinking) else None,
+            'code': [e.get('code') for e in runs] or None,
+            'output': [e.get('result') if e.get('ok') else e.get('trace') for e in runs] or None,
+            'reason': log.get('reason')}
+
+
+def write_question(out, submission, line, log, elapsed):
+    """Submission line (flushed at once), full trace logs/<id>.json, one-line record in logs/answers.jsonl."""
+    submission.write(json.dumps(line, ensure_ascii=False) + '\n'); submission.flush()
+    (out / 'logs' / f"{line['id']}.json").write_text(json.dumps(log, ensure_ascii=False, indent=1, default=str), encoding='utf-8')
+    with open(out / 'logs' / 'answers.jsonl', 'a', encoding='utf-8') as f:
+        f.write(json.dumps(organizer_record(line, log, elapsed), ensure_ascii=False, default=str) + '\n')
 
 
 def run(args, cfg, llm=None):
@@ -151,7 +166,7 @@ def run(args, cfg, llm=None):
     write_lock, lines, logs = threading.Lock(), {}, []
     done = {} if not getattr(args, 'resume', False) else {l['id']: l for l in read_jsonl(out / 'submission.jsonl') if 'type' in l}
     submission = open(out / 'submission.jsonl', 'a' if done else 'w', encoding='utf-8')   # opened before anything can fail
-    lines.update(done)
+    lines.update(done); done or (out / 'logs' / 'answers.jsonl').write_text('', encoding='utf-8')   # fresh run: new log
     cache = Path(cfg['run']['cache_dir']); cache = cache if cache.is_absolute() else ROOT / cache
     cache = writable_dir(cache, Path(tempfile.gettempdir()) / 'datamate_cache', out / 'cache')   # sandbox reads it
     businesses = Businesses(split, rulebook, cache, changed)
@@ -179,8 +194,7 @@ def run(args, cfg, llm=None):
             line, log['reason'] = submission_line(q['id'], 'abstain'), 'format_guard'
         log.update(type=line['type'], answer=line['answer'], seconds=round(time.monotonic() - t0, 2))
         with write_lock:
-            submission.write(json.dumps(line, ensure_ascii=False) + '\n'); submission.flush()
-            (out / 'logs' / f"{q['id']}.json").write_text(json.dumps(log, ensure_ascii=False, indent=1, default=str), encoding='utf-8')
+            write_question(out, submission, line, log, time.monotonic() - t0)
             lines[q['id']] = line; logs.append(log)
 
     todo = [q for q in questions if q['id'] not in done]

@@ -1,0 +1,6 @@
+# Agent environment (/opt/agent venv), kept apart from vLLM's own packages. Same pins as pyproject.toml.
+pandas==2.2.3
+numpy==1.26.4
+python-calamine==0.9.1
+openai==3.46.0
+pyyaml==6.0.3

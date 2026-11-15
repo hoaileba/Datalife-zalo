@@ -42,7 +42,7 @@ details.sub{margin:4px 0}details.sub>summary{cursor:pointer;padding:2px 0}detail
 .role{font-weight:700;text-transform:uppercase;font-size:11px;color:var(--acc)}
 .tool{float:right;font-size:11px}.tool a{color:var(--acc);cursor:pointer;margin-left:8px}
 </style></head><body>
-<div class="col"><h3>Runs</h3><div id="r"></div></div>
+<div class="col"><h3><a href="/data" style="color:var(--acc)">▸ Dữ liệu train (tổng quan)</a></h3><h3>Runs</h3><div id="r"></div></div>
 <div class="col"><h3 id="rt">Questions</h3>
 <select id="flt"><option value="">tất cả</option><option>wrong</option><option>ok</option><option>abstain</option><option value="err">có lỗi</option></select>
 <div id="s" class="mut" style="padding:0 12px 8px"></div><div id="q"></div></div>
@@ -85,7 +85,8 @@ function parseJSON(t){try{return JSON.parse(t)}catch(e){return null}}
 function ev(e,i){
   const t=e.event;let head=`<span class="ev ${t}">${t}</span><span class="mut">turn ${e.turn??'–'}</span>`,body='';
   if(t=='model'){
-    head+=`<span class="mut">finish=${esc(e.finish)} · ${e.seconds}s · ${esc(e.usage?`${e.usage.prompt_tokens??'?'}→${e.usage.completion_tokens??'?'} tok`:'')}</span>`;
+    if(e.meta&&e.meta.injected)head+=`<span class="b wrong">lượt chèn (gen.forced): không phải teacher, không thành mẫu</span>`;
+    head+=`<span class="mut">finish=${esc(e.finish)} · ${e.seconds}s ·${esc(e.usage?`${e.usage.prompt_tokens??'?'}→${e.usage.completion_tokens??'?'} tok`:'')}</span>`;
     head+=`<a class="inbtn" onclick="event.preventDefault();event.stopPropagation();showInput(this,${e.turn})">⇢ input</a>`;
     const a=parseJSON(e.output);
     if(a){const {action,answer_type,diagnosis,plan,rules,code_lines,code,...rest}=a;
@@ -106,7 +107,7 @@ function ev(e,i){
     if(e.issues&&e.issues.length)head+=`<span class="abstain">⚠ ${esc(e.issues.join('; '))}</span>`;
     body=V(Object.fromEntries(Object.entries({error:e.error,stdout:e.stdout||undefined,code:e.code}).filter(([,x])=>x!==undefined)));
   }else if(t=='observation'){const o=e.observation||{};const bad=o.status=='error'||(o.status=='explored'&&o.error);
-    head+=`<span class="b ${bad?'wrong':o.status=='explored'?'ok':'abstain'}">${esc(o.status)}${o.status=='explored'&&o.error?' · error':''}</span>`;
+    head+=`<span class="b ${bad?'wrong':(o.status=='explored'||o.status=='looked')?'ok':'abstain'}">${esc(o.status)}${o.status=='explored'&&o.error?' · error':''}</span>`;
     const {status,...rest}=o;if(typeof rest.result=='string'){const r=parseJSON(rest.result);if(r!==null)rest.result=r}body=V(rest);
   }else body=V(e);
   const open=t!='execution'||(e.explore?!!e.failed:!e.ok)||!!(e.issues&&e.issues.length);
@@ -155,14 +156,14 @@ async function showSft(el){
 // ---------- panes ----------
 const paTxt=s=>s&&s.n?`PA <b>${s.pa}</b> <span class="ok">✓${s.correct}</span> <span class="wrong">✗${s.wrong}</span> <span class="abstain">∅${s.abstain}</span>`:'';
 async function loadRuns(){const rs=await get('/api/runs');$('r').innerHTML=rs.map(x=>`<div class="it ${x.name==R?'on':''}" onclick="pickRun('${esc(x.name)}')">
-${x.running?'<span class="dot"></span>':''}<b>${esc(x.name)}</b><div class="mut">${x.done} câu${x.running?' · đang chạy':''}${x.score&&x.score.n?'<br>'+paTxt(x.score):''}${x.kind=='teacher'?`<br>${x.sft!=null?`SFT ${x.sft} mẫu`:'chưa export SFT'}${x.cost?` · $${x.cost}`:''}`:''}</div></div>`).join('')}
+${x.running?'<span class="dot"></span>':''}<b>${esc(x.name)}</b><div class="mut">${x.done} câu${x.running?' · đang chạy':''}${x.score&&x.score.n?'<br>'+paTxt(x.score):''}${x.kind=='teacher'?`<br>${x.sft!=null?`SFT ${x.sft} mẫu`:'chưa export SFT'}${x.cost?` · $${x.cost}`:''}`:(x.cost?` · $${x.cost}`:'')}</div></div>`).join('')}
 function pickRun(n){R=n;Q=null;lastQ='';location.hash=encodeURIComponent(n);loadRuns();loadRun();$('d').innerHTML='<span class="mut">Chọn câu hỏi</span>'}
 async function loadRun(){if(!R)return;const d=await get('/api/run?name='+encodeURIComponent(R));$('rt').textContent=R;
   const s=d.summary,h=s&&s.health,live=d.live,x=s&&s.sft_export;
   const running=d.teacher?s.running:!s;
   $('s').innerHTML=`${running?'<span class="dot"></span>đang chạy · ':''}${d.rows.length} câu xong${live.n?' · '+paTxt(live):''}`
     +(d.teacher?`<br>${s.sft_live?`SFT <b>${s.sft_live.samples}</b> mẫu từ ${s.sft_live.records_kept}/${s.sft_live.records} câu (đếm trực tiếp)`:''}${x?` · sft/ đã export: ${x.samples} mẫu từ ${x.records_kept}/${x.records} record (final ${x.final}, explore ${x.explore})`:` · sft/ chưa export`}${running?' (export lại mỗi --export-every câu)':''}${s.cost_usd!=null&&!running?` · $${s.cost_usd}`:''}`
-      :s?`<br>${s.seconds}s${h?` · calls ${h.calls} · lỗi ${h.failed_programs} · cut ${h.cut} · ${esc(Object.entries(h.reasons||{}).map(([k,v])=>k+' '+v).join(', '))}`:''}`:'');
+      :s||d.cost?`<br>${d.cost?`$${d.cost} · `:''}${s?s.seconds+'s':''}${h?` · calls ${h.calls} · lỗi ${h.failed_programs} · cut ${h.cut} · ${esc(Object.entries(h.reasons||{}).map(([k,v])=>k+' '+v).join(', '))}`:''}`:'');
   const f=$('flt').value;
   $('q').innerHTML=d.rows.filter(x=>!f||(f=='err'?x.errors:x.mark==f)).map(x=>`<div class="it ${x.id==Q?'on':''}" onclick="pickQ('${esc(x.id)}')">
 ${x.mark?`<span class="b ${x.mark}">${x.mark}</span>`:''}${x.sft?`<span class="b ok">SFT ${x.sft}</span>`:''}<span class="mut">${esc(x.reason)} · ${x.calls} call · ${x.seconds}s${x.cost?` · $${x.cost.toFixed(4)}`:''}${x.errors?` · <span class="wrong">${x.errors} lỗi</span>`:''}</span>

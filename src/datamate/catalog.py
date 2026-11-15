@@ -3,29 +3,17 @@ and the values the question mentions (lookup). Built once per business; identica
 serving engine's prefix cache covers it.
 
 In:  `Business` (data.py), rulebook text, question text.
-Out: catalog dict {'notes', 'schemas', 'documents'} and `lookup(question, business)` matches.
+Out: catalog dict {'schemas', 'label_groups', 'data_notes', 'readme', 'rulebook', ...} and `lookup(question, business)` matches.
+How the tables were read (the same for every shop) is notes.TABLE_NOTES, in the system prompt.
 """
 from __future__ import annotations
 
-from .data import RAW_SUFFIX, SECTION_COL, SOURCE_COL, START_COL, UNIT_SUFFIX
+import re
+
+from .data import RAW_SUFFIX, SOURCE_COL, UNIT_SUFFIX
 from .helpers import norm
 from .notes import data_notes
 
-NOTES = (
-    'Tables are read from the source files with their ORIGINAL column headers. Only format fixes were applied: '
-    'header detection (a two-row header joined as "upper / lower"; rows above the header shown as text_above_header: '
-    'they may say what the export covers); rows that are not records removed, counted in dropped_rows with examples: '
-    'blank, repeated header, totals (a total label, or numbers equal to the sum of their block), one-cell notes '
-    'after the data, signature footers; one-cell rows heading sections become the column '
-    f'"{SECTION_COL}"; partitions of one table (monthly sheets, files named _1/_2/_2026) concatenated, with '
-    f'"{SOURCE_COL}" naming the origin sheet/file. Numbers, quantities and dates are parsed from content (decimal '
-    'mark and day/month order as the column\'s own cells show, noted when it matters); when the '
-    f'source held text, "<col>{RAW_SUFFIX}" keeps the original (listed only where some cells did not parse). '
-    f'Quantities written with a unit ("2 gói") keep the unit in "<col>{UNIT_SUFFIX}". Line tables where only the '
-    'first line of an order carries the order cells (id, date, status, customer) have those cells filled down to '
-    f'the following lines of the order (noted on the columns; "{START_COL}" marks the lines that carried them). NOT '
-    'applied: duplicate removal, status normalization, entity merging, unit conversion: apply the rulebook and '
-    'README in code.')
 MAX_MATCHES, MAX_PER_PHRASE = 15, 5
 UNREADABLE = ('These files of the shop could not be read: their rows are in no table. A question that needs them may '
               'be unanswerable.')
@@ -38,9 +26,10 @@ thu binh trung doanh ti le phan tram gia nhap ton kho lai lo huy
 hai ba bon tu sau bay tam chin muoi tram nghin ngan trieu ty
 hop vi vien goi chai tuyp ong lon thung ly cai""".split())       # packaging alone names no product
 LABEL_WORDS = {   # folded words that name a status or payment concept in a label: grouping HINTS, never applied to data
-    'order status': {'cancelled': 'huy|cancel|cancelled|canceled|void', 'returned': 'tra hang|hoan tra|doi tra|tra lai|return|returned|refund|hoan tien',
-                     'completed': 'hoan thanh|xong|completed|complete|done|success|thanh cong|da giao|delivered',
-                     'delivering': 'dang giao|cho giao|dang van chuyen|van chuyen|shipping|delivering|in transit', 'pending pickup': 'cho lay|cho xu ly|pending|dat truoc|preorder'},
+    'order status': {'cancelled': 'huy|cancel|cancelled|canceled|void|voided|khong giao duoc',
+                     'returned': 'tra hang|hoan tra|doi tra|tra lai|return|returned|refund|refunded|hoan tien|hang tra ve|hoan hang',
+                     'completed': 'hoan thanh|xong|completed|complete|done|success|thanh cong|da giao|delivered|da lay|ok|paid',
+                     'delivering': 'dang giao|cho giao|dang van chuyen|van chuyen|shipping|delivering|in transit|dang gui|dang xu ly', 'pending pickup': 'cho lay|cho xu ly|pending|dat truoc|preorder'},
     'payment': {'cash': 'tien mat|cash', 'transfer': 'chuyen khoan|transfer|bank', 'cod': 'cod', 'debt': 'ghi no|cong no|no|debt|credit|tra sau',
                 'e-wallet': 'vi dien tu|ewallet|e wallet|momo|zalopay|vnpay|shopeepay'}}
 HONORIFICS = set('anh chị cô chú bác ông bà'.split())   # accented: "chị Mai Lan" names someone, "có", "ba" (3) do not
@@ -78,19 +67,19 @@ def schema(profile):
 
 
 def build_catalog(business, rulebook, changed=()):
-    """changed: rule lines of this set with no train match; shown after the documents (closest to the question)."""
+    """The shop block of the first message, plus this set's rulebook text (shown verbatim before the shop).
+    `changed` is ignored (kept for the gen/ and scripts/ callers): v5 sends the whole rulebook, no per-set diff."""
     schemas = [schema(p) for p in business.profiles]
     schemas.sort(key=lambda t: t['table'] == 'calendar')          # shop tables first, shared calendar last
-    catalog = {'notes': NOTES, 'schemas': schemas}
+    catalog = {'schemas': schemas}
     if notes := data_notes(business):
         catalog['data_notes'] = notes
     if groups := label_groups(schemas):
         catalog['label_groups'] = groups
-    catalog['documents'] = [{'name': 'README.md', 'text': business.readme}, {'name': 'rulebook.md', 'text': rulebook}]
     if getattr(business, 'unreadable', None):                      # data the tables do not hold
         catalog['unreadable_files'] = {'note': UNREADABLE, 'files': list(business.unreadable)}
-    if changed:
-        catalog['rulebook_changes'] = list(changed)
+    catalog['readme'] = business.readme or ''
+    catalog['rulebook'] = rulebook or ''
     return catalog
 
 
@@ -161,7 +150,34 @@ def lookup(question, business):
             per_phrase[why] = per_phrase.get(why, 0) + 1
             if per_phrase[why] > MAX_PER_PHRASE:
                 continue
-        out.append({'table': table, 'column': column, 'value': value, 'rows': int(count), 'match': why})
+        hit = {'table': table, 'column': column, 'value': value, 'rows': int(count), 'match': why}
+        if count <= 3 and (codes := _row_codes(business, table, column, value)):
+            hit['codes'] = codes
+        out.append(hit)
         if len(out) >= MAX_MATCHES:
             break
     return out
+
+
+CODE_SHAPE = re.compile(r'^[A-Za-z]{1,6}[-_.]?\d{1,8}$')
+
+
+def _row_codes(business, table, column, value):
+    """The identifier codes on the row(s) holding `value` (a column whose cells are mostly unique code-shaped text),
+    so the model never pairs a name with a code it did not see on the same row."""
+    try:
+        df = business.tables[table]
+        rows = df[df[column].astype(str) == str(value)]
+        out = {}
+        for col in df.columns:
+            if col == column or str(col).startswith('__') or df[col].dtype != object:
+                continue
+            cells = df[col].dropna().astype(str)
+            if len(cells) < 2 or cells.nunique() < 0.9 * len(cells) or cells.str.match(CODE_SHAPE).mean() < 0.9:
+                continue
+            vals = rows[col].dropna().astype(str).unique().tolist()
+            if vals and len(vals) <= 2:
+                out[str(col)] = vals
+        return dict(list(out.items())[:2])
+    except Exception:                                    # noqa: BLE001 - a hint, never a failure
+        return {}

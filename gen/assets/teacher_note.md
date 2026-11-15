@@ -1,0 +1,50 @@
+# Note for this run (how your reply will be used)
+Your reply is training data: a smaller model will learn to write exactly this. Write it as a clean worked solution.
+- The reply starts with `REASON:` (with `CAUSE:` first only right after an error or a look that showed a mistake). Then `ASKED:`, `RULES:`, `PLAN:` each on its own line, then the one ```python block.
+- REASON is a derivation written once, in order: what is asked, which rulebook rows apply and how, which tables and columns, the label mapping of every status/payment column you filter, units (read the base unit and factors from the conversion table, README or catalog; never guess a unit from an item name), the period bounds, duplicates, rows after today, edge cases. Decide each point once. No self-corrections or thinking aloud ("Actually", "Wait", "Hmm", "Let me", "I think", "likely", "probably"), no repeated plans, no code inside REASON.
+- Rankings and lists: order with kit.top (ties by code), never with sort_values or idxmax alone.
+- Units: convert with the shop's factors; a unit with no conversion row is the base unit only when the item's base unit says so; assert that every line's unit was resolved, never default a missing factor to 1 silently.
+- CHECK asserts must be able to fail on a real mistake (rows left, labels covered, keys matched); `x >= 0` or `len(x) >= 0` checks nothing.
+- Each block starts with a one-line comment that says what it does (`# 1. BIND: sales lines, statuses, the item code`).
+- No import, no lambda, no apply, no loops over rows.
+- Duplicates: kit.dedup only when the table shows exact_duplicate_rows > 0 and the rulebook says such rows count once; otherwise say there are none and do not dedup (a table without order ids counts identical rows as separate sales).
+- Date windows: `date >= start` and `date < end + 1 day` (never `<= end`: a time on the last day would be lost).
+- A table whose shop block shows no exact_duplicate_rows has none: say so once in REASON, never "to be safe".
+- Text after kit.norm(...) has no accents: compare it with kit.norm('<label>') (or unaccented lower-case literals), never with an accented literal.
+- Item codes: take them from the name in code (`codes = CATALOG.loc[kit.norm(CATALOG[NAME]) == kit.norm('<name>'), CODE]`), never type a code by hand.
+- Units in money: a line's money is its quantity times its price, both in the line's own unit; convert only the quantity you count or divide by (weighted purchase price = sum(line money) / sum(base quantity)).
+- Missing factors: `assert (unit_key[factor.isna()] == base_key).all()` before `factor.fillna(1)`; never fill a factor without that assert.
+- Grain: count what the question counts (distinct orders, distinct (order, trip) deliveries, distinct customers), not rows. "Quý N/YYYY" is quarter N (months 3N-2..3N), not month N.
+- Stock at a past day: purchases minus goods taken out, where a returned order still took its goods out and only its returned quantity came back (read the return lines), never drop a returned order whole.
+- A confirmation of a flagged answer (resending it with "checked": True) has no CAUSE line; CAUSE only follows an error or a look that showed a mistake.
+- Never re-assert the mask you just applied (`assert df[STATUS].isin(KEPT).all()` after filtering on it checks nothing).
+- kit.name(...) returns the column NAME (a string): use it as `df[COL]`, never call methods on it.
+- "trả bằng X" / "thanh toán bằng X" means paid by X; "đơn trả hàng" is a returned order.
+- Check the asked period against the shop's data range first (the shop block lists each table's date range).
+- Line money: use the stored per-line amount column (after the line discount); never rebuild it as quantity x price (line discounts would be lost). A column is per line when its values differ between the lines of one order; an order total repeats on every line of the order.
+- When the rulebook counts a returned order whole ("tính cả đơn, không trừ phần trả"), sum its sale lines and leave out its return lines (negative quantities / return rows).
+- A term the rulebook defines (số khách, doanh thu bình quân một khách, lượt xe, xe quay lại, size…) keeps that definition even when the question words it loosely; a size question sums every item whose name ends with that size.
+- Re-read §1 "Doanh thu một đơn" of THIS rulebook every time: rulebooks differ on whether the order discount is subtracted and whether shipping is added.
+- A phrase the rulebook defines (bán được / thu về bao nhiêu tiền = doanh thu, số đơn, …) always takes the rulebook's meaning; "the question says otherwise" applies only when the question states another way to compute.
+- Never assert a date you worked out in your head (`START == pd.Timestamp('…')`); compute bounds with kit / pandas and check them structurally (e.g. `START.weekday() == 0`, `END - START == pd.Timedelta(days=6)`).
+- Shipping and order-level discounts belong to the order: item and group revenue use the line amounts only; a share's numerator (an item or group) uses line amounts while its denominator is the whole shop's §1 revenue (shipping and voucher as §1 says). Everything about an order or the whole shop (an order's tiền hàng / tiền bán / doanh thu, orders over X, average per order, revenue by day, month or staff) follows §1 in full, shipping and order discount included as §1 says.
+- A rule about days ("sau ngày mua", "cùng ngày", "trong N ngày") compares calendar days: `.dt.normalize()` both sides, never full timestamps.
+- Debt totals, debtors and debt age cover every non-cancelled order that still owes, except COD and marketplace orders; only "nợ thêm" / "trả nợ" flows are limited to orders written as debt.
+- "cộng / tính mọi mặt hàng (mẫu)" asks ONE summed number, not a table per item.
+- Every rule line that rulebooks vary is read from THIS rulebook, never from memory: week start, "tháng này so với tháng trước", shifts, Tết bounds, seasons, cancel-rate denominator, percent decimals, bestseller criterion, N ngày gần nhất.
+- An order's payable total (tổng thanh toán, khách phải trả) includes shipping: build revenue from line amounts, then subtract the order discount or add shipping only as §1 says.
+- Stock at a past day, returned orders: a returned order's sale lines stay in "taken out"; only its return lines (returned quantity) come back into stock.
+- "Nhóm hàng" needs a group column (or a group in the catalog); never build groups from item names: without one the question is unanswerable.
+- Order of rules: §1 shipping and order-discount changes apply to every order-level and shop-level measure, and never to item or group revenue (those use line amounts).
+- No item master giving base units: a unit with no conversion row for its item is that item's base unit; assert only that the units which do have a conversion row resolved.
+- Several numbers asked in an order (từng tháng, lần lượt, từ cũ đến mới) are a list in that order (§9); a table only for a breakdown per named object.
+- A state at the end of day X (còn nợ, số khách nợ, tồn kho, hết hàng) uses only orders, payments, receipts and stock moves dated up to X: cut every table at X, not just one of them.
+- Round a column with round_decimal(col, 0) (it takes a Series), never with map(lambda …).
+- An order's date, time and shift come from its sale lines or its header, never from its return lines (a return line carries the time of the return).
+- The duplicate-line rule ("Hai dòng của cùng một đơn giống nhau ở mọi ô", however it is worded) means: identical lines of ONE order are an export error and count once (kit.dedup when exact_duplicate_rows > 0 on a table with order ids); identical lines of DIFFERENT orders are two sales.
+- When returned orders count whole and the file writes returns as negative lines, keep only the sale lines: filter `lines[QTY] > 0` before summing.
+- Match item names against the full catalog; a conversion table lists only the items that have a large unit. Without a full catalog, group the sale lines by kit.name_key on their own.
+- Before ranking or counting items, or reading a named period ("mùa … năm Y"), check §6 of THIS rulebook for the shop's trade: groups that are not items (topping, phụ kiện, phí, khăn lạnh…), seasons, its own terms; name the §6 rows you use in RULES.
+- Worked example, stock at the end of day X: in_stock = purchases up to X − (sale-line quantities of every non-cancelled order up to X, returned orders included) + (return-line quantities up to X). Never write "taken out = orders not cancelled and not returned".
+- A README column literally named like a rulebook term ("Tiền hàng", "Tiền bán", "Doanh thu") does not override the rulebook: build the rulebook's measure from line amounts and §1.
+- Name a table's measure columns with the question's words (§9 compares columns by name first).

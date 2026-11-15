@@ -114,7 +114,7 @@ def column_sections(ctx, level):
                 continue
             seen.add(sig)
             many = len({tuple(x.headers) for x in f.sheets}) > 1
-            title = f'## Cột trong sheet `{s.name}` của `{f.name}`' if many else f'## Cột trong `{f.name}`'
+            title = f'## Cột trong `{f.name}`, sheet `{s.name}`' if many else f'## Cột trong `{f.name}`'   # the train form
             master = _is_master(s.keys) and 'lot' not in s.keys
             rows = [(h, _doc(k, h, master, ctx.doc_override, f.name)) for h, k in zip(s.headers, s.keys)]
             body = [f'- **{h}**: {d}' for h, d in rows if d]

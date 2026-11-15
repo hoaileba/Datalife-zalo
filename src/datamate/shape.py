@@ -6,6 +6,7 @@ Out: scalar | list | {'columns': [...], 'rows': [[...]]}; dates as {'$date': 'YY
 Unambiguous conversions only: DataFrame (also subclasses; group keys in the index become columns), Series (group
 keys -> two-column table, else its values), ndarray/Index -> list, list of same-key dicts -> table,
 dict of equal-length columns -> table. Nothing is guessed.
+`typed(result)`: the program's final {"type", "answer", "reason", "checked"} dict (prompt v5), its answer shaped.
 """
 from __future__ import annotations
 
@@ -113,3 +114,24 @@ def shape(value):
         raise ShapeError('A dict result is ambiguous: for a table assign a DataFrame (one row per object, first column '
                          'the name), for a list a Python list, for one value the value itself')
     return cell(value)
+
+
+TYPES = ('number', 'percent', 'string', 'date', 'boolean', 'list', 'table', 'look', 'unanswerable', 'abstain')
+FORM = 'end the program with result = {"type": "<type>", "answer": <value>}'
+
+
+def typed(value):
+    """{'type', 'answer', 'reason', 'checked'} from the program's result dict; ShapeError says the right form."""
+    if not isinstance(value, dict) or 'type' not in value:
+        raise ShapeError(f'result must be a dict with a "type": {FORM} (look: {{"type": "look"}}; unanswerable: '
+                         '{"type": "unanswerable", "reason": "..."}).')
+    kind = str(value['type']).strip().lower()
+    if kind not in TYPES:
+        raise ShapeError(f'Unknown result type {value["type"]!r}: one of {list(TYPES)}.')
+    extra = sorted(set(value) - {'type', 'answer', 'reason', 'checked'})
+    if extra:
+        raise ShapeError(f'Unknown keys {extra} in result: only "type", "answer", "reason", "checked".')
+    if kind in TYPES[:7] and 'answer' not in value:
+        raise ShapeError(f'A result of type {kind} needs its "answer": {FORM}.')
+    return {'type': kind, 'answer': shape(value['answer']) if kind in TYPES[:7] else None,
+            'reason': str(value.get('reason') or '')[:300], 'checked': value.get('checked') is True}

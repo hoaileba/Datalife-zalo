@@ -66,35 +66,27 @@ def test_compare_gone_standard_lines_and_rewrites():
     assert compare(rewrite, TRAIN) == {'changes': [], 'gone': set(), 'full': True}
 
 
-def test_rulebook_document_changes_system_prompt_and_full(tmp_path, monkeypatch):
-    import datamate.runner as runner
+def test_rulebook_is_sent_word_for_word_with_one_system_prompt(tmp_path):
     from datamate.prompt import SYSTEM
-    from datamate.runner import FULL, ONLY_CHANGES, load_rulebook
-    big = dict(TRAIN, **{key(f'| Luật {i} | x |'): f'| Luật {i} | x |' for i in range(10)})
-    monkeypatch.setattr(runner, 'load_train_units', lambda: big)
+    from datamate.runner import load_rulebook
     book = tmp_path / 'rulebook.md'
-    book.write_text(BOOK + '\n'.join(f'| Luật {i} | x |' for i in range(1, 10)) + '\n### Sửa xe\n| Lượt xe | một lượt |\n',
-                    encoding='utf-8')
+    book.write_text(BOOK + '### Sửa xe\n| Lượt xe | một lượt |\n', encoding='utf-8')
     text, stats, found, system = load_rulebook(book)
-    assert text == ONLY_CHANGES and found == ['Sửa xe: | Lượt xe | một lượt |']
-    assert stats == {'units': len(units(book.read_text(encoding='utf-8'))), 'changed': 1, 'gone': 1, 'full': False}
-    assert system == SYSTEM                                         # the gone line ("Luật 0") carries no recipe
-    book.write_text('# R\n' + '\n'.join(f'- luật mới số {i}' for i in range(10)), encoding='utf-8')
-    text, stats, found, system = load_rulebook(book)
-    assert text.startswith(FULL) and 'luật mới số 9' in text and found == [] and stats['full'] and system == SYSTEM
+    assert text == book.read_text(encoding='utf-8').strip() and found == [] and system == SYSTEM
+    assert stats == {'units': len(units(text)), 'chars': len(text)}
 
 
 def test_rulebook_file_read_tolerantly(tmp_path):
-    from datamate.runner import STANDARD, load_rulebook
-    text, stats, found, _ = load_rulebook(tmp_path / 'missing.md')                  # no rulebook: nothing listed, run goes on
-    assert text == STANDARD and found == [] and stats['units'] == 0          # no changed line: the standard rules
+    from datamate.runner import load_rulebook
+    text, stats, found, _ = load_rulebook(tmp_path / 'missing.md')                  # no rulebook: said, run goes on
+    assert text == '(no rulebook was given)' and found == []
     book = tmp_path / 'rulebook.md'
     book.write_text(BOOK, encoding='utf-8')
-    expected = load_rulebook(book)[2]
-    book.write_bytes(('﻿' + BOOK).encode('utf-8'))                              # BOM: the heading is still a heading
-    assert load_rulebook(book)[2] == expected
+    expected = load_rulebook(book)[0]
+    book.write_bytes(('\ufeff' + BOOK).encode('utf-8'))                              # BOM dropped
+    assert load_rulebook(book)[0] == expected
     book.write_bytes(BOOK.encode('utf-16'))                                          # not UTF-8
-    assert load_rulebook(book)[2] == expected
+    assert load_rulebook(book)[0] == expected
 
 
 def test_retyped_rule_aligned_by_name_keeps_or_drops_its_recipe():
@@ -129,8 +121,6 @@ def test_rewritten_train_rulebook_as_bullets_keeps_every_recipe():
     bullets = '\n'.join(out)
     c = compare(bullets, load_train_units())
     assert not c['full'] and c['changes'] == []
-    from datamate.prompt import SYSTEM, system_prompt
-    assert system_prompt(frozenset(c['gone'])) == SYSTEM                     # only header rows and table rules went
 
 
 def test_an_edit_wins_over_a_copy_and_headings_alone_are_no_standard():

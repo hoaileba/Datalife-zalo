@@ -78,7 +78,7 @@ class Distiller:
         path = self.cache / f'{key}.txt'
         if path.exists():
             return path.read_text(encoding='utf-8')
-        user = f"QUESTION: {question}\n\nNOTES:\n{thinking[:30000]}\n\nPROGRAM (answer type {action['answer_type']}):\n{action.get('code', '(none: a decision)')}"
+        user = f"QUESTION: {question}\n\nNOTES:\n{thinking[:30000]}\n\nPROGRAM:\n{action.get('code', '(none: a decision)')}"
         try:
             text = self.llm.chat([{'role': 'system', 'content': DISTILL}, {'role': 'user', 'content': user}],
                                  deadline=time.monotonic() + 300).text.strip().strip('`').strip()
@@ -138,7 +138,7 @@ def samples(run: Path, split: Path, cache_dir: Path, plans=None, jobs=None):
                     jobs.append(((qid, t), (q['question'], e['reasoning'], action)))
                 elif plans and plans.get((qid, t)):
                     action = {**action, 'plan': plans[(qid, t)]}
-            explored_ok = action.get('answer_type') == prompt.EXPLORE and t in obs and 'error' not in obs[t]
+            explored_ok = imitable(obs.get(t), pred.get('type'), pred.get('answer'))
             keep = jobs is None and action['action'] != 'invalid' and (t == last_turn or explored_ok)
             if keep:
                 msgs = prompt.messages(catalog, q['question'], q['as_of_date'], matches, history, max_calls - t,
@@ -147,7 +147,8 @@ def samples(run: Path, split: Path, cache_dir: Path, plans=None, jobs=None):
                        'completion': [{'role': 'assistant', 'content': prompt.render_action(action)}],
                        'meta': {'schema': SFT_SCHEMA, 'id': qid, 'group': group_of(qid), 'business_id': b, 'turn': t,
                                 'final': t == last_turn, 'run': run.name, 'split': str(split), 'calls': log.get('calls'),
-                                'gold_type': g['type'], 'answer_type': action.get('answer_type'), 'source': 'runner_log'}}
+                                'gold_type': g['type'], 'answer_type': pred.get('type') if t == last_turn else turn_kind(obs.get(t), False),
+                                'source': 'runner_log'}}
             if t in obs:
                 history.append((_echo(action), obs[t]))
 
@@ -165,6 +166,190 @@ def group_of(qid, orig=None):
         return orig
     m = AUG_ID.match(qid or '')
     return f'q_{m.group(1)}' if m else qid
+
+
+def imitable(observation, final_type, final_answer):
+    """A non-final turn worth imitating (prompt v5): a look that ran, or an answer the host flagged that the final
+    turn confirmed unchanged (same JSON) / an unanswerable it confirmed. Error turns stay only in the history."""
+    if not observation:
+        return False
+    st = observation.get('status')
+    if st == 'looked':
+        return True
+    if st != 'not_finalized':
+        return False
+    if 'result' in observation:              # a flagged answer (the host keeps its flag out of the trace; the
+        shown = observation['result']        # observation shows the answer, clipped)
+        full = json.dumps(final_answer, ensure_ascii=False)
+        return final_type not in ('unanswerable', 'abstain') and bool(shown) and full.startswith(shown)
+    if 'evidence' in observation:            # an unanswerable shown with the shop's evidence
+        return final_type == 'unanswerable'
+    return False
+
+
+# ---------- sample quality gates (final data run, review of batch 0) ----------
+RAMBLE_STRONG = re.compile(r"(?i)\b(wait|hmm+|oops|let me|on second thought|to be safe|careful)\b|\bBetter:|\?\s*(No|Careful|But|Good)\b"
+                           r"|(?:^|[.:;!?]\s+)Actually\b")      # 'actually' as an adverb ("actually collected") is fine
+# a base unit guessed from the item's name or kind instead of read from the catalog / conversion table
+UNIT_GUESS = re.compile(r"(?i)natural base unit|item name (itself )?(says|ends|states|shows)|\b(it is|being) an? (dish|drink|rice|food)\b|sold by (the )?kg\b")
+RAMBLE_WEAK = re.compile(r"(?i)\b(let's|i think|probably|likely|maybe|safest|safer reading|however|simpler|cleanest)\b|\bbut\b.{0,40}\bmight\b")
+LINE_START = {k: re.compile(rf'(?m)^{k}:') for k in ('ASKED', 'RULES', 'PLAN')}
+CHECKED = re.compile(r"""['\"]checked['\"]\s*:\s*True""")
+PRINT_CALL = re.compile(r'(?m)^\s*print\(')
+LOOK = re.compile(r"""['"]type['"]\s*:\s*['"]look['"]""")
+ACCENTED = 'àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ'
+LINT = [
+    ('lambda_apply', re.compile(r'\blambda\b|\.apply\(')),
+    ('import', re.compile(r'(?m)^\s*(?:import|from)\s+\w')),
+    # loops over rows (a loop over a literal list or an UPPER-CASE constant, e.g. 3 months, is fine)
+    ('row_loop', re.compile(r'(?m)^\s*for\s+[\w, ]+\s+in\s+(?!\[|\(|[A-Z_][A-Z0-9_]*\s*:|tables\b|[\w.]*\.columns\b|[\w.]*\.keys\(\)|[\w.]*\.values\(\))[^\n]*:\s*$|\.iterrows\(|\.itertuples\(')),
+    ('assert_or_true', re.compile(r'(?m)^\s*assert\b[^\n]*(?:\bor\s+True\b|\belse\s+True\b)')),
+    ('dead_code', re.compile(r'\bif False\b')),
+]
+# a day filter that loses the time of the last day: a column (`]`) <= an end/as_of/day name (asserts are not filters)
+DATE_LE = re.compile(r"\]\s*<=\s*(?:pd\.Timestamp\(|kit\.to_date\(|['\"]\d{4}-\d{2}-\d{2}|[A-Za-z_]*(?:END|End|end|AS_OF|as_of|DAY|day|LAST|last)\b)")
+GET_1 = re.compile(r'\.get\((?:[^()\n]|\([^()\n]*\))*,\s*1(?:\.0)?\s*\)')
+FILL_1 = re.compile(r'\.fillna\(\s*1(?:\.0)?\s*\)')
+VACUOUS = re.compile(r'^\s*assert\s+[^,\n]*>=\s*0\s*(?:,|$)|^\s*assert\s+0\s*<=\s*[\w.\[\]\'"]+\s*<=\s*100\b')
+NORM_LIT = re.compile(r"""kit\.norm\(\s*(?:'[^'\n]*'|"[^"\n]*")\s*\)""")
+ACCENT_CMP = re.compile(rf"""(?:==|!=|isin\()[^\n]*['"][^'"\n]*[{ACCENTED}][^'"\n]*['"]""", re.I)
+ASSERT_MSG = re.compile(r""",\s*f?(?:'[^'\n]*'|"[^"\n]*")\s*$""")
+ASSERT_ALL = re.compile(r"""\(?\s*(\w+)\[([\w'"]+)\](\.isin\([\w\s+]+\)|\s*[<>=!]=?\s*[\w.'"]+)\s*\)?\.all\(\)""")
+ACC_IN = re.compile(rf"""['"][^'"\n]*[{ACCENTED}][^'"\n]*['"]\s+in\s+kit\.norm\(""", re.I)
+ACC_LIST = re.compile(rf"""\[\s*['"][^'"\n]*[{ACCENTED}][^'"\n]*['"]""", re.I)    # a list of accented words ...
+IN_NORM = re.compile(r'\bin\s+kit\.norm\(')                                         # ... tested with `w in kit.norm(c)`
+LOC_1 = re.compile(r'\.loc\[[^\]\n]*isna[^\]\n]*\]\s*=\s*1(?:\.0)?\b')
+NO_ORDER_ID = re.compile(r'(?i)\b(table|file|sheet|log|book|shop)\b[^.\n]{0,30}\b(has|carries|records|holds) no order (id|code|number)'
+                         r'|\bno order[- ](id|code|number) column(?!\s+(separate|other|besides|apart|distinct))'
+                         r'|không có (cột )?mã đơn|không ghi mã đơn')   # the table, not some rows
+# an assert made only of `NAME == pd.Timestamp('…')` comparisons: a date worked out in the head (stripped at export)
+TYPED_DATE_ASSERT = re.compile(r"""^\s*assert\s+\(?\s*\w+\s*==\s*pd\.Timestamp\(['"][\d\- :]+['"]\)\s*\)?(?:\s+and\s+\(?\s*\w+\s*==\s*pd\.Timestamp\(['"][\d\- :]+['"]\)\s*\)?)*\s*(?:,[^\n]*)?$""")
+CODE_CONST = re.compile(r"""['"]([A-Z]{2,}\d{3,})['"]""")
+
+
+def reason_of(text):
+    """The REASON part of a reply (from REASON: to the first line-start ASKED:)."""
+    m = re.search(r'(?s)REASON:(.*?)(?=^ASKED:|\Z)', text or '', re.M)
+    return m.group(1) if m else ''
+
+
+NOTE_REF = re.compile(r"(?i)\b(?:per|by|from|following|and)\s+the\s+(?:note|instructions?|guidance)\b(?!\s+rows?)"
+                      r"|\bthe\s+(?:instructions?|guidance)\s+(?:is|are|says?|states?|forbids?|requires?)\b|\bthe\s+note\s+(?:that|says?)\b"
+                      r"|\bper\s+instructions\b")
+
+
+def quotes_note(text):
+    """review B8-0: a reply that cites the teacher-only note teaches the student to cite guidance it never sees."""
+    return bool(NOTE_REF.search(text or ''))
+
+
+def form_problem(text, after_error, after_flag=False):
+    """Why a reply is not in the clean answer form, or None: starts with REASON (CAUSE first after an error; never CAUSE
+    on a confirmation of a flagged answer), ASKED, RULES, PLAN each at a line start, REASON without thinking aloud
+    (one strong marker, or two weak ones)."""
+    head = (text or '').lstrip()
+    if after_error and not head.startswith('CAUSE:'):
+        return 'no_cause_after_error'
+    if after_flag and head.startswith('CAUSE:'):
+        return 'cause_on_confirmation'
+    if not (head.startswith('REASON:') or head.startswith('CAUSE:')):
+        return 'not_reason_first'
+    if 'REASON:' not in head:
+        return 'no_reason'
+    pos = {}
+    for k, rx in LINE_START.items():
+        m = rx.search(head)
+        if not m:
+            return f'no_line_start_{k.lower()}'
+        pos[k] = m.start()
+    if sorted(pos, key=pos.get) != sorted(pos, key=['ASKED', 'RULES', 'PLAN'].index):   # review B6-1
+        return 'sections_out_of_order'
+    r = reason_of(head)
+    if quotes_note(head.split('```')[0]):
+        return 'quotes_teacher_note'
+    if RAMBLE_STRONG.search(r) or len(RAMBLE_WEAK.findall(r)) >= 2:
+        return 'reason_rambles'
+    if UNIT_GUESS.search(r):
+        return 'unit_guessed_from_name'
+    return None
+
+
+def _unit_default(lines):
+    """A missing unit factor silently taken as 1: .get(..., 1) anywhere; fillna(1) unless an assert in the three lines
+    before checks the base unit (isna / base); a notna() assert right after a fillna(1) checks nothing."""
+    for i, line in enumerate(lines):
+        if GET_1.search(line):
+            return True
+        if LOC_1.search(line) and 'base' not in line.lower():
+            before = ' '.join(lines[max(0, i - 3):i])
+            if not ('assert' in before and ('isna' in before or 'base' in before.lower())):
+                return True
+        if FILL_1.search(line) and not re.search(r'(?i)base|guest|khach|khách', line):   # base-unit rows / guest counts: fine
+            before = ' '.join(lines[max(0, i - 3):i])
+            if not ('assert' in before and ('isna' in before or 'base' in before.lower())):
+                return True
+    return False
+
+
+REASSERT_EXTRA = [   # the same filter re-asserted in other forms: (pattern in the assert, pattern of the filter before)
+    (re.compile(r"(\w+)\[([\w'\"]+)\]\.isin\(([\w]+)\[([\w'\"]+)\]\)\.all\(\)"), lambda m: rf"\[{re.escape(m.group(2))}\]\.isin\({re.escape(m.group(3))}\["),
+    (re.compile(r"(\w+)\[([\w'\"]+)\]\.ne\(([\w'\"]+)\)\.all\(\)"), lambda m: rf"\[{re.escape(m.group(2))}\]\s*(?:!=|\.ne\(|==|\.eq\()\s*{re.escape(m.group(3))}|isin\([^)]*{re.escape(m.group(3))}"),
+    (re.compile(r"not\s+[\w\[\]'\"]*?\.isin\((\w+)\)\.any\(\)"), lambda m: rf"isin\({re.escape(m.group(1))}\)"),
+    # review B5-1: df[C].min() >= X ... df[C].max() < Y after filtering df[C] on the same window
+    (re.compile(r"(\w+)\[([\w'\"]+)\]\.min\(\)\s*>=?\s*(\w+)"), lambda m: rf"\[{re.escape(m.group(2))}\]\s*>=?\s*{re.escape(m.group(3))}"),
+    # review B5-0: (kit.norm(df[C]) == V).all() after filtering on kit.norm(...[C]) == V
+    (re.compile(r"\(kit\.norm\(\w+\[([\w'\"]+)\]\)\s*==\s*([^()]+(?:\([^()]*\))?)\)\.all\(\)"),
+     lambda m: rf"kit\.norm\(\w+\[{re.escape(m.group(1))}\]\)\s*==\s*{re.escape(m.group(2).strip())}"),
+]
+
+
+def reasserted_mask(lines):
+    """An assert that re-checks a filter applied a few lines before (`df[C].isin(L).all()` after filtering on it)."""
+    for i, l in enumerate(lines):
+        if not l.strip().startswith('assert'):
+            continue
+        for m in ASSERT_ALL.finditer(l):
+            pat = re.escape(f"[{m.group(2)}]") + r'\s*' + re.escape(m.group(3).strip())
+            if any(re.search(pat, x) for x in lines[:i] if not x.strip().startswith('assert')):
+                return True
+        for rx, before in REASSERT_EXTRA:
+            for m in rx.finditer(l):
+                if any(re.search(before(m), x) for x in lines[:i] if not x.strip().startswith('assert')):
+                    return True
+    return False
+
+
+def lint_problem(code, question=''):
+    """Why a program teaches a habit we do not want, or None."""
+    code = code or ''
+    for name, rx in LINT:
+        if rx.search(code):
+            return name
+    if PRINT_CALL.search(code) and not LOOK.search(code):   # review B7-2: an answer's code returns the result dict
+        return 'print_call'
+    lines = code.splitlines()
+    for l in lines:                                 # an accented literal compared with kit.norm(...) (accents stripped)
+        bare = NORM_LIT.sub('', ASSERT_MSG.sub('', l))   # literals inside kit.norm('...') are normalized too; assert messages are text
+        if 'kit.norm(' in bare and 'accents=True' not in bare and ACCENT_CMP.search(bare):
+            return 'accent_after_norm'
+    if ACC_IN.search(code) or (ACC_LIST.search(code) and IN_NORM.search(code)):
+        return 'accent_after_norm'
+    if reasserted_mask(lines):
+        return 'reasserted_mask'
+    if any(DATE_LE.search(l) for l in lines if not l.strip().startswith('assert')):
+        return 'date_le_end'
+    if _unit_default(lines):
+        return 'unit_default_1'
+    if any(c.lower() not in (question or '').lower() for c in CODE_CONST.findall(code)):
+        return 'typed_code'                         # a code typed by hand, not looked up from the name
+    asserts = [l for l in lines if l.strip().startswith('assert ')]
+    if asserts and all(VACUOUS.match(l) for l in asserts):
+        return 'vacuous_check'
+    return None
+
+
+def turn_kind(observation, final):
+    return 'final' if final else (observation or {}).get('status') or 'none'
 
 
 def parse_turn(event, terminal):
@@ -190,12 +375,41 @@ def teacher_turns(rec):
     for t in sorted(outputs):
         e = outputs[t]
         action = parse_turn(e, t == max_calls - 1)
-        explored_ok = action.get('answer_type') == prompt.EXPLORE and t in obs and 'error' not in obs[t]
-        why = ('not_correct' if not rec.get('correct') else 'invalid' if action['action'] == 'invalid'
+        explored_ok = imitable(obs.get(t), rec.get('type'), rec.get('answer'))
+        if explored_ok and (obs.get(t) or {}).get('status') == 'looked' and not LOOK.search(action.get('code') or ''):
+            explored_ok = False                       # a cut reply or a program without result: not a proper look
+        after_error = t > 0 and (obs.get(t - 1) or {}).get('status') == 'error'
+        after_flag = t > 0 and (obs.get(t - 1) or {}).get('status') == 'not_finalized' \
+            and bool(CHECKED.search(action.get('code') or ''))    # a confirmation (checked: True); a fix keeps its CAUSE
+        fix_after_flag = t > 0 and (obs.get(t - 1) or {}).get('status') == 'not_finalized' and not after_flag
+        why = ('forced_turn' if (e.get('meta') or {}).get('injected')     # gen.forced: history only, never a sample
+               else 'not_correct' if not rec.get('correct') else 'invalid' if action['action'] == 'invalid'
                else f"finish_{e.get('finish')}" if e.get('finish') != 'stop'
                else None if t == last or explored_ok else 'failed_turn')
+        if why is None and fix_after_flag and not (e.get('output') or '').lstrip().startswith('CAUSE:'):
+            why = 'no_cause_after_flag'             # a flagged result fixed (not confirmed) starts with CAUSE, like an error fix
+        if why is None:
+            why = form_problem(e.get('output'), after_error, after_flag) or lint_problem(action.get('code'), rec.get('question'))
+            if why == 'cause_on_confirmation' and 'REASON:' in (action.get('plan') or ''):
+                # a confirmation that opened with a needless CAUSE line: the rest of the reply is clean, drop the line
+                action = {**action, 'plan': action['plan'][action['plan'].index('REASON:'):]}
+                why = form_problem('REASON:' + (e.get('output') or '').split('REASON:', 1)[1], False, False) \
+                    or lint_problem(action.get('code'), rec.get('question'))
+        if why is None and action.get('code') and any(TYPED_DATE_ASSERT.match(l) for l in action['code'].split('\n')):
+            kept_lines = [l for l in action['code'].split('\n') if not TYPED_DATE_ASSERT.match(l)]
+            action = {**action, 'code': '\n'.join(kept_lines)}      # assert lines have no effect: safe to drop
+        if why is None and 'kit.dedup(' in (action.get('code') or '') and NO_ORDER_ID.search(reason_of(e.get('output'))):
+            why = 'dedup_without_order_id'          # identical rows of a table without order ids are separate sales
         out.append({'turn': t, 'action': action, 'observation': obs.get(t), 'final': t == last, 'keep': why is None,
                     'why': why, 'finish': e.get('finish')})
+    if any('DSML' in (e.get('output') or '') or '</invoke>' in (e.get('output') or '') for e in outputs.values()):
+        for x in out:                                 # leaked tool-call markup anywhere in the record: no sample
+            x['keep'], x['why'] = False, x['why'] or 'tool_markup'
+    final = next((x for x in out if x['final']), None)
+    if final is not None and not final['keep']:       # no clean final answer: no sample from this record
+        for x in out:
+            if x['keep']:
+                x['keep'], x['why'] = False, 'final_dropped'
     return out
 
 
@@ -278,7 +492,9 @@ def teacher_samples(rec, run: Path, systems=None):
                 'business_id': rec.get('business_id'), 'split': inp.get('split'), 'run': run.name,
                 'run_id': rec.get('run_id'), 'record': f"logs/{rec['_file']}" if rec.get('_file') else None,
                 'sample': k, 'turn': t, 'final': x['final'], 'turns': len(turns), 'max_calls': inp.get('max_calls') or 3,
-                'answer_type': x['action'].get('answer_type'), 'gold_type': (rec.get('gold') or {}).get('type'),
+                'answer_type': rec.get('type') if x['final'] else turn_kind(x['observation'], False),
+                'gold_type': (rec.get('gold') or {}).get('type'),
+                'thinking': call.get('reasoning') or '', 'thinking_chars': len(call.get('reasoning') or ''),
                 'reason': rec.get('reason'), 'calls': rec.get('calls'),
                 'recovered': any(not y['keep'] and y['turn'] < t for y in turns), 'weak': flags,
                 'question': rec.get('question'), 'as_of': rec.get('as_of'),

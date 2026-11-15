@@ -29,29 +29,43 @@ _spec = importlib.util.spec_from_file_location('dm_conftest', ROOT / 'tests' / '
 conftest = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(conftest)
 
-SUM = ["df = dm.dedup(tables['ban_hang'])", "result = int(df[df['Trạng thái'] == 'Hoàn thành']['Thành tiền'].sum())"]
+SUM = ["df = kit.dedup(tables['ban_hang'])", "result = int(df[df['Trạng thái'] == 'Hoàn thành']['Thành tiền'].sum())"]
 QUESTIONS = {   # question text -> (gold, replies per turn)
     'Doanh thu tháng này?': ({'type': 'number', 'answer': 140000}, ['sum']),
     'Doanh thu tháng 3 là bao nhiêu?': ({'type': 'number', 'answer': 140000}, ['explore', 'sum']),
-    'Tổng tiền các đơn hoàn thành?': ({'type': 'number', 'answer': 140000}, ['keyerror', 'sum']),
-    'Tổng tiền bán được tháng này?': ({'type': 'number', 'answer': 140000}, ['garbage', 'sum']),
+    'Tổng tiền các đơn hoàn thành?': ({'type': 'number', 'answer': 140000}, ['keyerror', 'sum_fix']),
+    'Tổng tiền bán được tháng này?': ({'type': 'number', 'answer': 140000}, ['garbage', 'sum_fix']),
     'Có bao nhiêu khách hàng?': ({'type': 'number', 'answer': 2}, ['one']),
-    'Lương nhân viên tháng này?': ({'type': 'unanswerable', 'answer': None}, ['unanswerable']),
+    'Lương nhân viên tháng này?': ({'type': 'unanswerable', 'answer': None}, ['unanswerable', 'unanswerable_checked']),
     'Doanh thu tuần này?': ({'type': 'number', 'answer': 140000}, ['api_error', 'sum']),
     'Các món bị trả lại?': ({'type': 'list', 'answer': []}, ['empty', 'confirm']),
 }
 AUG = ('q_aug0_1', 'Doanh thu thang nay', 'q_1')      # an augmented copy of q_1, same shop, same gold
 
 
-def reply(kind):
-    return {'sum': {'action': 'python', 'plan': 'ASKED: revenue', 'answer_type': 'number', 'code': '\n'.join(SUM)},
-            'explore': {'action': 'python', 'plan': 'look at statuses', 'answer_type': 'explore',
-                        'code': "print(tables['ban_hang']['Trạng thái'].value_counts())"},
-            'keyerror': {'action': 'python', 'plan': 'p', 'answer_type': 'number', 'code': "result = tables['ban_hang']['Không có'].sum()"},
-            'one': {'action': 'python', 'plan': 'p', 'answer_type': 'number', 'code': 'result = 1'},
-            'empty': {'action': 'python', 'plan': 'returns', 'answer_type': 'list', 'code': 'result = []'},
-            'confirm': {'action': 'answer', 'plan': 'No line is a return: the list is empty.', 'answer_type': 'list'},
-            'unanswerable': {'action': 'answer', 'plan': 'No salary table in the data.', 'answer_type': 'unanswerable'}}[kind]
+def form(plan, cause=False):  # the clean answer form gen.sft.form_problem requires
+    return (('CAUSE: COMPUTE - the column name was wrong.\n' if cause else '') +
+            f'REASON:\n{plan}\nASKED: revenue | completed orders | this month | shape: one number\nRULES:\n- [Đơn huỷ] -> không tính\nPLAN:\nBIND: ban_hang')
+
+
+def reply(kind):          # prompt v5 replies: reasoning, then one program ending with the result dict
+    P, D = conftest.program, conftest.decision
+    r = _reply(kind)
+    r['plan'] = form(r['plan'], cause=kind == 'sum_fix')
+    return r
+
+
+def _reply(kind):
+    P, D = conftest.program, conftest.decision
+    return {'sum_fix': P(SUM, 'number', 'ASKED: revenue'),
+            'sum': P(SUM, 'number', 'ASKED: revenue'),
+            'explore': P(["print(tables['ban_hang']['Trạng thái'].value_counts())"], 'explore', 'look at statuses'),
+            'keyerror': P(["result = tables['ban_hang']['Không có'].sum()"], 'number'),
+            'one': P(['result = 1'], 'number'),
+            'empty': P(['result = []'], 'list', 'returns'),
+            'confirm': P(['result = []'], 'list', 'No line is a return: the list is empty.', checked=True),
+            'unanswerable': D('unanswerable', 'No salary table in the data.'),
+            'unanswerable_checked': D('unanswerable', 'No salary table in the data.', checked=True)}[kind]
 
 
 class ScriptedLLM:
@@ -144,8 +158,9 @@ def test_turn_selection_and_flags(world):
     assert keep('q_3') == [(0, False, 'failed_turn'), (1, True, None)]        # error repaired
     assert keep('q_4') == [(0, False, 'invalid'), (1, True, None)]            # unreadable reply repaired
     assert keep('q_5') == [(0, False, 'not_correct')]
-    assert keep('q_8') == [(0, False, 'failed_turn'), (1, True, None)]        # not_finalized, then confirmed
-    assert sft.weak_flags(recs['q_6']) == ['unanswerable', 'no_program']
+    assert keep('q_8') == [(0, True, None), (1, True, None)]                  # flagged, then confirmed unchanged
+    assert keep('q_6') == [(0, True, None), (1, True, None)]                  # unanswerable, then checked
+    assert sft.weak_flags(recs['q_6']) == ['unanswerable']
     s3 = sft.teacher_samples(recs['q_3'], world['run'])
     assert len(s3) == 1 and s3[0]['meta']['recovered'] and len(s3[0]['prompt']) == 4    # failed turn in the history only
     assert sft.group_of('q_aug3_abc') == 'q_abc' and sft.group_of('q_abc') == 'q_abc' and sft.group_of('x', 'q_y') == 'q_y'
@@ -162,9 +177,9 @@ def test_package_end_to_end(world):
     ids = {m['id'] for m in tmeta}
     assert ids == {'q_1', 'q_2', 'q_3', 'q_4', 'q_6', 'q_7', 'q_8', 'q_aug0_1'}      # q_5 wrong: out
     assert {m['id'] for m in vmeta} == {'q_b2'}                                      # held-out shop
-    assert sum(not m['final'] for m in tmeta) == 1                                   # the explore turn of q_2
+    assert sum(not m['final'] for m in tmeta) == 3              # the look of q_2, the flagged turns of q_8 and q_6
     assert {m['group'] for m in tmeta if m['id'] in ('q_1', 'q_aug0_1')} == {'q_1'}
-    assert next(m for m in tmeta if m['id'] == 'q_6')['weak'] == ['unanswerable', 'no_program']
+    assert next(m for m in tmeta if m['id'] == 'q_6')['weak'] == ['unanswerable']
     vq = lines(out / 'val_questions.jsonl')
     assert [q['id'] for q in vq] == ['q_b2']
     for s in train + val:                                    # completions are their own normal form
@@ -178,12 +193,12 @@ def test_package_check_rebuild_and_replay(world):
     res = validate.check(out, rebuild=True, replay=True, workers=2)
     assert res['ok'], res
     assert res['counts']['rebuilt'] == res['counts']['train_samples'] + res['counts']['val_samples']
-    assert res['counts']['replay_correct'] == 7               # finals with a program (q_6 decides, q_8 confirms)
+    assert res['counts']['replay_correct'] == 9               # every final runs a program in v5
 
 
 def test_filters(world):
     _, stats = build(world, 'p_filters', drop_weak=('unanswerable',), explore=False, val_shops=())
-    assert stats['dropped_samples'] == {'weak:unanswerable': 1, 'explore': 1}
+    assert stats['dropped_samples'] == {'weak:unanswerable': 1, 'explore': 3}
     assert stats['samples']['val'] == 0 and stats['validation']['ok']
     _, stats = build(world, 'p_short', max_len=1500)
     assert stats['samples'] == {'train': 0, 'val': 0, 'train_final': 0, 'val_final': 0} and stats['dropped_samples']['too_long'] >= 9

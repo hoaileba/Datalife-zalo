@@ -1,0 +1,8 @@
+# Whitelist: only what the image needs. Never .env (API keys), data/public_test, outputs/.
+*
+!src/
+!config.yaml
+!docker/
+!models/
+**/__pycache__
+**/*.pyc

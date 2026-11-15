@@ -200,7 +200,7 @@ def profile_column(series: pd.Series, note: str):
 
 
 def profile_table(name, frame, meta):
-    content = [c for c in frame.columns if c != SOURCE_COL]
+    content = [c for c in frame.columns if c not in (SOURCE_COL, START_COL)]   # as kit.dedup counts them
     duplicates = int(frame.duplicated(subset=content).sum()) if content and len(frame) else 0
     columns, lookup = [], {}
     for c in frame.columns:

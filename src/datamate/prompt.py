@@ -1,12 +1,13 @@
-"""Messages for the model and parsing of its action, written as plain text (reasoning, an "Answer type:" line, then
-a ```python block; no JSON: code inside JSON strings costs small models accuracy and escaping errors).
+"""Messages for the model and parsing of its action (prompt v5, docs/PROMPT_V5.md). The model writes plain text:
+ASKED / RULES / PLAN (or CAUSE first after a failure, NEED for a look), then ONE ```python block that ends with
+result = {"type": ..., "answer": ...}: the program decides the answer type, a look, unanswerable or abstain
+(shape.typed). No JSON around code: code inside JSON strings costs small models accuracy and escaping errors.
 
-In:  catalog (catalog.py), question, as_of, lookup matches, history of (action, observation).
-Out: chat messages; `parse_action(raw)` -> validated action dict
-     {'action': 'python', 'plan', 'answer_type', 'code'} or {'action': 'answer', 'plan', 'answer_type'};
+In:  catalog (catalog.py: shop tables, readme, rulebook), question, as_of, lookup matches, history of (action, observation).
+Out: chat messages; `parse_action(raw)` -> {'action': 'python', 'plan', 'code'};
      `render_action(action)` -> the same text form (history, SFT samples).
-Invariant: the first user message starts with the business catalog, identical for every question of a business
-(prefix cache); per-question fields come last.
+Invariant: one system prompt for every set (no per-set cookbook); the first user message is
+<rulebook> (same for a set) + <shop> (same for a shop) before the per-question tags (prefix cache).
 """
 from __future__ import annotations
 
@@ -15,16 +16,12 @@ import json
 import re
 from pathlib import Path
 
-from . import rules
-from .answer import COMPUTED
-from .notes import NOTE_PARTS
+import pandas as pd
+
+from .notes import NOTE_PARTS, TABLE_NOTES
 from .values import fold
 
 ASSETS = Path(__file__).with_name('assets')
-
-
-GONE_NOTE = (' THIS SET CHANGED OR DROPPED THIS RULE: its standard recipe is removed. Follow the rule as rulebook_changes '
-             'writes it; recipes that cite this name or its § mean that rule.')
 
 
 def _read(name):
@@ -33,43 +30,17 @@ def _read(name):
     return re.sub(r'\{\{include ([\w.]+)\}\}', lambda m: _read(m.group(1)).strip(), text)
 
 
-def cookbook(gone=frozenset()):
-    """Prompt section 4 from assets/cookbook_train.yaml without the recipes of the standard lines this set changed or
-    dropped (`gone`, rules.compare). A recipe that another kept recipe refers to, by its [tag] or by its section ("§10"
-    in a recipe of another section), leaves only its [tag] and a note that this set changed it (no old method)."""
-    book = rules.load_cookbook()
-    number = lambda s: int(re.match(r'##\s*§(\d+)', s['title'])[1])
-    entries = [(number(s), e) for s in book['sections'] for e in s['entries']]
-    out = {id(e) for _, e in entries if any(rules.key(r) in gone for r in e['rules'])}
-    tag = lambda e: (re.match(r'- \[([^\]]+)\]', e['recipe']) or [None, None])[1]     # no tag: never cited by name
-    kept = [(n, e['recipe']) for n, e in entries if id(e) not in out]
-    cited = {t for _, r in kept for t in re.findall(r'\[([^\]\'"<]+)\]', r)[1:]}
-    cited |= set(re.findall(r'\[([^\]\'"<]+)\]', _read('prompt.md')))      # the instructions cite recipes too
-    cited_sections = {int(m) for n, r in kept for m in re.findall(r'§(\d+)', r) if int(m) != n}
-    parts = [book['preamble'].rstrip('\n')]
-    for s in book['sections']:
-        lines = [s['title']]
-        for e in s['entries']:
-            recipe = e['recipe'].rstrip('\n')
-            if id(e) in out:
-                if tag(e) not in cited and number(s) not in cited_sections:
-                    continue
-                recipe = f'- [{tag(e)}]{GONE_NOTE}'          # the name stays for its citations, the old method goes
-            lines.append(recipe)
-        parts.append('\n'.join(lines))
-    return '\n\n'.join(parts)
+SYSTEM = _read('prompt.md').replace('{{table_notes}}', TABLE_NOTES)
 
 
 def system_prompt(gone=frozenset()):
-    """Instructions + the cookbook of this set (constant for a run, so the serving engine's prefix cache covers it)."""
-    return _read('prompt.md').replace('{{cookbook}}', cookbook(gone))
+    """The one system prompt (`gone` is ignored: kept for the gen/ callers of the v4 per-set prompt)."""
+    return SYSTEM
 
 
-SYSTEM = system_prompt()                   # the standard (train) rulebook: every recipe
-
-
-EXPLORE = 'explore'                        # a python action that only looks at the data: shown, never submitted
-TYPE_LINE = re.compile(r'^[ \t>*_#`-]*answer[ _]?type[ *_`]*:[ *_`"]*([a-z]+)', re.I | re.M)
+LAST_TURN = ('This is the last turn: a look, a new (unchecked) unanswerable or a new answer the host flags (section 2 lists what '
+             'it flags) cannot be submitted and ends as abstain; a flagged result resent unchanged with "checked": True is submitted.')
+EXPLORE = 'explore'                        # internal name of a look ({"type": "look"}): shown, never submitted
 FENCE = re.compile(r'```[ \t]*(?:python|py)?[ \t]*\n', re.I)
 
 
@@ -82,14 +53,9 @@ def _dumps(value):
 
 
 def render_action(action):                           # the text form of an action, as the model writes it
-    if action.get('action') not in ('python', 'answer'):
+    if action.get('action') != 'python':
         return '(output not in the required form)'
-    reasoning = '\n'.join(x for x in (action.get('diagnosis'), action.get('plan')) if x).strip()
-    text = f"Answer type: {action['answer_type']}\n{reasoning}".strip()
-    if action['action'] == 'python':
-        code = action.get('code') or '\n'.join(action.get('code_lines', []))
-        text += f'\n```python\n{code.strip()}\n```'
-    return text
+    return f"{(action.get('plan') or '').strip()}\n```python\n{action['code'].strip()}\n```".strip()
 
 
 def _tag(tag, body, **attrs):
@@ -132,22 +98,25 @@ def _lookup(matches):                                 # one line per stored valu
     groups = {}
     for m in matches:
         groups.setdefault((m['table'], m['column'], fold(m['value']), m['match']), []).append(m)
-    return '\n'.join(f"{t}.{c} = " + ' | '.join(f"'{m['value']}' ({m['rows']} rows)" for m in ms) + f" ({how}"
-                     + (f'; written {len(ms)} ways: match all of them' if len(ms) > 1 else '') + ')' for (t, c, _, how), ms in groups.items())
+    return '\n'.join(f"{t}.{c} = " + ' | '.join(f"'{m['value']}' ({m['rows']} rows" + ''.join(f"; {col} {'/'.join(vals)}" for col, vals in (m.get('codes') or {}).items()) + ')' for m in ms) + f" ({how}"
+                     + (f'; written {len(ms)} ways: match the ones you mean with isin; a different tone mark can be another name' if len(ms) > 1 else '') + ')' for (t, c, _, how), ms in groups.items())
 
 
-def render_state(catalog, question, as_of, lookup, remaining_calls, terminal_only):    # <shop> first: same for a shop (prefix cache)
+def render_state(catalog, question, as_of, lookup, remaining_calls, terminal_only, turn=1):
+    """<rulebook> (same for a set), <shop> (same for a shop), then the question's own tags (prefix cache)."""
     tables = [_tag('table', '\n'.join([_column(c) for c in t['columns']] + [f"{k}: {', '.join(map(str, v)) if isinstance(v, list) else _flat(v)}" for k, v in t.items() if k not in (
         'table', 'rows', 'source_files', 'columns', 'exact_duplicate_rows')]), name=t['table'], rows=t['rows'],
         files=', '.join(t.get('source_files', [])), exact_duplicate_rows=t.get('exact_duplicate_rows')) for t in catalog.get('schemas', [])]
     groups = [f"{g['table']}.{g['column']} ({g['kind']}): " + '; '.join(f'{k} = {v}' for k, v in g['labels'].items())
               for g in catalog.get('label_groups', [])]
-    parts = [_tag('notes', catalog.get('notes') or ''), *tables, *([_tag('label_groups', '\n'.join(groups))] if groups else []),
-             *[_tag(k, _lines(_notes(catalog[k]) if k == 'data_notes' else catalog[k])) for k in ('data_notes', 'unreadable_files') if catalog.get(k)],
-             *[_tag('document', d['text'] or '(empty)', name=d['name']) for d in catalog.get('documents', [])],
-             *([_tag('rulebook_changes', '\n'.join(f'- {x}' for x in catalog['rulebook_changes']))] if catalog.get('rulebook_changes') else [])]
-    return '\n'.join([_tag('shop', '\n'.join(parts)), _tag('question', question, as_of=str(as_of), remaining_calls=remaining_calls,
-                      terminal_only=str(terminal_only).lower()), _tag('data_lookup', _lookup(lookup) or 'none')])
+    shop = [*tables, *([_tag('label_groups', '\n'.join(groups))] if groups else []),
+            *[_tag(k, _lines(_notes(catalog[k]) if k == 'data_notes' else catalog[k])) for k in ('data_notes', 'unreadable_files') if catalog.get(k)],
+            _tag('readme', catalog.get('readme') or '(empty)')]
+    day = pd.Timestamp(as_of)
+    return '\n'.join([_tag('rulebook', catalog.get('rulebook') or '(empty)'), _tag('shop', '\n'.join(shop)),
+                      _tag('question', question, as_of=day.strftime('%Y-%m-%d'), weekday=day.day_name(),
+                           turn=f'{turn}/{turn + remaining_calls - 1}'),
+                      _tag('data_lookup', _lookup(lookup) or 'none')])
 
 
 def render_observation(observation):                 # <result status=...>: <error>, <issues>, <output> (stdout), <trace>, <next>
@@ -157,10 +126,14 @@ def render_observation(observation):                 # <result status=...>: <err
 
 def messages(catalog, question, as_of, lookup, history, remaining_calls, terminal_only, system=SYSTEM):
     out = [{'role': 'system', 'content': system},
-           {'role': 'user', 'content': render_state(catalog, question, as_of, lookup, remaining_calls, terminal_only)}]
+           {'role': 'user', 'content': render_state(catalog, question, as_of, lookup, remaining_calls + len(history), terminal_only)}]
     for action, observation in history:
         out.append({'role': 'assistant', 'content': render_action(action)})
         out.append({'role': 'user', 'content': render_observation(observation)})
+    if history:                                       # the turn count of the first message stays fixed (prefix cache)
+        out[-1]['content'] += f'\n<turn>{len(history) + 1}/{len(history) + remaining_calls}</turn>'
+        if remaining_calls == 1:
+            out[-1]['content'] += f'\n<last_turn>{LAST_TURN}</last_turn>'
     return out
 
 
@@ -186,24 +159,15 @@ def _cut_code(body):                                 # a block cut by the token 
 
 
 def parse_action(raw, terminal_only=False):          # terminal_only: kept for callers; a last-turn program runs too
+    """The reasoning, then the first ```python block; text after the block is dropped."""
     text = (raw or '').strip()
     fence = FENCE.search(text)
-    head = text[:fence.start()] if fence else text
-    kinds = TYPE_LINE.findall(head) or TYPE_LINE.findall(text)
-    if not kinds:
-        raise ActionError('Start your reply with the line "Answer type: <type>".')
-    kind = kinds[-1].lower()
-    plan = TYPE_LINE.sub('', head).strip()
-    if fence:
-        body = text[fence.end():]
-        end = body.find('```')
-        code = (body[:end] if end >= 0 else _cut_code(body)).strip('\n')
-        if kind not in (*COMPUTED, EXPLORE):
-            raise ActionError(f'Answer type must be one of {[*COMPUTED, EXPLORE]} for a program.')
-        if not code.strip():
-            raise ActionError('The ```python block is empty.')
-        return {'action': 'python', 'plan': plan, 'rules': [], 'answer_type': kind, 'code': code}
-    if kind not in (*COMPUTED, 'unanswerable', 'abstain'):
-        raise ActionError('Without a program, Answer type must be a computed type (submits your last result), '
-                          'unanswerable or abstain.')
-    return {'action': 'answer', 'plan': plan, 'answer_type': kind}
+    if not fence:
+        raise ActionError('Every reply ends with ONE ```python block whose last line is result = {"type": ..., "answer": ...} '
+                          '(also for a look, unanswerable or abstain).')
+    body = text[fence.end():]
+    end = body.find('```')
+    code = (body[:end] if end >= 0 else _cut_code(body)).strip('\n')
+    if not code.strip():
+        raise ActionError('The ```python block is empty.')
+    return {'action': 'python', 'plan': text[:fence.start()].strip(), 'code': code}

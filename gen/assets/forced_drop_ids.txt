@@ -1,0 +1,248 @@
+# forced-turn records dropped at packaging (reviews of 2026-11-15): <id>	<why>; only records with a forced kind
+q_082e5f45ee37	The fix line
+q_0bb2685c3a94	syntax cap 10
+q_164202c9de46	label cross-category
+q_18d173308b03	syntax cap 10
+q_19bb6774e6b7	percent_type cap 15
+q_1a26a64abb5c	percent_type cap 15
+q_1ab03eb1b95b	label cross-category
+q_261be063aa99	label cross-category
+q_27e70e72d2dc	syntax cap 10
+q_338afdb5d05c	percent_type cap 15
+q_37177a05844b	syntax cap 10
+q_3919f65b83aa	syntax cap 10
+q_3f43a03d2d37	label cross-category
+q_4b2450e3eaed	unanswerable cap 80
+q_4c6b7e495690	syntax cap 10
+q_4d188c72f1f5	percent_type cap 15
+q_4f58385314e6	syntax cap 10
+q_4f9117864544	label cross-category
+q_527026b3e1fb	column cap 90
+q_576da3a138ac	precedence cap 30
+q_586017a88642	column cap 90
+q_5f126c4bef2c	precedence CAUSE wrong
+q_5f2a8e3cc813	percent_type cap 15
+q_603e52a71c57	item_name word order (cap 8)
+q_62bcb2923258	label cross-category
+q_71811505443b	syntax cap 10
+q_71e73ebae4c8	column cap 90
+q_746d1c505fd5	percent_type cap 15
+q_75d48f1bfc6d	percent_type cap 15
+q_7766254adf84	precedence CAUSE wrong
+q_784bf8f76796	percent_type cap 15
+q_7b54bc2ca239	syntax cap 10
+q_7bbd5b2b5ad7	unanswerable cap 80
+q_7e4999ddabcf	syntax cap 10
+q_82cc21bcd784	column cap 90
+q_83878331afed	unanswerable cap 80
+q_8c6b3bb85449	syntax cap 10
+q_8d5736c69340	precedence cap 30
+q_8ee3f3222d9f	label cross-category
+q_90ab41628eb0	percent_type cap 15
+q_936fd5dcdc0c	syntax cap 10
+q_9749171b4480	label cross-category
+q_97541e3502fb	precedence CAUSE wrong
+q_986ecd801ef5	syntax cap 10
+q_9882a4330cc0	column cap 90
+q_990a9512c0a9	item_name word order (cap 8)
+q_9fd096dfdb84	percent_type cap 15
+q_a00adf125b16	label cross-category
+q_a076d04e713e	precedence CAUSE wrong
+q_a45a7606894a	label cross-category
+q_a527a825bbcb	label cross-category
+q_acb4ea37b9d0	precedence CAUSE wrong (== vs &)
+q_b0473489a10c	column cap 90
+q_b6e73ed9e8e4	precedence cap 30
+q_bb84028b2a96	syntax cap 10
+q_bf862acc15f6	percent_type cap 15
+q_biz_121040	column cap 90
+q_biz_121057	syntax cap 10
+q_biz_121059	column cap 90
+q_biz_121095	label cross-category
+q_biz_121123	percent_type cap 15
+q_biz_121177	unanswerable cap 80
+q_biz_121179	column cap 90
+q_biz_121210	percent_type cap 15
+q_biz_121214	percent_type cap 15
+q_biz_121225	precedence CAUSE wrong (== vs &)
+q_biz_121231	label cross-category
+q_biz_121273	label cross-category
+q_biz_121279	percent_type cap 15
+q_biz_121288	item_name word order (cap 8)
+q_biz_121291	precedence cap 30
+q_biz_121312	syntax cap 10
+q_biz_121313	unanswerable cap 80
+q_biz_121319	syntax cap 10
+q_biz_121333	label cross-category
+q_biz_121335	label cross-category
+q_biz_121356	precedence CAUSE wrong
+q_biz_121394	precedence cap 30
+q_biz_121402	label cross-category
+q_biz_121426	syntax cap 10
+q_biz_121433	precedence cap 30
+q_biz_121442	percent_type cap 15
+q_biz_121519	item_name word order (cap 8)
+q_biz_121522	item_name word order (cap 8)
+q_biz_121528	label cross-category
+q_biz_121546	item_name word order (cap 8)
+q_biz_121548	percent_type cap 15
+q_biz_121565	unanswerable cap 80
+q_biz_121587	column cap 90
+q_biz_121601	syntax cap 10
+q_biz_121611	The fix line
+q_biz_121613	item_name word order (cap 8)
+q_biz_121621	precedence CAUSE wrong
+q_biz_121625	label cross-category
+q_biz_121636	percent_type cap 15
+q_biz_121643	item_name word order (cap 8)
+q_biz_121684	column cap 90
+q_biz_131029	column cap 90
+q_biz_131030	column cap 90
+q_biz_131031	column cap 90
+q_biz_131037	percent_type cap 15
+q_biz_131038	label cross-category
+q_biz_131042	unanswerable cap 80
+q_biz_131059	item_name word order (cap 8)
+q_biz_131104	label cross-category
+q_biz_131108	label cross-category
+q_biz_131124	percent_type cap 15
+q_biz_131137	percent_type cap 15
+q_biz_131148	item_name word order (cap 8)
+q_biz_131152	label cross-category
+q_biz_131159	syntax cap 10
+q_biz_131161	unanswerable cap 80
+q_biz_131186	column cap 90
+q_biz_131239	percent_type cap 15
+q_biz_131246	percent_type cap 15
+q_biz_131247	syntax cap 10
+q_biz_131261	label cross-category
+q_biz_131286	precedence CAUSE wrong
+q_biz_131301	precedence CAUSE wrong
+q_biz_131308	column cap 90
+q_biz_131317	column cap 90
+q_biz_131324	percent_type cap 15
+q_biz_131327	precedence CAUSE wrong
+q_biz_131335	syntax cap 10
+q_biz_131336	unanswerable cap 80
+q_biz_131354	column cap 90
+q_biz_131358	syntax cap 10
+q_biz_131389	percent_type cap 15
+q_biz_131403	percent_type cap 15
+q_biz_131419	precedence cap 30
+q_biz_131449	precedence CAUSE wrong
+q_biz_131453	percent_type cap 15
+q_biz_131468	percent_type cap 15
+q_biz_131492	label cross-category
+q_biz_131497	item_name word order (cap 8)
+q_biz_131508	label cross-category
+q_biz_131518	percent_type cap 15
+q_biz_131520	percent_type cap 15
+q_biz_131544	label cross-category
+q_biz_131570	column cap 90
+q_biz_131571	syntax cap 10
+q_biz_131577	percent_type cap 15
+q_biz_131582	column cap 90
+q_biz_131603	percent_type cap 15
+q_biz_131608	syntax cap 10
+q_biz_131625	percent_type cap 15
+q_biz_131632	label cross-category
+q_biz_131643	syntax cap 10
+q_biz_141015	syntax cap 10
+q_biz_141030	column cap 90
+q_biz_141040	percent_type cap 15
+q_biz_141041	percent_type cap 15
+q_biz_141048	column cap 90
+q_biz_141066	The fix line
+q_biz_141077	label cross-category
+q_biz_141105	label cross-category
+q_biz_141114	label cross-category
+q_biz_141117	unanswerable cap 80
+q_biz_141128	label cross-category
+q_biz_141193	label cross-category
+q_biz_141214	syntax cap 10
+q_biz_141228	percent_type cap 15
+q_biz_141241	column cap 90
+q_biz_161039	item_name word order (cap 8)
+q_biz_161042	reviewer: The fix line / rambling CAUSE
+q_biz_161046	percent_type cap 15
+q_biz_161057	precedence CAUSE wrong (== vs &)
+q_biz_161068	percent_type cap 15
+q_biz_161159	label cross-category
+q_biz_161179	percent_type cap 15
+q_biz_161199	percent_type cap 15
+q_biz_161211	percent_type cap 15
+q_biz_161213	percent_type cap 15
+q_biz_161235	label cross-category
+q_biz_161239	syntax cap 10
+q_biz_161264	unanswerable cap 80
+q_biz_161270	The fix line
+q_biz_161274	column cap 90
+q_biz_161285	label cross-category
+q_biz_171038	label cross-category
+q_biz_171049	percent_type cap 15
+q_biz_171071	syntax cap 10
+q_biz_171073	percent_type cap 15
+q_biz_171082	column cap 90
+q_biz_171093	percent_type cap 15
+q_biz_171125	precedence CAUSE wrong (== vs &)
+q_biz_171138	percent_type cap 15
+q_biz_171159	column cap 90
+q_biz_171181	percent_type cap 15
+q_biz_171196	percent_type cap 15
+q_biz_171198	label cross-category
+q_biz_171202	column cap 90
+q_biz_171210	label cross-category
+q_biz_171217	label cross-category
+q_biz_171236	syntax cap 10
+q_biz_171270	percent_type cap 15
+q_biz_171274	column cap 90
+q_biz_171276	precedence cap 30
+q_biz_171279	label cross-category
+q_biz_171292	item_name word order (cap 8)
+q_biz_181043	column cap 90
+q_biz_181060	label cross-category
+q_biz_181069	percent_type cap 15
+q_biz_181084	label cross-category
+q_biz_181085	syntax cap 10
+q_biz_181097	syntax cap 10
+q_biz_181122	percent_type cap 15
+q_biz_181138	percent_type cap 15
+q_biz_181159	percent_type cap 15
+q_biz_181174	item_name word order (cap 8)
+q_biz_181186	precedence CAUSE wrong
+q_biz_181221	percent_type cap 15
+q_biz_181251	percent_type cap 15
+q_biz_181252	label cross-category
+q_biz_181262	column cap 90
+q_biz_191001	label cross-category
+q_biz_191016	syntax cap 10
+q_biz_191023	item_name word order (cap 8)
+q_biz_191045	column cap 90
+q_biz_191059	column cap 90
+q_biz_191061	percent_type cap 15
+q_biz_191083	precedence CAUSE wrong
+q_biz_191120	The fix line
+q_biz_191146	unanswerable cap 80
+q_biz_191164	label cross-category
+q_biz_191165	percent_type cap 15
+q_biz_191168	unanswerable cap 80
+q_biz_191179	item_name word order (cap 8)
+q_biz_191187	column cap 90
+q_biz_191211	unanswerable cap 80
+q_biz_191236	item_name word order (cap 8)
+q_biz_191267	syntax cap 10
+q_biz_191275	percent_type cap 15
+q_biz_191283	percent_type cap 15
+q_biz_191285	percent_type cap 15
+q_biz_191294	percent_type cap 15
+q_c6293f0e92c8	label cross-category
+q_ce1712865b8c	syntax cap 10
+q_d6a191c19d40	syntax cap 10
+q_db770627db21	percent_type cap 15
+q_e0feae509b24	syntax cap 10
+q_e48e9fb676f5	label cross-category
+q_e85d94c274b2	item_name word order (cap 8)
+q_ecad7ca9cd8b	label cross-category
+q_f0f5f32cf295	label cross-category
+q_f96c8fcce412	percent_type cap 15
+q_fbef1e31ad7a	syntax cap 10

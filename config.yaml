@@ -3,7 +3,7 @@ llm:
   model: gemma-12b                 # served by vLLM (google/gemma-4-12B-it)
   base_url_env: VLLM_BASE_URL
   api_key_env: VLLM_API_KEY
-  max_tokens: 3072                 # text format with free reasoning (11/11); 2048 was set for JSON code_lines
+  max_tokens: 8192                 # REASON (free, no length cap) + plan + three-block program (14/11); was 3072
   seed: 0                          # fixed seed, thinking off
   temperature: 0                   # 0.2 + penalty 1.2 tried 10/11: train20 PA 0.2 -> 0.15
   timeout_seconds: 180

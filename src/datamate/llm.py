@@ -102,7 +102,7 @@ class LLM:
                         finish = choice.finish_reason
                 if size - checked >= guard_every:
                     checked, text = size, ''.join(parts)
-                    if repeated_lines(text):
+                    if self.cfg.get('repetition_guard', True) and repeated_lines(text):   # off for JSON generators (gen/)
                         finish = 'repetition'; break
                     if max_comments and comment_flood(text, max_comments):
                         finish = 'comments'; break

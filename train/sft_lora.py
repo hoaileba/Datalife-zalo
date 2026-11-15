@@ -3,7 +3,8 @@
 Each sample is {"id", "prompt": [messages], "completion": [{"role": "assistant", "content": ...}]}. The prompt is
 rendered with the model's own chat template exactly as vLLM renders it at inference (generation prompt, thinking off:
 Gemma 4 then opens the reply with an empty thought channel), the target is the reply text plus the end-of-turn
-token. Loss covers the target tokens only: never the prompt, never the earlier assistant turns inside the prompt
+token. A thinking package (completion with `reasoning`) is rendered with thinking ON instead: the target then starts
+with the thought channel (see encode). Loss covers the target tokens only: never the prompt, never the earlier assistant turns inside the prompt
 (they can be failed attempts the agent recovered from). Samples longer than --max-len are dropped, never truncated
 (a right-truncated sample would lose its target). Tokenization is done here, not by TRL: TRL's conversational
 prompt-completion path renders prompt+completion without the empty thought channel, so its prompt is not a prefix
@@ -50,9 +51,26 @@ def end_of_turn(tok):
 
 
 def encode(tok, sample, eot, max_len):
-    """(input_ids, labels) of one sample, or None when longer than max_len. Labels are -100 on the prompt."""
-    prompt_text = tok.apply_chat_template(sample['prompt'], tokenize=False, add_generation_prompt=True, enable_thinking=False)
-    target = sample['completion'][0]['content'].strip() + eot
+    """(input_ids, labels) of one sample, or None when longer than max_len. Labels are -100 on the prompt.
+
+    A completion with `reasoning` (thinking package, scripts/sft_thinking.py) is rendered with thinking ON, as vLLM
+    renders it with enable_thinking=True: the target is what the template writes for that assistant message
+    (Gemma 4: `<|channel>thought\n{reasoning}\n<channel|>{content}`) up to the end-of-turn token."""
+    reply = sample['completion'][0]
+    thinking = bool(reply.get('reasoning'))
+    prompt_text = tok.apply_chat_template(sample['prompt'], tokenize=False, add_generation_prompt=True, enable_thinking=thinking)
+    if thinking:
+        full = tok.apply_chat_template(sample['prompt'] + [{'role': 'assistant', 'content': reply['content'].strip(),
+                                                            'reasoning': reply['reasoning']}],
+                                       tokenize=False, enable_thinking=True)
+        if not full.startswith(prompt_text) or eot not in full[len(prompt_text):]:
+            raise SystemExit(f"{sample['id']}: the chat template's thinking render does not extend the prompt")
+        tail = full[len(prompt_text):]
+        target = tail[:tail.rindex(eot)] + eot
+        if reply['reasoning'] not in target:
+            raise SystemExit(f"{sample['id']}: the chat template dropped the reasoning (needs Gemma 4's template)")
+    else:
+        target = reply['content'].strip() + eot
     p = tok(prompt_text, add_special_tokens=False)['input_ids']
     c = tok(target, add_special_tokens=False)['input_ids']
     if len(p) + len(c) > max_len:

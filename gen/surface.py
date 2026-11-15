@@ -530,7 +530,7 @@ T = {
     ],
     'qty_unit:named': [                   # a unit that is also a word for times or durations (lần, lượt, ngày...):
         'Cộng mọi mặt hàng tính theo {U}, {P} bán ra được mấy {U}',          # 'bán được bao nhiêu lần' would read
-        'Số {U} bán được {P} là bao nhiêu, cộng mọi mặt hàng tính theo {U}',  # as a count of sales
+        'Các mặt hàng tính theo {U}: tổng số lượng bán ra {P} là bao nhiêu {U}',  # as a count of sales
     ],
     'qty_size:word': [
         '{P} {S} bán được bao nhiêu sản phẩm size {SZ}', 'Tổng số món đồ size {SZ} bán ra {Pt} là bao nhiêu',
@@ -548,7 +548,7 @@ T = {
         'Doanh thu ở {A} {P} là bao nhiêu', '{P} {A} bán được bao nhiêu tiền', '{A} {Pt} thu về bao nhiêu tiền',
     ],
     'top_table': [
-        'Bàn nào có doanh thu cao nhất {P}', '{P} bàn nào bán được nhiều tiền nhất', 'Bàn mang về nhiều doanh thu nhất {Pt} là bàn nào',
+        'Bàn nào có doanh thu cao nhất {P}', '{P} bàn nào bán được nhiều tiền nhất', 'Bàn đem lại nhiều doanh thu nhất {Pt} là bàn nào',
     ],
     'service_revenue': [
         'Tiền công dịch vụ {P} là bao nhiêu', 'Doanh thu dịch vụ {P} được bao nhiêu', '{P} {S} thu được bao nhiêu tiền công',
@@ -614,6 +614,8 @@ def _fill(tpl, rng, **kw):
     s = s.format(**{k: v for k, v in kw.items() if '{' + k + '}' in s})
     s = re.sub(r'\s+', ' ', s).strip()
     s = re.sub(r' ,', ',', s)
+    # a unit word right before a name that starts with it ('bao nhiêu mâm ⟦mâm cỗ…⟧'): said once
+    s = re.sub(rf'(?i)\b(\w+) ({re.escape(MO)})\1\b', lambda m: m.group(2) + m.group(1), s)
     return s
 
 
@@ -789,6 +791,9 @@ def realize(spec, ctx: Ctx, rng, marked=False) -> str:
             kw['P'], kw['Pt'] = period_text({'kind': 'this_month'}, as_of, rng)
         pool = list(T['unanswerable'])
         trade = T.get(f'unanswerable:{ctx.industry}')
+        if not trade:
+            from . import industries
+            trade = industries.unanswerable(ctx.industry) or None
         if trade and rng.random() < 0.6:
             pool = list(trade)
         if ctx.ingredients and ctx.products:

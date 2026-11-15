@@ -120,7 +120,8 @@ def end_stock(L):
         return None
     m = L.stock_moves.copy()
     m['time'] = pd.to_datetime(m['time'])
-    sort = ['time', 'seq'] if 'seq' in m else ['time']
+    m = m[m['time'] < pd.Timestamp(L.shop['end']) + pd.Timedelta(days=1)]   # a return dated after the data end is not
+    sort = ['time', 'seq'] if 'seq' in m else ['time']                         # in the end-of-data stock (oracle agrees)
     last = m.sort_values(sort, kind='mergesort').groupby('product_id')['balance'].last()
     return L.products['product_id'].map(last)
 

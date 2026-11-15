@@ -35,6 +35,7 @@ import collections
 import hashlib
 import importlib.util
 import json
+import re
 import os
 import random
 import shutil
@@ -140,6 +141,10 @@ class Split:
         self.meta = {m['id']: m for m in read_jsonl(path / 'meta.jsonl')} if (path / 'meta.jsonl').exists() else {}
         self.cache_dir, self._agent, self._lookups = cache_dir, None, {}
 
+    def release(self):
+        """Drop the loaded shop data (a package over thousands of one-question worlds would otherwise keep them all)."""
+        self._agent, self._lookups = None, {}
+
     def agent(self):
         if self._agent is None:
             rulebook, _, changed, system = load_rulebook(self.path / 'rulebook.md')
@@ -168,7 +173,51 @@ class Split:
 
     def info(self, qid, group):
         m = self.meta.get(qid) or self.meta.get(group) or {}
-        return {'intent': m.get('intent') or train_intent(group), 'industry': m.get('industry'), 'family': m.get('family')}
+        intent = m.get('intent')
+        if not intent or str(intent).startswith('train:'):       # train questions: today's keyword rules, not a frozen copy
+            intent = train_intent(group) or intent
+        return {'intent': intent, 'industry': m.get('industry'), 'family': m.get('family')}
+
+
+# intents whose answer is a ranking (gen.oracle names; scripts/train_intents.py buckets for train questions)
+RANKED_INTENTS = {'top_items', 'top_customers', 'top_staff', 'top_supplier', 'best_day', 'best_month', 'top_table',
+                  'debt_top', 'top_item', 'top_customer', 'best_month_day'}
+
+
+CUSTOMER_ID_INTENTS = {'top_customers', 'customers_min_orders', 'customers_min_orders_share', 'customer_count',
+                       'debt_customers', 'debt_top', 'debt_new_paid'}   # gen.oracle intents that need customer codes
+
+
+STOCK_DROPS_RETURNED = re.compile(r'(?i)(taken out|sold|out\w*)[^.\n]{0,80}not (cancelled )?(and |or |, )?(not )?returned'
+                                  r'|(drop|exclude|skip)\w*[^.\n]{0,30}returned orders')
+
+
+_FD = ROOT / 'gen' / 'assets' / 'forced_drop_ids.txt'
+FORCED_DROPS = {l.split('\t')[0].strip() for l in _FD.read_text(encoding='utf-8').splitlines()
+                if l.strip() and not l.startswith('#')} if _FD.exists() else set()
+REVIEW_DROPS = {l.strip() for l in (ROOT / 'gen' / 'assets' / 'final_drop_ids.txt').read_text(encoding='utf-8').splitlines()
+                if l.strip() and not l.startswith('#')} if (ROOT / 'gen' / 'assets' / 'final_drop_ids.txt').exists() else set()
+
+
+def world_start(split_path):
+    """First data day of a generated world (<split>/_world.json 'start'), None for other splits."""
+    import datetime as _dt
+    try:
+        return _dt.date.fromisoformat(json.loads((Path(split_path) / '_world.json').read_text(encoding='utf-8'))['start'][:10])
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def world_caps(split_path, business_id):
+    """Capabilities of a generated world's files (<split>/_world.json), empty for other splits."""
+    p = Path(split_path) / '_world.json'
+    try:
+        return set(json.loads(p.read_text(encoding='utf-8')).get('caps') or ())
+    except (OSError, ValueError):
+        return set()
+
+
+TRAIN_RANKED = {'customer', 'top_items', 'staff', 'debt'}   # buckets whose list/table/name answers are rankings
 
 
 def load_records(run: Path):
@@ -229,7 +278,7 @@ def _norm(text):
 
 
 def build(runs, out, *, prompts='current', val_shops=DEFAULT_VAL_SHOPS, val_industries=(), val_families=(),
-          val_frac=0.0, max_len=DEFAULT_MAX_LEN, per_question=1, per_group=None, cap_intent=None, drop_weak=(), explore=True,
+          val_frac=0.0, max_len=DEFAULT_MAX_LEN, max_completion=8192, per_question=1, per_group=None, cap_intent=None, drop_weak=(), explore=True,
           drop_drift=False, tokenizer=None, require_exact=False, seed=0, cache_dir=None, validate=True, quiet=False,
           argv=None):
     """Build the package in `out` from teacher run folders; returns stats (also written to stats.json)."""
@@ -284,7 +333,8 @@ def build(runs, out, *, prompts='current', val_shops=DEFAULT_VAL_SHOPS, val_indu
                 stats['dropped_records'][f"outcome_{rec.get('outcome')}"] += 1
                 continue
             stats['records']['correct'] += 1
-            by_question[(split.resolve().as_posix(), rec['id'])].append((rank(rec), order, rec.get('sample', 0), run, split, rec))
+            # a forced-turn record (gen.forced) is its own sample, apart from the question's plain record
+            by_question[(split.resolve().as_posix(), rec['id'], rec.get('forced') or '')].append((rank(rec), order, rec.get('sample', 0), run, split, rec))
         stats['sources'].append({k: sorted(v, key=str) if isinstance(v, set) else dict(v) if isinstance(v, collections.Counter) else v
                                  for k, v in src.items()})
     chosen = []
@@ -315,19 +365,77 @@ def build(runs, out, *, prompts='current', val_shops=DEFAULT_VAL_SHOPS, val_indu
             per_intent[intent] += 1
             kept.append(item)
         chosen = kept
-    chosen.sort(key=lambda x: (x[3].as_posix(), x[5]['_file']))
+    chosen.sort(key=lambda x: (str(x[4]), x[3].as_posix(), x[5]['_file']))     # by split: each split's data loaded once
 
     # 2-4. samples, prompts, filters
     samples, seen, systems = [], set(), {}
+    prev_split = None
     for _, _, _, run, split_path, rec in chosen:
         split = split_of(split_path)
+        if prev_split is not None and prev_split is not split:
+            prev_split.release()                      # memory: one world's shop data at a time
+        prev_split = split
         try:
             pairs = teacher_samples(rec, run, systems.setdefault(run.as_posix(), {}))
         except ValueError as exc:
             stats['dropped_records']['unusable:' + str(exc).split(':')[0][:50]] += 1
             continue
         if not pairs:
-            stats['dropped_records']['no_kept_turn'] += 1
+            why = next((x['why'] for x in teacher_turns(rec) if x['final']), None)
+            stats['dropped_records']['gate:' + str(why) if why and why != 'not_correct' else 'no_kept_turn'] += 1
+            continue
+        intent = split.info(rec['id'], split.group(rec['id']))['intent'] or ''
+        wmeta = split.meta.get(rec['id']) or {}
+        distractors = set(((wmeta.get('rulebook') or {}).get('distractors')) or ())
+        if val_industries and wmeta.get('industry') not in val_industries and distractors & set(val_industries):
+            stats['dropped_records']['gate:val_trade_in_distractors'] += 1   # a train world showing a held-out trade
+            continue
+        spec = wmeta.get('spec') or {}
+        caps = world_caps(split.path, rec.get('business_id'))
+        if rec.get('forced') and rec['id'] in FORCED_DROPS:     # forced-turn record: reviewed kinds, caps per kind
+            stats['dropped_records'][f"gate:forced_review_{rec['forced']}"] += 1
+            continue
+        if rec['id'] in REVIEW_DROPS:
+            stats['dropped_records']['gate:reviewer_right_by_luck'] += 1
+            continue
+        if spec.get('intent') == 'price_effect' and spec.get('date') and spec.get('n'):
+            import datetime as _dt
+            start = world_start(split.path)
+            if start and _dt.date.fromisoformat(str(spec['date'])[:10]) - _dt.timedelta(days=int(spec['n'])) < start:
+                stats['dropped_records']['gate:price_effect_window_before_data'] += 1   # a cut-short 'before' window
+                continue
+        if spec.get('intent') == 'expiring_value' and (rec.get('gold') or {}).get('type') == 'number':
+            stats['dropped_records']['gate:expiring_value_rounded_cost'] += 1   # review B6-1: gold sums a rounded base
+            continue                                                            # cost the files do not show
+        if spec.get('intent') in ('stock_end', 'stock_big_small', 'out_of_stock_count', 'stock_value'):
+            from gen.sft import reason_of
+            fin = next((s['completion'][0]['content'] for s in pairs if s['meta']['final']), '')
+            if STOCK_DROPS_RETURNED.search(reason_of(fin)):          # returned orders dropped whole from goods taken out
+                stats['dropped_records']['gate:stock_drops_returned_orders'] += 1
+                continue
+        if caps and str(spec.get('intent', '')).startswith('debt') and 'payment_method' not in caps \
+                and (rec.get('gold') or {}).get('type') != 'unanswerable':   # COD cut needs it (unanswerable gold: fine)
+            stats['dropped_records']['gate:debt_flow_without_payment_method'] += 1   # gold not derivable from the files
+            continue
+        if caps and spec.get('intent') in ('service_revenue', 'service_share') and (rec.get('gold') or {}).get('type') == 'unanswerable':
+            stats['dropped_records']['gate:service_without_groups'] += 1   # item names start with the rule's words: ambiguous
+            continue
+        if spec.get('intent') == 'customers_min_orders_share' and int(spec.get('n') or 0) <= 1:
+            stats['dropped_records']['gate:constant_gold'] += 1     # 100 % by definition
+            continue
+        if (rec.get('gold') or {}).get('type') == 'unanswerable' and intent in CUSTOMER_ID_INTENTS \
+                and 'customers' in world_caps(split.path, rec.get('business_id')):
+            stats['dropped_records']['gate:customer_by_name_gold'] += 1    # the rulebook names customers when codes are missing
+            continue
+        bare = intent.split(':', 1)[1] if intent.startswith('train:') else intent       # train questions: keyword buckets
+        if intent.startswith('train:') and bare in TRAIN_RANKED and (rec.get('gold') or {}).get('type') in ('list', 'table', 'string'):
+            intent = 'top_items'                    # a train ranking (top customers / items / staff / debtors)
+        elif intent.startswith('train:'):
+            intent = bare
+        final_code = next((s['completion'][0]['content'] for s in pairs if s['meta']['final']), '')
+        ok_rank = 'kit.top' in final_code or (intent in ('best_day', 'best_month') and 'idxmax' in final_code)
+        if intent in RANKED_INTENTS and not ok_rank:     # ties by code: kit.top (idxmax keeps the earliest day/month)
+            stats['dropped_records']['gate:ranked_without_kit_top'] += 1
             continue
         turns = teacher_turns(rec) if prompts == 'current' else None
         kept_any = False
@@ -344,7 +452,8 @@ def build(runs, out, *, prompts='current', val_shops=DEFAULT_VAL_SHOPS, val_indu
             if prompts == 'current':
                 try:
                     current = split.rebuild(rec, turns, m['turn'])
-                    diff = [i for i, (a, b) in enumerate(zip(current, s['prompt'])) if a != b]
+                    diff = [i for i, (a, b) in enumerate(zip(current, s['prompt'])) if a != b
+                            and not (i == 0 and b['content'].startswith(a['content'].rstrip('\n')))]   # + teacher note
                     if len(current) != len(s['prompt']):
                         diff = diff or [min(len(current), len(s['prompt']))]
                     m['prompt_drift'] = bool(diff)
@@ -366,6 +475,9 @@ def build(runs, out, *, prompts='current', val_shops=DEFAULT_VAL_SHOPS, val_indu
             m['tokens_exact'] = counter.exact
             if m['total_tokens'] > max_len:
                 stats['dropped_samples']['too_long'] += 1
+                continue
+            if max_completion and m['completion_tokens'] > max_completion:   # the student serves with this max_tokens
+                stats['dropped_samples']['completion_too_long'] += 1
                 continue
             m['prompt_sha1'] = hashlib.sha1(json.dumps(s['prompt'], ensure_ascii=False).encode('utf-8')).hexdigest()
             dedup = (m['prompt_sha1'], _norm(completion))
@@ -478,6 +590,7 @@ def main(argv=None):
     ap.add_argument('--val-families', default='', help='held-out export families (synthetic splits with meta.jsonl)')
     ap.add_argument('--val-frac', type=float, default=0.0, help='also hold out this fraction of the other question groups')
     ap.add_argument('--max-len', type=int, default=DEFAULT_MAX_LEN, help='drop samples longer than this (Gemma tokens, prompt + completion)')
+    ap.add_argument('--max-completion', type=int, default=8192, help='drop samples whose reply is longer (the student max_tokens)')
     ap.add_argument('--per-question', type=int, default=1, help='records kept per question id (several runs or --samples)')
     ap.add_argument('--per-group', type=int, help='at most this many records per question group (a question and its copies)')
     ap.add_argument('--cap-intent', type=int, help='at most this many records per intent')
@@ -490,7 +603,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     split = lambda s: tuple(x.strip() for x in s.split(',') if x.strip() and x.strip() != 'none')
     stats = build(a.teacher, a.out, prompts=a.prompts, val_shops=split(a.val_shops), val_industries=split(a.val_industries),
-                  val_families=split(a.val_families), val_frac=a.val_frac, max_len=a.max_len, per_question=a.per_question,
+                  val_families=split(a.val_families), val_frac=a.val_frac, max_len=a.max_len, max_completion=a.max_completion, per_question=a.per_question,
                   per_group=a.per_group,
                   cap_intent=a.cap_intent, drop_weak=split(a.drop_weak), explore=not a.no_explore, drop_drift=a.drop_drift,
                   tokenizer=a.tokenizer, require_exact=a.require_exact, seed=a.seed, validate=not a.no_validate,

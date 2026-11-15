@@ -25,6 +25,14 @@ __all__ = ['norm', 'name_key', 'factors', 'name', 'col', 'days_back', 'dedup', '
            'day_range', 'between', 'drop_groups', 'top', 'values']
 
 
+UNANSWERABLE_TEXT = ('unanswerable', 'khong tra loi duoc', 'khong the tra loi')
+
+
+def says_unanswerable(value):
+    """A text answer that concludes 'unanswerable' (its normalized text starts with such a phrase). Not a kit function."""
+    return isinstance(value, str) and norm(value).startswith(UNANSWERABLE_TEXT)
+
+
 # ---------------------------------------------------------------- text and columns
 def norm(text, accents=False):
     """Comparable form of a name: NFC, lower case, punctuation to spaces, single spaces.
@@ -135,7 +143,7 @@ def to_num(values):
     number (a code 'SP001', a date, a range '10-20') -> None: check how many became None before summing. "1.250" is
     1250 unless the values themselves prove "." a decimal mark ("0.500", "1,234.5"), as the tables were read: convert
     the whole column before filtering. One cell in, one number out."""
-    if isinstance(values, (pd.DataFrame, dict)): raise TypeError('to_num: pass one column (df[col]); for several use df[cols].apply(dm.to_num)')
+    if isinstance(values, (pd.DataFrame, dict)): raise TypeError('to_num: pass one column (df[col]); for several use df[cols].apply(kit.to_num)')
     if values is None or isinstance(values, (str, int, float, dt.date, np.generic)):
         return _one_number(values, decimal_mark([values]) if isinstance(values, str) else None)
     vals = list(values)
@@ -166,7 +174,7 @@ def _one_date(v, dayfirst, excel_serial):
 def to_date(values, dayfirst=True, excel_serial=False):
     """Timestamps from date objects or text. Numbers are Excel serial days only when excel_serial=True.
     Unparsable -> NaT; count them before filtering. One cell in, one Timestamp out."""
-    if isinstance(values, (pd.DataFrame, dict)): raise TypeError('to_date: pass one column (df[col]); for several use df[cols].apply(dm.to_date)')
+    if isinstance(values, (pd.DataFrame, dict)): raise TypeError('to_date: pass one column (df[col]); for several use df[cols].apply(kit.to_date)')
     if values is None or isinstance(values, (str, int, float, dt.date, np.generic)):
         return _one_date(values, dayfirst, excel_serial)
     if isinstance(values, pd.Series) and pd.api.types.is_datetime64_any_dtype(values):
@@ -191,7 +199,24 @@ def between(df, column, start, end, dayfirst=True, excel_serial=False):
     if days.notna().sum() * 2 < cells.notna().sum():
         hint = '; numbers: pass excel_serial=True if they are Excel dates' if pd.api.types.is_numeric_dtype(cells) else ''
         raise ValueError(f'between: column {column!r} does not hold dates (e.g. {cells.dropna().head(3).tolist()}){hint}')
-    return df[(days >= start) & (days <= end)]
+    rows = df[(days >= start) & (days <= end)]
+    return WindowRows(rows) if isinstance(rows, TolerantFrame) else rows
+
+
+MASK_HINT = ('kit.between returns the ROWS of the window (a table), not a mask: rows = kit.between(df, col, start, end); '
+             'inside a mask write (df[col] >= start) & (df[col] < end + pd.Timedelta(days=1)).')
+
+
+class WindowRows(TolerantFrame):
+    """The rows kit.between returns: a table that refuses &, |, ^ and ~ (the usual mistake: using it as a mask)."""
+    @property
+    def _constructor(self):
+        return TolerantFrame
+
+    def _not_a_mask(self, *args):
+        raise TypeError(MASK_HINT)
+
+    __and__ = __rand__ = __or__ = __ror__ = __xor__ = __rxor__ = __invert__ = _not_a_mask
 
 
 # ---------------------------------------------------------------- dates, groups and ranking
@@ -219,7 +244,7 @@ def top(data, by=None, k=None, ascending=False, tie=None):
     index): pass tie='<code column>'. Inspect rows around position k for ties before answering."""
     series, ix = isinstance(data, pd.Series), data.index
     if series and by is not None and k is None:            # dm.top(per, 3): the 3 went to `by`, k would be all rows
-        raise TypeError('dm.top(series, k=3): pass k by name (by= is for a DataFrame column)')
+        raise TypeError('kit.top(series, k=3): pass k by name (by= is for a DataFrame column)')
     by_code = not (ix.nlevels == 1 and ix.name is None and pd.api.types.is_integer_dtype(ix))   # not row numbers
     frame = (data.rename('_value').to_frame() if series else data).reset_index(drop=not by_code)
     frame.index = range(len(frame))
@@ -284,7 +309,7 @@ def factors(values, base=None):
                     rows += [{'row': key, 'item': item, 'unit': u, 'factor': sides[j][0] / q, 'base': sides[j][1], 'last': j == len(sides) - 1}
                              for i, (q, u) in enumerate(sides) for j in range(i + 1, len(sides))]
     if unread:                                                          # never a silent factor 1 downstream
-        raise ValueError(f'dm.factors could not read {unread[:5]}: write those factors yourself (or pass only the lines it reads)')
+        raise ValueError(f'kit.factors could not read {unread[:5]}: write those factors yourself (or pass only the lines it reads)')
     for r in rows if base is not None else []:                        # chains toward the base unit asked for
         seen = {norm(r['unit'])}
         while norm(r['base']) != norm(base) and (nxt := next((x for x in rows if (x['row'], x['item']) == (r['row'], r['item'])
@@ -298,5 +323,5 @@ def factors(values, base=None):
     out = pd.DataFrame(rows, columns=['row', 'item', 'unit', 'factor', 'base'])
     out = out.assign(unit_key=norm(out['unit'].astype(object)), base_key=norm(out['base'].astype(object)))
     if (clash := out.drop_duplicates(['row', 'item', 'unit_key', 'factor']).duplicated(['row', 'item', 'unit_key'])).any():
-        raise ValueError(f"dm.factors: two factors for one unit {out.loc[clash[clash].index, 'unit'].tolist()[:3]}: decide which rule applies")
+        raise ValueError(f"kit.factors: two factors for one unit {out.loc[clash[clash].index, 'unit'].tolist()[:3]}: decide which rule applies")
     return out.drop_duplicates(['row', 'item', 'unit_key']).reset_index(drop=True)

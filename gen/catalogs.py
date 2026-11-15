@@ -128,6 +128,14 @@ def load():
     return json.loads((ASSETS / 'catalogs.json').read_text(encoding='utf-8'))
 
 
+def catalog(ind):
+    """One industry's catalog: harvested/hand-written (catalogs.json) or model-generated (gen.industries)."""
+    from . import industries
+    if industries.is_generated(ind):
+        return industries.catalog(ind)
+    return load()[ind]
+
+
 if __name__ == '__main__':
     c = harvest()
     ASSETS.mkdir(exist_ok=True)

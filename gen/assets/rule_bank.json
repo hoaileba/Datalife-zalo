@@ -1,0 +1,787 @@
+{
+ "Luật riêng của từng ngành, dùng cùng với luật chung ở các mục trên. Khi luật ngành khác luật chung, theo **luật ngành**.": [
+  "Luật riêng của từng ngành được dùng cùng với luật chung ở các mục trên. Khi luật ngành khác luật chung, theo **luật ngành**.",
+  "Dùng luật riêng của từng ngành cùng với luật chung ở các mục trên. Khi luật ngành khác luật chung, theo **luật ngành**."
+ ],
+ "Mọi đáp án chuẩn tính theo các luật dưới đây. Câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây.": [
+  "Tất cả đáp án chuẩn được tính dựa trên các luật ở dưới. Nếu câu hỏi có nói khác thì theo câu hỏi; nếu không nói gì thì áp dụng luật mặc định tại đây.",
+  "Các luật dưới đây là căn cứ để tính mọi đáp án chuẩn. Trường hợp câu hỏi nói khác, làm theo câu hỏi; trường hợp không nói, áp luật mặc định ở đây.",
+  "Mọi đáp án chuẩn đều tính theo các luật dưới đây. Câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây.",
+  "Đáp án chuẩn được tính theo các luật dưới đây. Nếu câu hỏi nói khác thì làm theo câu hỏi; còn không nói thì áp luật mặc định tại đây."
+ ],
+ "**Hôm nay** của mỗi câu là trường `as_of_date` trong `questions.jsonl`. Mọi cách nói tương đối tính theo ngày này. File có thể có bản ghi ngày sau hôm nay: với câu hỏi theo hôm nay, những bản ghi đó coi như chưa xảy ra. Riêng trạng thái huỷ, trả hàng của đơn lấy theo trạng thái ghi trên đơn, kể cả khi phiếu trả ghi ngày sau hôm nay.": [
+  "**Hôm nay** của từng câu là trường `as_of_date` trong `questions.jsonl`. Mọi cách nói tương đối đều tính theo ngày này. File có thể có bản ghi ngày sau hôm nay: với câu hỏi theo hôm nay, những bản ghi đó coi như chưa xảy ra. Riêng trạng thái huỷ, trả hàng của đơn lấy theo trạng thái ghi trên đơn, kể cả khi phiếu trả ghi ngày sau hôm nay.",
+  "Trường `as_of_date` trong `questions.jsonl` là **hôm nay** của mỗi câu. Mọi cách nói tương đối tính theo ngày này. File có thể có bản ghi ngày sau hôm nay: với câu hỏi theo hôm nay, những bản ghi đó coi như chưa xảy ra. Riêng trạng thái huỷ, trả hàng của đơn lấy theo trạng thái ghi trên đơn, kể cả khi phiếu trả ghi ngày sau hôm nay.",
+  "**Hôm nay** của mỗi câu là trường `as_of_date` trong `questions.jsonl`. Mọi cách nói tương đối đều tính theo ngày này. File có thể có bản ghi ngày sau hôm nay: với câu hỏi theo hôm nay, những bản ghi đó coi như chưa xảy ra. Riêng trạng thái huỷ, trả hàng của đơn lấy theo trạng thái ghi trên đơn, kể cả khi phiếu trả ghi ngày sau hôm nay.",
+  "Mỗi câu lấy **hôm nay** là trường `as_of_date` trong `questions.jsonl`. Mọi cách nói tương đối tính theo ngày này. File có thể có bản ghi ngày sau hôm nay: với câu hỏi theo hôm nay, những bản ghi đó coi như chưa xảy ra. Riêng trạng thái huỷ, trả hàng của đơn lấy theo trạng thái ghi trên đơn, kể cả khi phiếu trả ghi ngày sau hôm nay."
+ ],
+ "Câu **không trả lời được** khi dữ liệu phát hành không đủ để trả lời. Đáp án chỉ lấy từ dữ liệu phát hành, không lấy từ hiểu biết bên ngoài. Nộp `{\"type\": \"unanswerable\", \"reason\": \"…\"}`.": [
+  "Câu hỏi **không trả lời được** nếu dữ liệu phát hành không đủ để trả lời. Đáp án chỉ được lấy từ dữ liệu phát hành, không lấy từ hiểu biết bên ngoài. Phải nộp `{\"type\": \"unanswerable\", \"reason\": \"…\"}`.",
+  "Khi dữ liệu phát hành không đủ để trả lời, câu **không trả lời được**. Đáp án chỉ lấy từ dữ liệu phát hành, không lấy từ hiểu biết bên ngoài. Nộp `{\"type\": \"unanswerable\", \"reason\": \"…\"}`.",
+  "Nếu dữ liệu phát hành không đủ để trả lời thì câu **không trả lời được**. Đáp án chỉ lấy từ dữ liệu phát hành, không lấy từ hiểu biết bên ngoài. Nộp `{\"type\": \"unanswerable\", \"reason\": \"…\"}`."
+ ],
+ "- Thông tin file không ghi thì không suy ra từ cột khác, trừ khi rulebook ghi cách lấy.": [
+  "Nếu thông tin không được ghi trong file thì không được suy ra từ cột khác, trừ khi rulebook có ghi cách lấy.",
+  "Không suy ra thông tin file không ghi từ cột khác, trừ khi rulebook ghi cách lấy.",
+  "Thông tin không ghi trong file thì không suy ra từ cột khác, trừ khi rulebook ghi cách lấy.",
+  "Trừ khi rulebook ghi cách lấy, thông tin file không ghi thì không suy ra từ cột khác."
+ ],
+ "- Không có dữ liệu khác với bằng 0: kỳ nằm **hoàn toàn** ngoài khoảng ngày có dữ liệu của shop, hoặc shop không ghi loại thông tin câu hỏi cần, thì không trả lời được, không phải 0.": [
+  "Không có dữ liệu khác với bằng 0: nếu kỳ nằm **hoàn toàn** ngoài khoảng ngày có dữ liệu của shop, hoặc shop không ghi loại thông tin câu hỏi cần, thì không trả lời được, không phải 0.",
+  "Không có dữ liệu khác với bằng 0: kỳ nằm **hoàn toàn** ngoài khoảng ngày có dữ liệu của shop, hoặc shop không ghi loại thông tin câu hỏi cần, thì không trả lời được, không phải 0.",
+  "Không có dữ liệu khác với bằng 0: kỳ nằm **hoàn toàn** ngoài khoảng ngày có dữ liệu của shop, hoặc shop không ghi loại thông tin câu hỏi cần, thì không trả lời được, không phải 0."
+ ],
+ "- Kỳ chỉ có một phần nằm trong khoảng ngày có dữ liệu thì tính trên phần có dữ liệu.": [
+  "Nếu kỳ chỉ có một phần nằm trong khoảng ngày có dữ liệu thì tính trên phần có dữ liệu.",
+  "Khi kỳ chỉ nằm một phần trong khoảng ngày có dữ liệu, tính trên phần có dữ liệu.",
+  "Kỳ chỉ có một phần nằm trong khoảng ngày có dữ liệu thì tính trên phần có dữ liệu.",
+  "Tính trên phần có dữ liệu nếu kỳ chỉ có một phần nằm trong khoảng ngày có dữ liệu."
+ ],
+ "Trường `reason` không bắt buộc và không chấm tự động. Nếu có, `reason` phải là chuỗi; dòng có `reason` không phải chuỗi không đọc được và tính như bỏ trống.": [
+  "`reason` không bắt buộc và không được chấm tự động. Nếu có, `reason` phải là chuỗi; dòng có `reason` không phải chuỗi không đọc được và tính như bỏ trống."
+ ],
+ "| Ca sáng, ca chiều | theo giờ tạo đơn: ca sáng 06:00–13:59, ca chiều 14:00–21:59. So ca chiều với ca sáng: mốc là **ca sáng** |": [
+  "| Ca sáng, ca chiều | dựa trên giờ tạo đơn: ca sáng từ 06:00 đến 13:59, ca chiều từ 14:00 đến 21:59. Khi so sánh ca chiều với ca sáng, lấy **ca sáng** làm mốc |",
+  "| Ca sáng, ca chiều | theo giờ tạo đơn: ca sáng 06:00–13:59, ca chiều 14:00–21:59. Để so ca chiều với ca sáng, mốc so sánh là **ca sáng** |",
+  "| Ca sáng, ca chiều | căn cứ vào giờ tạo đơn: ca sáng 06:00–13:59, ca chiều 14:00–21:59. Việc so sánh ca chiều với ca sáng lấy **ca sáng** làm chuẩn |",
+  "| Ca sáng, ca chiều | xác định theo giờ tạo đơn: ca sáng 06:00–13:59, ca chiều 14:00–21:59. Khi so ca chiều với ca sáng thì mốc là **ca sáng** |"
+ ],
+ "| Mặt hàng | **Món**, hàng, sản phẩm cùng nghĩa với mặt hàng. Dòng **Phí phục vụ** không phải mặt hàng: không xếp hạng, không đếm. Vẫn tính vào doanh thu, kể cả mẫu số tỉ trọng nhóm hàng |": [
+  "| Mặt hàng | **Món**, hàng, sản phẩm đều đồng nghĩa với mặt hàng. Dòng **Phí phục vụ** không được coi là mặt hàng: không xếp hạng, không đếm. Nhưng vẫn tính vào doanh thu, kể cả mẫu số tỉ trọng nhóm hàng |",
+  "| Mặt hàng | **Món**, hàng, sản phẩm cùng nghĩa với mặt hàng. **Phí phục vụ** không phải mặt hàng: không xếp hạng, không đếm. Tuy vậy vẫn được tính vào doanh thu, kể cả mẫu số tỉ trọng nhóm hàng |",
+  "| Mặt hàng | **Món**, hàng, sản phẩm là các từ cùng nghĩa với mặt hàng. Dòng **Phí phục vụ** không thuộc mặt hàng: không xếp hạng, không đếm. Vẫn tính vào doanh thu, kể cả mẫu số tỉ trọng nhóm hàng |",
+  "| Mặt hàng | **Món**, hàng, sản phẩm đồng nghĩa với mặt hàng. **Phí phục vụ** không phải là mặt hàng: không xếp hạng, không đếm. Vẫn tính vào doanh thu, kể cả mẫu số tỉ trọng nhóm hàng |"
+ ],
+ "| Nhóm hàng | theo cột nhóm hàng, đúng tên nhóm câu hỏi nêu; không gộp nhóm khác tên dù tên gần nhau |": [
+  "| Nhóm hàng | căn cứ vào cột nhóm hàng, phải đúng tên nhóm mà câu hỏi nêu; không gộp nhóm khác tên dù tên gần giống |",
+  "| Nhóm hàng | theo cột nhóm hàng, đúng với tên nhóm câu hỏi đã nêu; không gộp các nhóm khác tên dù tên có gần nhau |",
+  "| Nhóm hàng | dựa vào cột nhóm hàng, đúng tên nhóm câu hỏi đề cập; không gộp nhóm khác tên dù tên gần nhau |",
+  "| Nhóm hàng | xác định theo cột nhóm hàng, đúng tên nhóm mà câu hỏi nêu; không gộp nhóm khác tên dù tên gần nhau |"
+ ],
+ "| Bán chạy | theo **số lượng quy về đơn vị cơ bản**, không theo số dòng hay số tiền; bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** |": [
+  "| Bán chạy | dựa trên **số lượng quy về đơn vị cơ bản**, không dựa trên số dòng hay số tiền; loại bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn được xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** |",
+  "| Bán chạy | theo **số lượng quy về đơn vị cơ bản**, không theo số dòng hay số tiền; bỏ đơn huỷ, trả. Mặt hàng có đơn vị cơ bản khác vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** đồng nghĩa với **bán chạy nhất** |",
+  "| Bán chạy | căn cứ vào **số lượng quy về đơn vị cơ bản**, không căn cứ vào số dòng hay số tiền; loại đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn được xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** |",
+  "| Bán chạy | tính theo **số lượng quy về đơn vị cơ bản**, không tính theo số dòng hay số tiền; bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** |"
+ ],
+ "| Bán được bao nhiêu <đơn vị> | cộng số lượng quy về đơn vị cơ bản của các mặt hàng **có đơn vị cơ bản là <đơn vị>**, kể cả dòng bán theo đơn vị lớn; mặt hàng có đơn vị cơ bản khác không tính |": [
+  "| Bán được bao nhiêu <đơn vị> | cộng số lượng quy về đơn vị cơ bản của những mặt hàng **có đơn vị cơ bản là <đơn vị>**, kể cả dòng bán theo đơn vị lớn; mặt hàng có đơn vị cơ bản khác không được tính |",
+  "| Bán được bao nhiêu <đơn vị> | tính tổng số lượng quy về đơn vị cơ bản của các mặt hàng **có đơn vị cơ bản là <đơn vị>**, bao gồm dòng bán theo đơn vị lớn; mặt hàng có đơn vị cơ bản khác không tính |",
+  "| Bán được bao nhiêu <đơn vị> | cộng dồn số lượng quy về đơn vị cơ bản của các mặt hàng **có đơn vị cơ bản là <đơn vị>**, kể cả dòng bán theo đơn vị lớn; mặt hàng có đơn vị cơ bản khác thì không tính |",
+  "| Bán được bao nhiêu <đơn vị> | lấy tổng số lượng quy về đơn vị cơ bản của các mặt hàng **có đơn vị cơ bản là <đơn vị>**, kể cả dòng bán theo đơn vị lớn; mặt hàng có đơn vị cơ bản khác không tính |"
+ ],
+ "| Hàng lời nhất | theo **tổng lãi gộp** của mặt hàng (§5) |": [
+  "| Hàng lời nhất | dựa trên **tổng lãi gộp** của mặt hàng (§5) |",
+  "| Hàng lời nhất | căn cứ vào **tổng lãi gộp** của mặt hàng (§5) |",
+  "| Hàng lời nhất | xác định dựa trên **tổng lãi gộp** của mặt hàng (§5) |"
+ ],
+ "| Xác định khách | Shop có mã khách: mỗi **mã khách** là một khách, hai mã trùng tên là hai khách; đơn không ghi mã (**khách lẻ**) không phải khách, không đếm và không xếp hạng. Shop không có mã khách: xác định khách theo **tên ghi trên đơn**: hai tên **chỉ khác cách viết** là cùng một khách, hai tên **khác chữ hoặc khác số** là hai khách; đơn **khách lẻ** không tính. Khách mua **nhiều tiền** nhất xếp theo doanh thu (§1). |": [
+  "| Xác định khách | Nếu shop có mã khách: mỗi **mã khách** là một khách, hai mã trùng tên là hai khách; đơn không ghi mã (**khách lẻ**) không phải khách, không đếm và không xếp hạng. Nếu shop không có mã khách: xác định khách theo **tên ghi trên đơn**: hai tên **chỉ khác cách viết** là cùng một khách, hai tên **khác chữ hoặc khác số** là hai khách; đơn **khách lẻ** không tính. Khách mua **nhiều tiền** nhất xếp theo doanh thu (§1). |",
+  "| Xác định khách | Trường hợp shop có mã khách: mỗi **mã khách** là một khách, hai mã trùng tên là hai khách; đơn không ghi mã (**khách lẻ**) không phải khách, không đếm và không xếp hạng. Trường hợp shop không có mã khách: xác định khách theo **tên ghi trên đơn**: hai tên **chỉ khác cách viết** là cùng một khách, hai tên **khác chữ hoặc khác số** là hai khách; đơn **khách lẻ** không tính. Khách mua **nhiều tiền** nhất xếp theo doanh thu (§1). |"
+ ],
+ "| Nhân viên bán giỏi nhất | theo **doanh thu** (§1) của nhân viên trong kỳ, không theo số đơn |": [
+  "| Nhân viên bán giỏi nhất | dựa trên **doanh thu** (§1) của nhân viên trong kỳ, không dựa trên số đơn |",
+  "| Nhân viên bán giỏi nhất | căn cứ vào **doanh thu** (§1) của nhân viên trong kỳ, không căn cứ vào số đơn |",
+  "| Nhân viên bán giỏi nhất | xác định theo **doanh thu** (§1) của nhân viên trong kỳ, không theo số đơn |"
+ ],
+ "Mỗi dòng `submission.jsonl`: `{\"id\": \"...\", \"type\": \"...\", \"answer\": ...}`. Đúng **+1**, sai **−1**, bỏ trống (`{\"type\": \"abstain\"}` hoặc không có dòng) **0**.": [
+  "Mỗi dòng trong `submission.jsonl` có dạng `{\"id\": \"...\", \"type\": \"...\", \"answer\": ...}`. Đúng được **+1**, sai bị **−1**, bỏ trống (`{\"type\": \"abstain\"}` hoặc không có dòng) được **0**.",
+  "Trong `submission.jsonl`, mỗi dòng là `{\"id\": \"...\", \"type\": \"...\", \"answer\": ...}`. Đúng **+1**, sai **−1**, bỏ trống (`{\"type\": \"abstain\"}` hoặc không có dòng) **0**.",
+  "Định dạng mỗi dòng `submission.jsonl`: `{\"id\": \"...\", \"type\": \"...\", \"answer\": ...}`. Đúng **+1**, sai **−1**, bỏ trống (`{\"type\": \"abstain\"}` hoặc không có dòng) **0**.",
+  "Mỗi dòng `submission.jsonl` gồm `{\"id\": \"...\", \"type\": \"...\", \"answer\": ...}`. Nếu đúng **+1**, nếu sai **−1**, nếu bỏ trống (`{\"type\": \"abstain\"}` hoặc không có dòng) **0**."
+ ],
+ "**Mỗi type có một format duy nhất; sai format là sai.** Đáp án chỉ ghi **giá trị**: số không kèm chữ đơn vị hay ký hiệu %; tên lấy nguyên từ dữ liệu, không kèm tên cột hay nhãn nhóm. Câu hỏi nhiều số thì ghi list theo đúng thứ tự câu hỏi nêu.": [
+  "**Mỗi type có một format duy nhất; sai format là sai.** Đáp án chỉ ghi **giá trị**: số không kèm chữ đơn vị hay ký hiệu %; tên lấy nguyên từ dữ liệu, không kèm tên cột hay nhãn nhóm. Nếu câu hỏi nhiều số thì ghi list theo đúng thứ tự câu hỏi nêu.",
+  "**Mỗi type có một format duy nhất; sai format là sai.** Đáp án chỉ ghi **giá trị**: số không kèm chữ đơn vị hay ký hiệu %; tên lấy nguyên từ dữ liệu, không kèm tên cột hay nhãn nhóm. Với câu hỏi nhiều số, ghi list theo đúng thứ tự câu hỏi nêu."
+ ],
+ "Mọi đáp án chuẩn tính theo các luật dưới đây. Khi câu hỏi nói rõ cách tính thì theo câu hỏi; câu hỏi không nói thì dùng luật mặc định dưới đây.": [
+  "Theo các luật dưới đây mà mọi đáp án chuẩn được tính. Nếu câu hỏi nêu rõ cách tính thì làm theo câu hỏi; nếu câu hỏi không nói thì áp dụng luật mặc định dưới đây.",
+  "Mọi đáp án chuẩn đều tính dựa trên các luật dưới đây. Trường hợp câu hỏi chỉ rõ cách tính thì theo câu hỏi; trường hợp câu hỏi không nói thì dùng luật mặc định dưới đây.",
+  "Các luật dưới đây là căn cứ để tính mọi đáp án chuẩn. Khi câu hỏi nói rõ cách tính, ta theo câu hỏi; khi câu hỏi không nói, ta dùng luật mặc định dưới đây."
+ ],
+ "| Đơn tính vào doanh thu | đơn **không huỷ** và **không trả hàng**. Đơn có trả hàng, **kể cả chỉ trả một phần**, là đơn trả hàng: bỏ **cả đơn**. Đơn **đang giao chưa tính**: chỉ tính khi đã hoàn thành |": [
+  "| Đơn được tính vào doanh thu | đơn **không huỷ** và **không trả hàng**. Đơn có trả hàng, **kể cả chỉ trả một phần**, là đơn trả hàng: bỏ **cả đơn**. Đơn **đang giao chưa tính**: chỉ tính khi đã hoàn thành |",
+  "| Đơn tính vào doanh thu | đơn **không huỷ** và **không trả hàng**. Đơn trả hàng, **kể cả chỉ trả một phần**, được coi là đơn trả hàng: loại bỏ **cả đơn**. Đơn **đang giao chưa tính**: chỉ tính khi đã hoàn thành |"
+ ],
+ "Đáp án chuẩn đều được tính theo những luật sau. Câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây.": [
+  "Câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây. Đáp án chuẩn đều được tính theo những luật sau.",
+  "Đáp án chuẩn đều được tính theo những luật sau. Nếu câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây.",
+  "Mọi đáp án chuẩn đều tuân theo các luật sau. Khi câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây.",
+  "Những luật sau được dùng để tính đáp án chuẩn. Câu hỏi nói khác thì làm theo câu hỏi; không nói thì áp luật mặc định ở đây."
+ ],
+ "- **Số, phần trăm:** khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 1 chữ số thập phân. Chỉ bỏ qua sai số dấu phẩy động.": [
+  "**Số, phần trăm:** khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 1 chữ số thập phân. Chỉ bỏ qua sai số dấu phẩy động.",
+  "**Số, phần trăm:** phải khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 1 chữ số thập phân. Chỉ bỏ qua sai số dấu phẩy động.",
+  "**Số, phần trăm:** khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 1 chữ số thập phân. Sai số dấu phẩy động là thứ duy nhất được bỏ qua.",
+  "**Số, phần trăm:** khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 1 chữ số thập phân. Chỉ có sai số dấu phẩy động được bỏ qua."
+ ],
+ "- **Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm làm tròn **1 chữ số thập phân** (nửa lên); số trung bình khác làm tròn 2 chữ số thập phân.": [
+  "**Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm làm tròn **1 chữ số thập phân** (nửa lên); số trung bình khác làm tròn 2 chữ số thập phân.",
+  "**Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm làm tròn **1 chữ số thập phân** (nửa lên); các số trung bình khác làm tròn 2 chữ số thập phân.",
+  "**Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm làm tròn **1 chữ số thập phân** (nửa lên); số trung bình khác làm tròn 2 chữ số thập phân.",
+  "**Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm làm tròn **1 chữ số thập phân** (nửa lên); số trung bình khác làm tròn 2 chữ số thập phân."
+ ],
+ "Đáp án chuẩn đều được tính theo những luật sau. Khi câu hỏi nói rõ cách tính thì theo câu hỏi; câu hỏi không nói thì dùng luật mặc định dưới đây.": [
+  "Các đáp án chuẩn luôn được tính dựa trên những luật sau đây. Nếu câu hỏi ghi rõ cách tính thì làm theo câu hỏi; còn nếu câu hỏi không nêu thì áp dụng luật mặc định bên dưới.",
+  "Mọi đáp án chuẩn đều tính theo các luật sau. Trường hợp câu hỏi nói rõ cách tính thì theo cách đó; khi câu hỏi không nói thì dùng luật mặc định dưới đây.",
+  "Những luật sau là căn cứ để tính đáp án chuẩn. Câu hỏi có nêu rõ cách tính thì theo câu hỏi; câu hỏi không nêu thì dùng luật mặc định ở dưới.",
+  "Đáp án chuẩn được tính theo các luật sau. Nếu câu hỏi chỉ rõ cách tính thì theo câu hỏi; nếu câu hỏi không nói thì áp dụng luật mặc định dưới đây."
+ ],
+ "| Đơn thuộc kỳ nào | xét **ngày đặt đơn**, không xét ngày giao hàng hay ngày thu tiền |": [
+  "| Đơn được xếp vào kỳ nào | căn cứ **ngày đặt đơn**, không căn cứ ngày giao hàng hay ngày thu tiền |",
+  "| Đơn thuộc kỳ nào | dựa vào **ngày đặt đơn**, không dựa vào ngày giao hàng hay ngày thu tiền |",
+  "| Việc xác định đơn thuộc kỳ nào | xét theo **ngày đặt đơn**, không xét ngày giao hàng hay ngày thu tiền |",
+  "| Đơn tính vào kỳ nào | lấy **ngày đặt đơn** để xét, không lấy ngày giao hàng hay ngày thu tiền |"
+ ],
+ "| Phần trăm thay đổi, tăng trưởng | đem so với **kỳ liền trước**; nếu giảm thì kết quả là **số âm** |": [
+  "| Phần trăm thay đổi, tăng trưởng | so với **kỳ liền trước**; nếu giảm thì kết quả là **số âm** |",
+  "| Tỷ lệ phần trăm thay đổi, tăng trưởng | đem so với **kỳ liền trước**; trường hợp giảm thì kết quả là **số âm** |",
+  "| Phần trăm thay đổi hay tăng trưởng | lấy so với **kỳ liền trước**; nếu bị giảm thì kết quả ghi là **số âm** |",
+  "| Mức phần trăm thay đổi, tăng trưởng | tính so với **kỳ liền trước**; nếu giảm thì kết quả là **số âm** |"
+ ],
+ "| Từ X đến Y, nhóm X–Y | tính luôn cả X lẫn Y |": [
+  "| Từ X đến Y, nhóm X–Y | được tính gồm cả X lẫn Y |",
+  "| Khoảng từ X đến Y, nhóm X–Y | tính luôn cả X và Y |",
+  "| Từ X tới Y, nhóm X–Y | cả X lẫn Y đều được tính |",
+  "| Nhóm X–Y, từ X đến Y | tính bao gồm X và Y |"
+ ],
+ "| Tuần | tuần mở đầu bằng **thứ Hai**. **Tuần này**: từ thứ Hai của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, thứ Hai đến Chủ nhật |": [
+  "| Tuần | tuần bắt đầu bằng **thứ Hai**. **Tuần này**: tính từ thứ Hai của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, từ thứ Hai đến Chủ nhật |",
+  "| Tuần | tuần mở đầu vào **thứ Hai**. **Tuần này**: từ thứ Hai của tuần có hôm nay cho đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, thứ Hai đến Chủ nhật |",
+  "| Tuần | tuần được tính bắt đầu bằng **thứ Hai**. **Tuần này**: từ thứ Hai của tuần chứa hôm nay đến hết ngày hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, thứ Hai đến Chủ nhật |",
+  "| Tuần | tuần khởi đầu bằng **thứ Hai**. **Tuần này**: tính từ thứ Hai của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, thứ Hai đến Chủ nhật |"
+ ],
+ "| Từ đầu năm, từ đầu năm tới nay | tính từ ngày 01/01 năm nay cho đến **hết ngày hôm nay** |": [
+  "| Từ đầu năm, từ đầu năm tới nay | được tính từ ngày 01/01 năm nay cho đến **hết ngày hôm nay** |",
+  "| Từ đầu năm, từ đầu năm đến nay | tính từ ngày 01/01 năm nay đến **hết ngày hôm nay** |",
+  "| Từ đầu năm, từ đầu năm tới nay | tính bắt đầu từ ngày 01/01 năm nay cho tới **hết ngày hôm nay** |",
+  "| Từ đầu năm, từ đầu năm tới nay | lấy từ ngày 01/01 năm nay đến **hết ngày hôm nay** |"
+ ],
+ "| Nhóm hàng | lấy theo cột nhóm hàng, khớp đúng tên nhóm trong câu hỏi; nhóm khác tên thì không gộp dù tên na ná |": [
+  "| Nhóm hàng | căn cứ theo cột nhóm hàng, khớp đúng tên nhóm trong câu hỏi; nhóm khác tên thì không gộp dù tên na ná |",
+  "| Nhóm hàng | lấy theo cột nhóm hàng, phải khớp đúng tên nhóm trong câu hỏi; nhóm khác tên thì không gộp dù tên na ná |",
+  "| Nhóm hàng | xác định theo cột nhóm hàng, khớp đúng tên nhóm trong câu hỏi; nhóm khác tên thì không gộp dù tên na ná |",
+  "| Nhóm hàng | dựa theo cột nhóm hàng, khớp đúng tên nhóm trong câu hỏi; nhóm khác tên thì không gộp dù tên na ná |"
+ ],
+ "| Nhân viên bán giỏi nhất | xếp theo **doanh thu** (§1) nhân viên đó bán được trong kỳ, không xếp theo số đơn |": [
+  "| Nhân viên bán giỏi nhất | xếp theo **doanh thu** (§1) mà nhân viên đó bán được trong kỳ, không xếp theo số đơn |",
+  "| Nhân viên bán giỏi nhất | căn cứ **doanh thu** (§1) nhân viên đó bán được trong kỳ để xếp, không căn cứ số đơn |",
+  "| Nhân viên bán giỏi nhất | xếp hạng dựa trên **doanh thu** (§1) nhân viên đó bán được trong kỳ, không dựa trên số đơn |",
+  "| Nhân viên bán giỏi nhất | lấy **doanh thu** (§1) nhân viên đó bán được trong kỳ để xếp, không lấy số đơn |"
+ ],
+ "Đúng format rồi mới so giá trị:": [
+  "Chỉ khi định dạng đúng thì mới tiến hành so sánh giá trị:",
+  "Việc so giá trị chỉ được thực hiện sau khi đã đúng format:",
+  "Định dạng phải đúng trước, sau đó mới so đến giá trị:",
+  "Muốn so giá trị thì trước hết phải đúng format:"
+ ],
+ "- **Số, phần trăm:** khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 2 chữ số thập phân. Chỉ bỏ qua sai số dấu phẩy động.": [
+  "- **Số và phần trăm:** phải khớp tuyệt đối. Tiền phải đúng đến từng đồng, số đếm đúng đến từng đơn vị, phần trăm đúng đến 2 chữ số thập phân. Chỉ có sai số dấu phẩy động là được bỏ qua.",
+  "- **Số, phần trăm:** yêu cầu khớp tuyệt đối. Tiền đúng từng đồng, số đếm đúng từng đơn vị, phần trăm đúng 2 chữ số thập phân. Duy nhất sai số dấu phẩy động được bỏ qua.",
+  "- **Số và phần trăm:** phải khớp tuyệt đối. Tiền đúng đến từng đồng, số đếm đúng đến từng đơn vị, phần trăm đúng đến 2 chữ số thập phân. Chỉ sai số dấu phẩy động là được bỏ qua."
+ ],
+ "- **Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm và số trung bình khác làm tròn 2 chữ số thập phân, trừ khi một luật khác trong rulebook ghi khác.": [
+  "- **Làm tròn:** tiền ra số lẻ thì làm tròn về đồng; trung bình của một khoản tiền cũng là tiền nên cũng làm tròn về đồng. Phần trăm và số trung bình khác làm tròn 2 chữ số thập phân, trừ khi một luật khác trong rulebook ghi khác.",
+  "- **Làm tròn:** tiền ra số lẻ làm tròn về đồng; trung bình của một khoản tiền cũng là tiền, làm tròn về đồng. Phần trăm và số trung bình khác làm tròn 2 chữ số thập phân, trừ khi rulebook có luật khác ghi khác."
+ ],
+ "| {SEASONT} năm Y | từ **{FROM}** đến **hết {TO}** năm Y |": [
+  "| {SEASONT} năm Y | bắt đầu từ **{FROM}** cho tới **hết {TO}** năm Y |",
+  "| {SEASONT} năm Y | kéo dài từ **{FROM}** đến **hết {TO}** năm Y |",
+  "| {SEASONT} năm Y | tính từ **{FROM}** đến **hết {TO}** năm Y |",
+  "| {SEASONT} năm Y | khoảng thời gian từ **{FROM}** đến **hết {TO}** năm Y |"
+ ],
+ "| Tỉ lệ đơn huỷ trong kỳ | phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao). Làm tròn 2 chữ số thập phân. |": [
+  "| Tỉ lệ đơn huỷ trong kỳ | Tỷ lệ phần trăm đơn huỷ trên **mọi đơn đặt trong kỳ** (xác định theo ngày đặt, **mọi trạng thái**: bao gồm đơn huỷ, đơn trả, đơn đang giao). Làm tròn đến 2 chữ số thập phân. |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Làm tròn 2 chữ số thập phân, phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao). |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Phần trăm đơn huỷ được tính trên **mọi đơn đặt trong kỳ** (dựa vào ngày đặt, **mọi trạng thái**: gồm đơn huỷ, đơn trả, đơn đang giao) và làm tròn 2 chữ số thập phân. |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao), phần trăm đơn huỷ làm tròn 2 chữ số thập phân. |"
+ ],
+ "| Phần trăm thay đổi, tăng trưởng | so với **kỳ trước**; giảm thì ra **số âm** |": [
+  "| Phần trăm thay đổi, tăng trưởng | So với **kỳ trước**; nếu giảm thì kết quả là **số âm**. |",
+  "| Phần trăm thay đổi, tăng trưởng | Kết quả so với **kỳ trước**; giảm thì hiển thị **số âm**. |"
+ ],
+ "| Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %) | **kỳ hỏi − kỳ so**: ít hơn ra số âm, giữ đơn vị của số đo |": [
+  "| Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %) | **Kỳ hỏi − kỳ so**: nếu ít hơn thì ra số âm, đơn vị giữ nguyên như số đo. |",
+  "| Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %) | Lấy **kỳ hỏi − kỳ so**: ít hơn cho ra số âm, giữ đơn vị của số đo. |",
+  "| Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %) | **Kỳ hỏi − kỳ so**: kết quả ít hơn là số âm, đơn vị giữ theo số đo. |",
+  "| Chênh lệch, hơn / kém, tăng / giảm bao nhiêu (số, không phải %) | Ít hơn thì ra số âm khi tính **kỳ hỏi − kỳ so**, và giữ đơn vị của số đo. |"
+ ],
+ "| Ngày X, hôm nay, hôm qua | hỏi số phát sinh (doanh thu, số đơn, giá bán…): chỉ **trong** ngày đó |": [
+  "| Ngày X, hôm nay, hôm qua | Khi hỏi số phát sinh (doanh thu, số đơn, giá bán…): chỉ tính **trong** ngày đó. |",
+  "| Ngày X, hôm nay, hôm qua | Chỉ **trong** ngày đó nếu hỏi số phát sinh (doanh thu, số đơn, giá bán…). |",
+  "| Ngày X, hôm nay, hôm qua | Đối với số phát sinh (doanh thu, số đơn, giá bán…): chỉ **trong** ngày đó. |"
+ ],
+ "| Đến hết ngày X, tính đến hôm nay | hỏi số còn lại (còn nợ, còn tồn, còn hàng…): **tình trạng lúc hết ngày đó**, tính mọi phát sinh **từ đầu dữ liệu** đến hết ngày đó; không phải kỳ **tháng này** |": [
+  "| Đến hết ngày X, tính đến hôm nay | Khi hỏi số còn lại (còn nợ, còn tồn, còn hàng…): lấy **tình trạng lúc hết ngày đó**, tính mọi phát sinh **từ đầu dữ liệu** đến hết ngày đó; không phải kỳ **tháng này**. |",
+  "| Đến hết ngày X, tính đến hôm nay | Số còn lại (còn nợ, còn tồn, còn hàng…) là **tình trạng lúc hết ngày đó**, bao gồm mọi phát sinh **từ đầu dữ liệu** đến hết ngày đó; không phải kỳ **tháng này**. |",
+  "| Đến hết ngày X, tính đến hôm nay | Đối với số còn lại (còn nợ, còn tồn, còn hàng…): tính **tình trạng lúc hết ngày đó**, mọi phát sinh **từ đầu dữ liệu** đến hết ngày đó; không phải kỳ **tháng này**. |",
+  "| Đến hết ngày X, tính đến hôm nay | Hỏi số còn lại (còn nợ, còn tồn, còn hàng…) thì lấy **tình trạng lúc hết ngày đó**, tính mọi phát sinh **từ đầu dữ liệu** đến hết ngày đó; không phải kỳ **tháng này**. |"
+ ],
+ "| Từ X đến Y, nhóm X–Y | gồm cả X và Y |": [
+  "| Từ X đến Y, nhóm X–Y | Bao gồm cả X và Y. |",
+  "| Từ X đến Y, nhóm X–Y | Có cả X lẫn Y. |",
+  "| Từ X đến Y, nhóm X–Y | Tính cả X và Y. |"
+ ],
+ "| N ngày gần nhất | N ngày liền nhau **kể cả hôm nay**, ngày cuối là hôm nay |": [
+  "| N ngày gần nhất | N ngày liền nhau **kể cả hôm nay**, với ngày cuối là hôm nay. |",
+  "| N ngày gần nhất | Ngày cuối là hôm nay, N ngày liền nhau **kể cả hôm nay**. |",
+  "| N ngày gần nhất | Tính N ngày liền nhau **kể cả hôm nay**, ngày cuối cùng là hôm nay. |",
+  "| N ngày gần nhất | N ngày liên tiếp **kể cả hôm nay**, ngày cuối là hôm nay. |"
+ ],
+ "| Quá N, hơn N, trên N, dưới N | **không** gồm N. **Từ N trở lên** thì gồm N |": [
+  "| Quá N, hơn N, trên N, dưới N | **Không** bao gồm N. **Từ N trở lên** thì bao gồm N. |",
+  "| Quá N, hơn N, trên N, dưới N | **Không** tính N. **Từ N trở lên** thì tính N. |",
+  "| Quá N, hơn N, trên N, dưới N | **Không** gồm N, nhưng **từ N trở lên** thì gồm N. |"
+ ],
+ "| Lãi ròng một tháng | lãi gộp của tháng trừ **mọi khoản** ghi trong sổ chi phí của tháng đó, kể cả sửa chữa, thay thiết bị |": [
+  "| Lãi ròng một tháng | Lãi gộp của tháng trừ đi **mọi khoản** đã ghi trong sổ chi phí của tháng đó, bao gồm cả sửa chữa và thay thiết bị. |",
+  "| Lãi ròng một tháng | Sau khi trừ **mọi khoản** trong sổ chi phí tháng đó (kể cả sửa chữa, thay thiết bị) khỏi lãi gộp của tháng, ta được kết quả. |",
+  "| Lãi ròng một tháng | Lãi gộp tháng trừ **mọi khoản** ghi trong sổ chi phí tháng, trong đó có sửa chữa và thay thiết bị. |",
+  "| Lãi ròng một tháng | **Mọi khoản** trong sổ chi phí của tháng, kể cả sửa chữa và thay thiết bị, đều được trừ khỏi lãi gộp của tháng đó. |"
+ ],
+ "| Size M, size L | món có tên kết thúc bằng `(M)` hoặc `(L)`, **không phân biệt hoa thường** |": [
+  "| Size M, size L | Món có tên kết thúc bằng `(M)` hoặc `(L)`, **không phân biệt hoa thường**. |",
+  "| Size M, size L | **Không phân biệt hoa thường**, món có tên kết thúc bằng `(M)` hoặc `(L)`. |",
+  "| Size M, size L | Tên món kết thúc bằng `(M)` hoặc `(L)` là món đó, **không phân biệt hoa thường**. |",
+  "| Size M, size L | Món mà tên kết thúc bằng `(M)` hoặc `(L)`, **không phân biệt hoa thường**. |"
+ ],
+ "| Thuốc kê đơn | **Thuốc kê đơn** = sản phẩm ghi kê đơn trong danh mục thuốc; mọi sản phẩm còn lại là **hàng không kê đơn**. Tỉ lệ kê đơn tính theo doanh thu |": [
+  "| Thuốc kê đơn | **Thuốc kê đơn** là sản phẩm được ghi kê đơn trong danh mục thuốc; mọi sản phẩm còn lại là **hàng không kê đơn**. Tỉ lệ kê đơn được tính theo doanh thu. |",
+  "| Thuốc kê đơn | Sản phẩm ghi kê đơn trong danh mục thuốc là **Thuốc kê đơn**; mọi sản phẩm còn lại là **hàng không kê đơn**. Tỉ lệ kê đơn tính theo doanh thu. |",
+  "| Thuốc kê đơn | **Thuốc kê đơn** = sản phẩm ghi kê đơn trong danh mục thuốc; mọi sản phẩm còn lại là **hàng không kê đơn**. Tỉ lệ kê đơn tính theo doanh thu. |",
+  "| Thuốc kê đơn | Mọi sản phẩm còn lại là **hàng không kê đơn**; **Thuốc kê đơn** là sản phẩm ghi kê đơn trong danh mục thuốc. Tỉ lệ kê đơn tính theo doanh thu. |"
+ ],
+ "| Hàng hết hạn trong N ngày tới | tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản, không theo giá vốn bình quân |": [
+  "| Hàng hết hạn trong N ngày tới | Tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản, không theo giá vốn bình quân. |",
+  "| Hàng hết hạn trong N ngày tới | Tại hôm nay D, lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, tính theo giá nhập của chính lô đó quy về đơn vị cơ bản, không theo giá vốn bình quân. |",
+  "| Hàng hết hạn trong N ngày tới | **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản, không theo giá vốn bình quân; tính tại hôm nay D cho lô còn tồn có hạn dùng từ D đến hết ngày D + N. |",
+  "| Hàng hết hạn trong N ngày tới | Tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản, không theo giá vốn bình quân. |"
+ ],
+ "| Doanh thu theo hoạt chất | doanh thu (§1) các thuốc có hoạt chất ghi **đúng như vậy** trong danh mục thuốc. Thuốc phối hợp nhiều hoạt chất là **một loại riêng**, không tính vào từng hoạt chất trong đó |": [
+  "| Doanh thu theo hoạt chất | Doanh thu (§1) của các thuốc có hoạt chất ghi **đúng như vậy** trong danh mục thuốc. Thuốc phối hợp nhiều hoạt chất là **một loại riêng**, không tính vào từng hoạt chất trong đó. |",
+  "| Doanh thu theo hoạt chất | Doanh thu (§1) các thuốc có hoạt chất ghi **đúng như vậy** trong danh mục thuốc. Thuốc phối hợp nhiều hoạt chất là **một loại riêng**, không tính vào từng hoạt chất trong đó. |",
+  "| Doanh thu theo hoạt chất | Các thuốc có hoạt chất ghi **đúng như vậy** trong danh mục thuốc được tính doanh thu (§1). Thuốc phối hợp nhiều hoạt chất là **một loại riêng**, không tính vào từng hoạt chất trong đó. |",
+  "| Doanh thu theo hoạt chất | Thuốc phối hợp nhiều hoạt chất là **một loại riêng**, không tính vào từng hoạt chất trong đó; doanh thu (§1) các thuốc có hoạt chất ghi **đúng như vậy** trong danh mục thuốc. |"
+ ],
+ "| Lô gần hết hạn nhất của một thuốc | trong các lô còn tồn chưa quá hạn tại hôm nay, lô có hạn sớm nhất |": [
+  "| Lô gần hết hạn nhất của một thuốc | Trong các lô còn tồn chưa quá hạn tại hôm nay, lô có hạn sớm nhất. |",
+  "| Lô gần hết hạn nhất của một thuốc | Lô có hạn sớm nhất trong các lô còn tồn chưa quá hạn tại hôm nay. |",
+  "| Lô gần hết hạn nhất của một thuốc | Trong các lô còn tồn chưa quá hạn tại hôm nay, lô có hạn sớm nhất là lô được chọn. |",
+  "| Lô gần hết hạn nhất của một thuốc | Lô có hạn sớm nhất trong số các lô còn tồn chưa quá hạn tại hôm nay. |"
+ ],
+ "| Giao nhiều đợt | **Số đợt giao trong tháng X** = số đợt có ngày giao trong tháng X; **mỗi đợt của mỗi đơn tính một đợt**, kể cả đợt của đơn sau đó trả hàng |": [
+  "| Giao nhiều đợt | **Số đợt giao trong tháng X** = số đợt có ngày giao trong tháng X; **mỗi đợt của mỗi đơn tính một đợt**, kể cả đợt của đơn sau đó trả hàng. |",
+  "| Giao nhiều đợt | Số đợt có ngày giao trong tháng X là **Số đợt giao trong tháng X**; **mỗi đợt của mỗi đơn tính một đợt**, kể cả đợt của đơn sau đó trả hàng. |",
+  "| Giao nhiều đợt | **Số đợt giao trong tháng X** bằng số đợt có ngày giao trong tháng X; **mỗi đợt của mỗi đơn tính một đợt**, kể cả đợt của đơn sau đó trả hàng. |",
+  "| Giao nhiều đợt | **Số đợt giao trong tháng X** = số đợt có ngày giao trong tháng X; **mỗi đợt của mỗi đơn tính một đợt**, kể cả đợt của đơn sau đó trả hàng. |"
+ ],
+ "| Tên gọi, nhãn | các tên cùng chỉ một thứ, trong file hay trong câu hỏi, là cùng một thứ. File có mã thì theo mã |": [
+  "| Tên gọi, nhãn | Các tên cùng chỉ một thứ, trong file hay trong câu hỏi, là cùng một thứ. File có mã thì theo mã. |",
+  "| Tên gọi, nhãn | Trong file hay trong câu hỏi, các tên cùng chỉ một thứ là cùng một thứ. File có mã thì theo mã. |",
+  "| Tên gọi, nhãn | Các tên cùng chỉ một thứ, trong file hay trong câu hỏi, là cùng một thứ. Nếu file có mã thì theo mã. |",
+  "| Tên gọi, nhãn | Các tên cùng chỉ một thứ, trong file hay trong câu hỏi, là cùng một thứ. File có mã thì theo mã. |"
+ ],
+ "| Tuần | bắt đầu **thứ Hai**. **Tuần này**: từ thứ Hai của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, thứ Hai đến Chủ nhật |": [
+  "| Tuần | **Tuần này** tính từ thứ Hai của tuần chứa hôm nay đến hết hôm nay, và tuần bắt đầu vào **thứ Hai**. **Tuần trước, tuần rồi** là **cả** tuần liền trước, từ thứ Hai đến Chủ nhật. |",
+  "| Tuần | **Tuần này** gồm từ thứ Hai của tuần chứa hôm nay cho đến hết hôm nay; tuần được tính bắt đầu từ **thứ Hai**. **Tuần trước, tuần rồi** là **cả** tuần ngay trước đó, tức từ thứ Hai đến Chủ nhật. |",
+  "| Tuần | Tuần bắt đầu vào **thứ Hai**. **Tuần này** là khoảng từ thứ Hai của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi** là **cả** tuần liền trước, từ thứ Hai đến Chủ nhật. |",
+  "| Tuần | **Tuần này** được tính từ thứ Hai của tuần chứa hôm nay đến hết hôm nay, với tuần bắt đầu vào **thứ Hai**. **Tuần trước, tuần rồi** là **cả** tuần liền trước, thứ Hai đến Chủ nhật. |"
+ ],
+ "| Tháng M/Y | cả tháng, từ ngày 1 đến hết ngày cuối tháng |": [
+  "| Tháng M/Y | Cả tháng là từ ngày 1 đến hết ngày cuối tháng. |",
+  "| Tháng M/Y | Từ ngày 1 đến hết ngày cuối tháng được tính là cả tháng. |",
+  "| Tháng M/Y | Cả tháng bao gồm khoảng từ ngày 1 đến hết ngày cuối tháng. |",
+  "| Tháng M/Y | Khoảng từ ngày 1 đến hết ngày cuối tháng là cả tháng. |"
+ ],
+ "| Tháng này | từ ngày 1 đến **hết hôm nay**. So với tháng trước thì lấy **cùng số ngày** của tháng trước: từ ngày 1 đến hết ngày trùng số với hôm nay; tháng trước không có ngày đó thì đến hết tháng trước |": [
+  "| Tháng này | Tính từ ngày 1 đến **hết hôm nay**. So với tháng trước thì lấy **cùng số ngày** của tháng trước: từ ngày 1 đến hết ngày trùng số với hôm nay; nếu tháng trước không có ngày đó thì đến hết tháng trước. |",
+  "| Tháng này | So với tháng trước thì lấy **cùng số ngày** của tháng trước: từ ngày 1 đến hết ngày trùng số với hôm nay; tháng trước không có ngày đó thì đến hết tháng trước. Còn khoảng thời gian này tính từ ngày 1 đến **hết hôm nay**. |",
+  "| Tháng này | Khoảng thời gian từ ngày 1 đến **hết hôm nay**. Khi so với tháng trước, lấy **cùng số ngày** của tháng trước: từ ngày 1 đến hết ngày trùng số với hôm nay; tháng trước không có ngày đó thì đến hết tháng trước. |",
+  "| Tháng này | Từ ngày 1 đến **hết hôm nay**. So với tháng trước thì lấy **cùng số ngày** của tháng trước: từ ngày 1 đến hết ngày trùng số với hôm nay; tháng trước không có ngày đó thì đến hết tháng trước. |"
+ ],
+ "| Từ đầu năm, từ đầu năm tới nay | từ 01/01 của năm nay đến **hết hôm nay** |": [
+  "| Từ đầu năm, từ đầu năm tới nay | Tính từ 01/01 của năm nay đến **hết hôm nay**. |",
+  "| Từ đầu năm, từ đầu năm tới nay | Khoảng từ 01/01 của năm nay đến **hết hôm nay**. |",
+  "| Từ đầu năm, từ đầu năm tới nay | Từ ngày 01/01 của năm nay cho đến **hết hôm nay**. |",
+  "| Từ đầu năm, từ đầu năm tới nay | Bắt đầu từ 01/01 của năm nay và kết thúc vào **hết hôm nay**. |"
+ ],
+ "| Tháng M, quý Q không ghi năm | của **năm nay** nếu không sau hôm nay; sau hôm nay thì của **năm trước**. Quý theo dương lịch, mỗi quý 3 tháng tính từ tháng 1 |": [
+  "| Tháng M, quý Q không ghi năm | Của **năm nay** nếu không sau hôm nay; nếu sau hôm nay thì của **năm trước**. Quý theo dương lịch, mỗi quý 3 tháng tính từ tháng 1. |",
+  "| Tháng M, quý Q không ghi năm | Nếu không sau hôm nay thì của **năm nay**; sau hôm nay thì của **năm trước**. Quý theo dương lịch, mỗi quý 3 tháng tính từ tháng 1. |",
+  "| Tháng M, quý Q không ghi năm | Của **năm nay** nếu không sau hôm nay; sau hôm nay thì của **năm trước**. Mỗi quý theo dương lịch gồm 3 tháng tính từ tháng 1. |",
+  "| Tháng M, quý Q không ghi năm | Của **năm nay** nếu không sau hôm nay; nếu sau hôm nay thì của **năm trước**. Quý tính theo dương lịch, mỗi quý 3 tháng bắt đầu từ tháng 1. |"
+ ],
+ "| Tết năm Y, dịp Tết, mùa Tết | từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |": [
+  "| Tết năm Y, dịp Tết, mùa Tết | Từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | Khoảng từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | Từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | Từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |"
+ ],
+ "| Giá trị trung bình một đơn | làm tròn về đồng, nửa đồng làm tròn lên |": [
+  "| Giá trị trung bình một đơn | Làm tròn về đồng, nửa đồng làm tròn lên. |",
+  "| Giá trị trung bình một đơn | Làm tròn đến đồng, nửa đồng thì làm tròn lên. |",
+  "| Giá trị trung bình một đơn | Làm tròn về đơn vị đồng, nửa đồng làm tròn lên. |",
+  "| Giá trị trung bình một đơn | Làm tròn về đồng; nửa đồng làm tròn lên. |"
+ ],
+ "| Đơn được tính vào nợ | đơn không huỷ; **đơn trả hàng vẫn tính** nếu còn nợ |": [
+  "| Đơn được tính vào nợ | Đơn không huỷ; **đơn trả hàng vẫn tính** nếu còn nợ. |",
+  "| Đơn được tính vào nợ | Đơn không huỷ; nếu còn nợ thì **đơn trả hàng vẫn tính**. |",
+  "| Đơn được tính vào nợ | Đơn không huỷ; **đơn trả hàng vẫn tính** khi còn nợ. |",
+  "| Đơn được tính vào nợ | Đơn không huỷ; **đơn trả hàng vẫn tính** nếu còn nợ. |"
+ ],
+ "| Ô để trống ở các dòng sau của cùng một nhóm dòng | giống ô đó ở dòng đầu nhóm: khách, ghi chú, trạng thái của đơn áp cho mọi dòng của đơn. Không phải thiếu dữ liệu, không có nghĩa là khách lẻ hay đơn hoàn thành |": [
+  "| Ô để trống ở các dòng sau của cùng một nhóm dòng | Khách, ghi chú, trạng thái của đơn ở dòng đầu nhóm áp cho mọi dòng của đơn, giống ô đó; không phải thiếu dữ liệu, không có nghĩa là khách lẻ hay đơn hoàn thành. |",
+  "| Ô để trống ở các dòng sau của cùng một nhóm dòng | Áp dụng cho mọi dòng của đơn: khách, ghi chú, trạng thái của đơn giống ô đó ở dòng đầu nhóm; không phải thiếu dữ liệu, không có nghĩa là khách lẻ hay đơn hoàn thành. |",
+  "| Ô để trống ở các dòng sau của cùng một nhóm dòng | Mọi dòng của đơn đều áp dụng khách, ghi chú, trạng thái của đơn giống ô đó ở dòng đầu nhóm; không phải thiếu dữ liệu, không có nghĩa là khách lẻ hay đơn hoàn thành. |",
+  "| Ô để trống ở các dòng sau của cùng một nhóm dòng | Khách, ghi chú, trạng thái của đơn áp cho mọi dòng của đơn giống ô đó ở dòng đầu nhóm; không phải thiếu dữ liệu, không có nghĩa là khách lẻ hay đơn hoàn thành. |"
+ ],
+ "| Trạng thái đơn | mỗi đơn có đúng một trong bốn trạng thái: **hoàn thành**, **huỷ**, **trả hàng**, **đang giao** |": [
+  "| Trạng thái đơn | Mỗi đơn có đúng một trong bốn trạng thái: **hoàn thành**, **huỷ**, **trả hàng**, **đang giao**. |",
+  "| Trạng thái đơn | Bốn trạng thái **hoàn thành**, **huỷ**, **trả hàng**, **đang giao** là đúng một trạng thái cho mỗi đơn. |",
+  "| Trạng thái đơn | Mỗi đơn chỉ có đúng một trạng thái trong bốn trạng thái: **hoàn thành**, **huỷ**, **trả hàng**, **đang giao**. |",
+  "| Trạng thái đơn | Đúng một trong bốn trạng thái **hoàn thành**, **huỷ**, **trả hàng**, **đang giao** là của mỗi đơn. |"
+ ],
+ "| Hai dòng của **cùng một đơn** giống nhau ở mọi ô | lỗi xuất file, tính một lần. Hai dòng giống nhau của hai đơn khác nhau là hai lần bán, tính cả hai |": [
+  "| Hai dòng của **cùng một đơn** giống nhau ở mọi ô | Lỗi xuất file tính một lần; hai dòng giống nhau của hai đơn khác nhau là hai lần bán, tính cả hai. |",
+  "| Hai dòng của **cùng một đơn** giống nhau ở mọi ô | Tính một lần cho lỗi xuất file; hai dòng giống nhau của hai đơn khác nhau là hai lần bán, tính cả hai. |",
+  "| Hai dòng của **cùng một đơn** giống nhau ở mọi ô | Lỗi xuất file tính một lần; tính cả hai khi hai dòng giống nhau của hai đơn khác nhau là hai lần bán. |"
+ ],
+ "| Bảng không ghi theo đơn | mỗi dòng là một lần ghi; hai dòng giống nhau trong cùng file vẫn tính cả hai |": [
+  "| Bảng không ghi theo đơn | Mỗi dòng là một lần ghi; hai dòng giống nhau trong cùng file vẫn tính cả hai. |",
+  "| Bảng không ghi theo đơn | Hai dòng giống nhau trong cùng file vẫn tính cả hai; mỗi dòng là một lần ghi. |",
+  "| Bảng không ghi theo đơn | Mỗi dòng là một lần ghi; vẫn tính cả hai cho hai dòng giống nhau trong cùng file. |",
+  "| Bảng không ghi theo đơn | Tính cả hai cho hai dòng giống nhau trong cùng file; mỗi dòng là một lần ghi. |"
+ ],
+ "| Ngày không ghi năm | năm của sheet chứa dòng đó |": [
+  "| Ngày không ghi năm | Năm của sheet chứa dòng đó. |",
+  "| Ngày không ghi năm | Năm của dòng đó là năm của sheet chứa nó. |",
+  "| Ngày không ghi năm | Sheet chứa dòng đó có năm nào thì đó là năm của dòng đó. |",
+  "| Ngày không ghi năm | Năm của sheet mà dòng đó nằm trong đó. |"
+ ],
+ "- **Chuỗi:** không phân biệt hoa thường, khoảng trắng, dấu câu. Nhận **mọi cách viết** tên có trong file của shop, hoặc **mã**. Tên khách chép kèm số điện thoại như trong file cũng được nhận. Ngoài các cách viết đó, dấu tiếng Việt phải đúng.": [
+  "**Chuỗi:** không phân biệt hoa thường, khoảng trắng, dấu câu; nhận **mọi cách viết** tên có trong file của shop, hoặc **mã**; tên khách chép kèm số điện thoại như trong file cũng được nhận; ngoài các cách viết đó, dấu tiếng Việt phải đúng.",
+  "Nhận **mọi cách viết** tên có trong file của shop, hoặc **mã**, và tên khách chép kèm số điện thoại như trong file cũng được nhận; **chuỗi** không phân biệt hoa thường, khoảng trắng, dấu câu; ngoài các cách viết đó, dấu tiếng Việt phải đúng.",
+  "**Chuỗi:** không phân biệt hoa thường, khoảng trắng, dấu câu; nhận **mọi cách viết** tên có trong file của shop, hoặc **mã**; tên khách chép kèm số điện thoại như trong file cũng được nhận; dấu tiếng Việt phải đúng ngoài các cách viết đó.",
+  "Không phân biệt hoa thường, khoảng trắng, dấu câu cho **chuỗi**; nhận **mọi cách viết** tên có trong file của shop, hoặc **mã**; tên khách chép kèm số điện thoại như trong file cũng được nhận; ngoài các cách viết đó, dấu tiếng Việt phải đúng."
+ ],
+ "- **Danh sách:** đúng cả tập và thứ tự. Top k xếp theo tiêu chí câu hỏi, giảm dần. Câu \"liệt kê\": có số đo thì số đo giảm dần, cùng số đo thì theo **mã** tăng dần; liệt kê hàng theo hạn dùng thì hạn sớm nhất của mặt hàng trước, cùng hạn thì theo mã; còn lại (chỉ lọc theo điều kiện, không có số đo) theo mã tăng dần.": [
+  "**Danh sách:** đúng cả tập và thứ tự; top k xếp theo tiêu chí câu hỏi, giảm dần; câu \"liệt kê\": có số đo thì số đo giảm dần, cùng số đo thì theo **mã** tăng dần; liệt kê hàng theo hạn dùng thì hạn sớm nhất của mặt hàng trước, cùng hạn thì theo mã; còn lại (chỉ lọc theo điều kiện, không có số đo) theo mã tăng dần.",
+  "Đúng cả tập và thứ tự cho **danh sách**; top k xếp theo tiêu chí câu hỏi, giảm dần; câu \"liệt kê\": có số đo thì số đo giảm dần, cùng số đo thì theo **mã** tăng dần; liệt kê hàng theo hạn dùng thì hạn sớm nhất của mặt hàng trước, cùng hạn thì theo mã; còn lại (chỉ lọc theo điều kiện, không có số đo) theo mã tăng dần.",
+  "**Danh sách:** đúng cả tập và thứ tự; top k xếp theo tiêu chí câu hỏi, giảm dần; câu \"liệt kê\": có số đo thì số đo giảm dần, cùng số đo thì theo **mã** tăng dần; liệt kê hàng theo hạn dùng thì hạn sớm nhất của mặt hàng trước, cùng hạn thì theo mã; theo mã tăng dần cho còn lại (chỉ lọc theo điều kiện, không có số đo).",
+  "Đúng cả tập và thứ tự; top k xếp theo tiêu chí câu hỏi, giảm dần; câu \"liệt kê\": có số đo thì số đo giảm dần, cùng số đo thì theo **mã** tăng dần; liệt kê hàng theo hạn dùng thì hạn sớm nhất của mặt hàng trước, cùng hạn thì theo mã; còn lại (chỉ lọc theo điều kiện, không có số đo) theo mã tăng dần; **danh sách** phải đúng cả tập và thứ tự."
+ ],
+ "- **Bằng nhau:** hai đối tượng bằng nhau ở tiêu chí câu hỏi thì xếp theo mã tăng dần (không có mã thì theo tên). Câu hỏi một đối tượng lấy đối tượng đứng đầu theo thứ tự đó.": [
+  "**Bằng nhau:** hai đối tượng bằng nhau ở tiêu chí câu hỏi thì xếp theo mã tăng dần (không có mã thì theo tên); câu hỏi một đối tượng lấy đối tượng đứng đầu theo thứ tự đó.",
+  "Hai đối tượng bằng nhau ở tiêu chí câu hỏi thì xếp theo mã tăng dần (không có mã thì theo tên); câu hỏi một đối tượng lấy đối tượng đứng đầu theo thứ tự đó; **bằng nhau** là vậy.",
+  "**Bằng nhau:** hai đối tượng bằng nhau ở tiêu chí câu hỏi thì xếp theo mã tăng dần (không có mã thì theo tên); câu hỏi một đối tượng lấy đối tượng đứng đầu theo thứ tự đó.",
+  "Xếp theo mã tăng dần (không có mã thì theo tên) khi hai đối tượng bằng nhau ở tiêu chí câu hỏi; câu hỏi một đối tượng lấy đối tượng đứng đầu theo thứ tự đó; **bằng nhau** áp dụng như vậy."
+ ],
+ "| Đơn tính vào doanh thu | đơn **không huỷ** và **không trả hàng**. Đơn có trả hàng, **kể cả chỉ trả một phần**, là đơn trả hàng: bỏ **cả đơn**. Đơn đang giao vẫn tính |": [
+  "| Đơn tính vào doanh thu | Đơn **không huỷ** và **không trả hàng**. Đơn trả hàng, **kể cả chỉ trả một phần**, được coi là đơn trả hàng: loại bỏ **cả đơn**. Đơn đang giao vẫn được tính. |",
+  "| Đơn tính vào doanh thu | Đơn **không huỷ** và **không trả hàng**. Đơn có trả hàng, dù **chỉ trả một phần**, là đơn trả hàng: bỏ toàn bộ đơn. Đơn đang giao vẫn tính. |",
+  "| Đơn tính vào doanh thu | Đơn **không huỷ** và **không trả hàng**. Đơn trả hàng, **kể cả chỉ một phần**, thuộc loại đơn trả hàng: bỏ **cả đơn**. Đơn đang giao vẫn được tính. |",
+  "| Đơn tính vào doanh thu | Đơn **không huỷ** và **không trả hàng**. Đơn có trả hàng, **kể cả chỉ trả một phần**, là đơn trả hàng: loại bỏ **cả đơn**. Đơn đang giao vẫn tính. |"
+ ],
+ "| Bán được bao nhiêu tiền, thu về bao nhiêu tiền | là **doanh thu** theo mục này, không phải tiền khách đã trả |": [
+  "| Bán được bao nhiêu tiền, thu về bao nhiêu tiền | Theo mục này, đó là **doanh thu**, không phải tiền khách đã trả. |",
+  "| Bán được bao nhiêu tiền, thu về bao nhiêu tiền | Được tính là **doanh thu** theo mục này, không phải tiền khách đã trả. |",
+  "| Bán được bao nhiêu tiền, thu về bao nhiêu tiền | Không phải tiền khách đã trả mà là **doanh thu** theo mục này. |",
+  "| Bán được bao nhiêu tiền, thu về bao nhiêu tiền | Theo mục này, khoản đó là **doanh thu**, không phải tiền khách đã trả. |"
+ ],
+ "| Đơn thuộc kỳ nào | theo **ngày đặt**, không theo ngày giao hay ngày thu tiền |": [
+  "| Đơn thuộc kỳ nào | Tính theo **ngày đặt**, không theo ngày giao hay ngày thu tiền. |",
+  "| Đơn thuộc kỳ nào | Dựa vào **ngày đặt**, không dựa vào ngày giao hay ngày thu tiền. |",
+  "| Đơn thuộc kỳ nào | Không theo ngày giao hay ngày thu tiền mà theo **ngày đặt**. |"
+ ],
+ "| Đơn bị huỷ | đơn có trạng thái huỷ. Đơn trả hàng **không** phải đơn huỷ |": [
+  "| Đơn bị huỷ | Đơn có trạng thái huỷ. Đơn trả hàng **không** phải là đơn huỷ. |",
+  "| Đơn bị huỷ | Đơn ở trạng thái huỷ. Đơn trả hàng **không** thuộc loại đơn huỷ. |",
+  "| Đơn bị huỷ | Đơn có trạng thái huỷ. Đơn trả hàng **không** được xem là đơn huỷ. |",
+  "| Đơn bị huỷ | Đơn mang trạng thái huỷ. Đơn trả hàng **không** phải đơn huỷ. |"
+ ],
+ "| Số đơn | chỉ tính đơn không huỷ, không trả; cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ |": [
+  "| Số đơn | Chỉ tính đơn không huỷ, không trả; cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Chỉ tính đơn không huỷ, không trả; kể cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Chỉ tính đơn không huỷ, không trả; cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Chỉ tính đơn không huỷ, không trả; cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |"
+ ],
+ "| Doanh thu một đơn | tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu |": [
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |"
+ ],
+ "| Doanh thu theo hình thức thanh toán | theo hình thức **ghi trên đơn**, không theo lần trả nợ về sau: đơn ghi nợ không tính vào tiền mặt hay chuyển khoản. Đơn **COD** là hình thức riêng, không tính vào tiền mặt |": [
+  "| Doanh thu theo hình thức thanh toán | Theo hình thức **ghi trên đơn**, không theo lần trả nợ về sau: đơn ghi nợ không tính vào tiền mặt hay chuyển khoản. Đơn **COD** là hình thức riêng, không tính vào tiền mặt. |",
+  "| Doanh thu theo hình thức thanh toán | Dựa vào hình thức **ghi trên đơn**, không dựa vào lần trả nợ về sau: đơn ghi nợ không được tính vào tiền mặt hay chuyển khoản. Đơn **COD** là hình thức riêng, không tính vào tiền mặt. |",
+  "| Doanh thu theo hình thức thanh toán | Theo hình thức **ghi trên đơn**, không theo lần trả nợ về sau: đơn ghi nợ không tính vào tiền mặt hay chuyển khoản. Đơn **COD** là hình thức riêng, không tính vào tiền mặt. |",
+  "| Doanh thu theo hình thức thanh toán | Căn cứ vào hình thức **ghi trên đơn**, không căn cứ vào lần trả nợ về sau: đơn ghi nợ không tính vào tiền mặt hay chuyển khoản. Đơn **COD** là hình thức riêng, không tính vào tiền mặt. |"
+ ],
+ "| Doanh thu theo nhóm khách | nhóm theo cột nhóm khách. Đơn không ghi khách (khách vãng lai) **không thuộc nhóm nào**, kể cả nhóm `lẻ`. Tỉ trọng của nhóm chia cho doanh thu **cả shop** cùng kỳ, tính cả đơn vãng lai |": [
+  "| Doanh thu theo nhóm khách | Nhóm theo cột nhóm khách. Đơn không ghi khách (khách vãng lai) **không thuộc nhóm nào**, kể cả nhóm `lẻ`. Tỉ trọng của nhóm chia cho doanh thu **cả shop** cùng kỳ, tính cả đơn vãng lai. |",
+  "| Doanh thu theo nhóm khách | Nhóm theo cột nhóm khách. Đơn không ghi khách (khách vãng lai) **không thuộc nhóm nào**, kể cả nhóm `lẻ`. Tỉ trọng của nhóm chia cho doanh thu **cả shop** cùng kỳ, tính cả đơn vãng lai. |",
+  "| Doanh thu theo nhóm khách | Nhóm theo cột nhóm khách. Đơn không ghi khách (khách vãng lai) **không thuộc nhóm nào**, kể cả nhóm `lẻ`. Tỉ trọng của nhóm chia cho doanh thu **cả shop** cùng kỳ, tính cả đơn vãng lai. |",
+  "| Doanh thu theo nhóm khách | Nhóm theo cột nhóm khách. Đơn không ghi khách (khách vãng lai) **không thuộc nhóm nào**, kể cả nhóm `lẻ`. Tỉ trọng của nhóm chia cho doanh thu **cả shop** cùng kỳ, tính cả đơn vãng lai. |"
+ ],
+ "| Tồn theo đơn vị lớn | list 2 số `[số đơn vị lớn nguyên, số đơn vị cơ bản lẻ]`; không có phần lẻ thì số thứ hai là 0. Hàng nhiều cấp: phần lẻ vẫn tính bằng đơn vị cơ bản, không đổi sang đơn vị ở giữa |": [
+  "| Tồn theo đơn vị lớn | Liệt kê 2 số `[số đơn vị lớn nguyên, số đơn vị cơ bản lẻ]`; nếu không có phần lẻ thì số thứ hai là 0. Với hàng nhiều cấp, phần lẻ vẫn tính bằng đơn vị cơ bản, không đổi sang đơn vị ở giữa. |",
+  "| Tồn theo đơn vị lớn | Ghi ra 2 số `[số đơn vị lớn nguyên, số đơn vị cơ bản lẻ]`; trường hợp không có phần lẻ thì số thứ hai bằng 0. Đối với hàng nhiều cấp, phần lẻ vẫn được tính bằng đơn vị cơ bản, không chuyển sang đơn vị trung gian. |",
+  "| Tồn theo đơn vị lớn | Xuất 2 số `[số đơn vị lớn nguyên, số đơn vị cơ bản lẻ]`; khi không có phần lẻ, số thứ hai là 0. Hàng nhiều cấp: phần lẻ vẫn tính theo đơn vị cơ bản, không đổi sang đơn vị ở giữa. |",
+  "| Tồn theo đơn vị lớn | Cho ra 2 số `[số đơn vị lớn nguyên, số đơn vị cơ bản lẻ]`; nếu phần lẻ không có thì số thứ hai là 0. Với hàng nhiều cấp, phần lẻ vẫn tính bằng đơn vị cơ bản, không đổi sang đơn vị trung gian. |"
+ ],
+ "| Giá trị hàng tồn kho | tồn **hết hôm nay** của từng mặt hàng nhân **giá vốn một đơn vị cơ bản ghi trong danh mục hàng**; chỉ tính hàng còn tồn |": [
+  "| Giá trị hàng tồn kho | Nhân **tồn hết hôm nay** của từng mặt hàng với **giá vốn một đơn vị cơ bản ghi trong danh mục hàng**; chỉ tính hàng còn tồn. |",
+  "| Giá trị hàng tồn kho | Chỉ tính hàng còn tồn: lấy **tồn hết hôm nay** của từng mặt hàng nhân với **giá vốn một đơn vị cơ bản ghi trong danh mục hàng**. |",
+  "| Giá trị hàng tồn kho | Tính **tồn hết hôm nay** của từng mặt hàng nhân **giá vốn một đơn vị cơ bản ghi trong danh mục hàng**; chỉ áp dụng cho hàng còn tồn. |"
+ ],
+ "| Mặt hàng hết hàng cuối ngày | mặt hàng **mua về để bán** (không tính món pha chế, chế biến tại chỗ) mà lúc **hết ngày** đó tồn kho bằng 0; hết giữa ngày nhưng nhập thêm trước cuối ngày thì không tính |": [
+  "| Mặt hàng hết hàng cuối ngày | Mặt hàng **mua về để bán** (không tính món pha chế, chế biến tại chỗ) mà lúc **hết ngày** đó tồn kho bằng 0; nếu hết giữa ngày nhưng nhập thêm trước cuối ngày thì không tính. |",
+  "| Mặt hàng hết hàng cuối ngày | Chỉ tính mặt hàng **mua về để bán** (không tính món pha chế, chế biến tại chỗ) có tồn kho bằng 0 vào lúc **hết ngày**; trường hợp hết giữa ngày nhưng nhập thêm trước cuối ngày thì không tính. |",
+  "| Mặt hàng hết hàng cuối ngày | Mặt hàng **mua về để bán** (không tính món pha chế, chế biến tại chỗ) mà tồn kho bằng 0 tại thời điểm **hết ngày**; nếu hết giữa ngày nhưng nhập thêm trước cuối ngày thì không tính. |",
+  "| Mặt hàng hết hàng cuối ngày | Đối với mặt hàng **mua về để bán** (không tính món pha chế, chế biến tại chỗ), chỉ tính khi tồn kho bằng 0 lúc **hết ngày**; hết giữa ngày nhưng nhập thêm trước cuối ngày thì không tính. |"
+ ],
+ "| Mặt hàng không bán được trong kỳ (ế) | mặt hàng cửa hàng **đã từng bán trước kỳ** (có trong đơn §1, không tính đơn huỷ, đơn trả) nhưng trong kỳ không có đơn nào (§1) mua mặt hàng đó |": [
+  "| Mặt hàng không bán được trong kỳ (ế) | Mặt hàng cửa hàng **đã từng bán trước kỳ** (có trong đơn §1, không tính đơn huỷ, đơn trả) nhưng trong kỳ không có đơn nào (§1) mua mặt hàng đó. |",
+  "| Mặt hàng không bán được trong kỳ (ế) | Mặt hàng mà cửa hàng **đã từng bán trước kỳ** (có trong đơn §1, không tính đơn huỷ, đơn trả) nhưng trong kỳ không có đơn nào (§1) mua mặt hàng đó. |",
+  "| Mặt hàng không bán được trong kỳ (ế) | Là mặt hàng cửa hàng **đã từng bán trước kỳ** (có trong đơn §1, không tính đơn huỷ, đơn trả) nhưng trong kỳ không có đơn nào (§1) mua mặt hàng đó. |",
+  "| Mặt hàng không bán được trong kỳ (ế) | Mặt hàng cửa hàng **đã từng bán trước kỳ** (có trong đơn §1, không tính đơn huỷ, đơn trả) nhưng trong kỳ không có đơn nào (§1) mua mặt hàng đó. |"
+ ],
+ "| Giá bán X ngày D | đơn giá ghi trên dòng bán X của các đơn đặt ngày D, cho **một đơn vị cơ bản**, **trước** chiết khấu dòng; tính cả dòng của đơn huỷ, đơn trả |": [
+  "| Giá bán X ngày D | Đơn giá ghi trên dòng bán X của các đơn đặt ngày D, tính cho **một đơn vị cơ bản**, **trước** chiết khấu dòng; tính cả dòng của đơn huỷ, đơn trả. |",
+  "| Giá bán X ngày D | Tính cả dòng của đơn huỷ, đơn trả: đơn giá ghi trên dòng bán X của các đơn đặt ngày D, cho **một đơn vị cơ bản**, **trước** chiết khấu dòng. |",
+  "| Giá bán X ngày D | Đơn giá trên dòng bán X của các đơn đặt ngày D, cho **một đơn vị cơ bản**, **trước** chiết khấu dòng; bao gồm cả dòng của đơn huỷ, đơn trả. |",
+  "| Giá bán X ngày D | Với các đơn đặt ngày D, đơn giá ghi trên dòng bán X cho **một đơn vị cơ bản**, **trước** chiết khấu dòng; tính cả dòng của đơn huỷ, đơn trả. |"
+ ],
+ "| Hiệu ứng tăng giá | lần tăng giá = ngày D giá mới cao hơn giá liền trước (theo bảng giá); tăng lên cùng một giá nhiều lần thì lấy lần đầu. So số lượng (đơn vị cơ bản) **N ngày kể từ D** (tính cả D) với **N ngày ngay trước D**; cả hai khoảng bỏ đơn huỷ và đơn trả |": [
+  "| Hiệu ứng tăng giá | Lần tăng giá là ngày D giá mới cao hơn giá liền trước (theo bảng giá); nếu tăng lên cùng một giá nhiều lần thì lấy lần đầu. So số lượng (đơn vị cơ bản) **N ngày kể từ D** (tính cả D) với **N ngày ngay trước D**; cả hai khoảng bỏ đơn huỷ và đơn trả. |",
+  "| Hiệu ứng tăng giá | Lần tăng giá = ngày D giá mới cao hơn giá liền trước (theo bảng giá); tăng lên cùng một giá nhiều lần thì lấy lần đầu. So số lượng (đơn vị cơ bản) **N ngày kể từ D** (tính cả D) với **N ngày ngay trước D**; cả hai khoảng bỏ đơn huỷ và đơn trả. |",
+  "| Hiệu ứng tăng giá | Lần tăng giá được xác định là ngày D giá mới cao hơn giá liền trước (theo bảng giá); nếu tăng lên cùng một giá nhiều lần thì lấy lần đầu. So số lượng (đơn vị cơ bản) **N ngày kể từ D** (tính cả D) với **N ngày ngay trước D**; cả hai khoảng bỏ đơn huỷ và đơn trả. |",
+  "| Hiệu ứng tăng giá | Lần tăng giá: ngày D giá mới cao hơn giá liền trước (theo bảng giá); tăng lên cùng một giá nhiều lần thì lấy lần đầu. So số lượng (đơn vị cơ bản) **N ngày kể từ D** (tính cả D) với **N ngày ngay trước D**; cả hai khoảng bỏ đơn huỷ và đơn trả. |"
+ ],
+ "| Giá vốn | bình quân gia quyền theo lô nhập, tại thời điểm bán; không theo FIFO, không theo giá nhập lần cuối |": [
+  "| Giá vốn | Bình quân gia quyền theo lô nhập, tại thời điểm bán; không theo FIFO, không theo giá nhập lần cuối. |",
+  "| Giá vốn | Tính bình quân gia quyền theo lô nhập tại thời điểm bán; không theo FIFO, không theo giá nhập lần cuối. |",
+  "| Giá vốn | Theo phương pháp bình quân gia quyền theo lô nhập, tại thời điểm bán; không theo FIFO, không theo giá nhập lần cuối. |",
+  "| Giá vốn | Bình quân gia quyền theo lô nhập, tại thời điểm bán; không theo FIFO, không theo giá nhập lần cuối. |"
+ ],
+ "| Lãi gộp | doanh thu (§1) trừ giá vốn của hàng đã bán. Giá vốn của mỗi dòng bán bằng số lượng nhân với **giá vốn ghi trên dòng bán** (cho **một đơn vị bán**, cùng đơn vị với đơn giá). Không tự tính lại giá vốn từ phiếu nhập hay từ lô |": [
+  "| Lãi gộp | Doanh thu (§1) trừ giá vốn của hàng đã bán. Giá vốn của mỗi dòng bán bằng số lượng nhân với **giá vốn ghi trên dòng bán** (cho **một đơn vị bán**, cùng đơn vị với đơn giá). Không tự tính lại giá vốn từ phiếu nhập hay từ lô. |",
+  "| Lãi gộp | Lấy doanh thu (§1) trừ giá vốn của hàng đã bán. Giá vốn của mỗi dòng bán bằng số lượng nhân với **giá vốn ghi trên dòng bán** (cho **một đơn vị bán**, cùng đơn vị với đơn giá). Không tự tính lại giá vốn từ phiếu nhập hay từ lô. |",
+  "| Lãi gộp | Doanh thu (§1) trừ giá vốn của hàng đã bán. Giá vốn của mỗi dòng bán = số lượng nhân với **giá vốn ghi trên dòng bán** (cho **một đơn vị bán**, cùng đơn vị với đơn giá). Không tự tính lại giá vốn từ phiếu nhập hay từ lô. |",
+  "| Lãi gộp | Doanh thu (§1) trừ giá vốn của hàng đã bán. Giá vốn của mỗi dòng bán được tính bằng số lượng nhân với **giá vốn ghi trên dòng bán** (cho **một đơn vị bán**, cùng đơn vị với đơn giá). Không tự tính lại giá vốn từ phiếu nhập hay từ lô. |"
+ ],
+ "| Nợ một đơn tại ngày X | phần chưa trả của **tổng đơn** (số khách phải trả cả đơn: đã trừ giảm giá trên cả đơn, **gồm phí giao**), tính các khoản trả đến hết ngày X. Còn nợ = cộng các đơn **còn nợ > 0** |": [
+  "| Nợ một đơn tại ngày X | Tổng đơn chưa trả (số khách phải trả cho cả đơn: đã trừ giảm giá trên toàn đơn, bao gồm phí giao) được tính cho các khoản trả đến hết ngày X. Còn nợ là tổng các đơn có còn nợ > 0. |",
+  "| Nợ một đơn tại ngày X | Còn nợ = cộng các đơn có **còn nợ > 0**, trong đó phần chưa trả của **tổng đơn** là số khách phải trả cả đơn (đã trừ giảm giá trên cả đơn, **gồm phí giao**), tính các khoản trả đến hết ngày X. |",
+  "| Nợ một đơn tại ngày X | Phần chưa trả của **tổng đơn** – tức số khách phải trả cho cả đơn, đã trừ giảm giá trên cả đơn và **gồm phí giao** – được tính cho các khoản trả đến hết ngày X; còn nợ là cộng các đơn có **còn nợ > 0**. |",
+  "| Nợ một đơn tại ngày X | Để tính còn nợ, lấy phần chưa trả của **tổng đơn** (số khách phải trả cả đơn: đã trừ giảm giá trên cả đơn, **gồm phí giao**) cho các khoản trả đến hết ngày X, rồi cộng các đơn có **còn nợ > 0**. |"
+ ],
+ "| Nợ theo khách | xác định khách như §3. Đơn **khách lẻ** vẫn tính vào **tổng nợ**, nhưng không có dòng trong bảng nợ theo khách |": [
+  "| Nợ theo khách | Khách được xác định như §3. Đơn của **khách lẻ** vẫn được tính vào **tổng nợ**, nhưng không xuất hiện dòng nào trong bảng nợ theo khách. |",
+  "| Nợ theo khách | Theo §3, xác định khách. Đơn **khách lẻ** vẫn tính vào **tổng nợ**, tuy không có dòng trong bảng nợ theo khách. |",
+  "| Nợ theo khách | Việc xác định khách thực hiện như §3. **Khách lẻ** có đơn vẫn được tính vào **tổng nợ**, nhưng bảng nợ theo khách không có dòng cho khách lẻ. |",
+  "| Nợ theo khách | Đơn **khách lẻ** vẫn được tính vào **tổng nợ** dù không có dòng trong bảng nợ theo khách; khách được xác định như §3. |"
+ ],
+ "| Đơn COD, đơn bán qua sàn TMĐT | **không phải khách nợ**, kể cả khi chưa thu được tiền; bỏ khỏi công nợ và tuổi nợ |": [
+  "| Đơn COD, đơn bán qua sàn TMĐT | **Không phải khách nợ**, kể cả khi chưa thu được tiền; loại khỏi công nợ và tuổi nợ. |",
+  "| Đơn COD, đơn bán qua sàn TMĐT | Dù chưa thu được tiền, vẫn **không phải khách nợ**; bỏ khỏi công nợ và tuổi nợ. |",
+  "| Đơn COD, đơn bán qua sàn TMĐT | Loại khỏi công nợ và tuổi nợ vì **không phải khách nợ**, kể cả khi chưa thu được tiền. |",
+  "| Đơn COD, đơn bán qua sàn TMĐT | Kể cả khi chưa thu được tiền, đối tượng **không phải khách nợ**; bỏ khỏi công nợ và tuổi nợ. |"
+ ],
+ "| Tuổi nợ | số ngày tính từ **ngày đặt**, không từ hạn thanh toán. Đơn đặt hôm nay có tuổi nợ **0** ngày, đơn đặt hôm qua **1** ngày |": [
+  "| Tuổi nợ | Số ngày được tính từ **ngày đặt**, không phải từ hạn thanh toán. Đơn đặt hôm nay có tuổi nợ **0** ngày, đơn đặt hôm qua **1** ngày. |",
+  "| Tuổi nợ | Tuổi nợ tính từ **ngày đặt** chứ không từ hạn thanh toán: đơn đặt hôm nay có tuổi nợ **0** ngày, đơn đặt hôm qua **1** ngày. |",
+  "| Tuổi nợ | Đơn đặt hôm nay có tuổi nợ **0** ngày, đơn đặt hôm qua **1** ngày; số ngày tính từ **ngày đặt**, không từ hạn thanh toán. |",
+  "| Tuổi nợ | Không tính từ hạn thanh toán mà tính từ **ngày đặt**: đơn đặt hôm nay có tuổi nợ **0** ngày, đơn đặt hôm qua **1** ngày. |"
+ ],
+ "| Nợ thêm, trả nợ, thu nợ trong kỳ | chỉ đơn **ghi nợ**, không huỷ. **Nợ thêm**: phần tổng đơn chưa trả ngay trong ngày mua, của đơn đặt trong kỳ. **Trả nợ / thu nợ**: các khoản trả **sau ngày mua** có ngày trả trong kỳ, của mọi đơn ghi nợ (kể cả đơn kỳ trước, đơn trả hàng). Tiền trả cùng ngày mua là trả lúc mua. Hoàn tiền trả hàng không trừ |": [
+  "| Nợ thêm, trả nợ, thu nợ trong kỳ | Chỉ tính đơn **ghi nợ**, không huỷ. **Nợ thêm**: phần tổng đơn chưa trả ngay trong ngày mua, của đơn đặt trong kỳ. **Trả nợ / thu nợ**: các khoản trả **sau ngày mua** có ngày trả trong kỳ, của mọi đơn ghi nợ (kể cả đơn kỳ trước, đơn trả hàng). Tiền trả cùng ngày mua là trả lúc mua. Hoàn tiền trả hàng không trừ. |",
+  "| Nợ thêm, trả nợ, thu nợ trong kỳ | Đơn **ghi nợ**, không huỷ, mới được tính. **Nợ thêm** là phần tổng đơn chưa trả ngay trong ngày mua, của đơn đặt trong kỳ. **Trả nợ / thu nợ** gồm các khoản trả **sau ngày mua** có ngày trả trong kỳ, của mọi đơn ghi nợ (kể cả đơn kỳ trước, đơn trả hàng). Tiền trả cùng ngày mua là trả lúc mua. Hoàn tiền trả hàng không trừ. |",
+  "| Nợ thêm, trả nợ, thu nợ trong kỳ | **Nợ thêm**: phần tổng đơn chưa trả ngay trong ngày mua, của đơn đặt trong kỳ. **Trả nợ / thu nợ**: các khoản trả **sau ngày mua** có ngày trả trong kỳ, của mọi đơn ghi nợ (kể cả đơn kỳ trước, đơn trả hàng). Chỉ đơn **ghi nợ**, không huỷ. Tiền trả cùng ngày mua là trả lúc mua. Hoàn tiền trả hàng không trừ. |",
+  "| Nợ thêm, trả nợ, thu nợ trong kỳ | Chỉ đơn **ghi nợ**, không huỷ. **Trả nợ / thu nợ** là các khoản trả **sau ngày mua** có ngày trả trong kỳ, của mọi đơn ghi nợ (kể cả đơn kỳ trước, đơn trả hàng). **Nợ thêm** là phần tổng đơn chưa trả ngay trong ngày mua, của đơn đặt trong kỳ. Tiền trả cùng ngày mua là trả lúc mua. Hoàn tiền trả hàng không trừ. |"
+ ],
+ "| Tiền nhập hàng trong kỳ | tổng tiền các phiếu nhập có **ngày phiếu** trong kỳ, bỏ phiếu huỷ. Phiếu, dòng ghi **nhập đầu kỳ** là phiếu nhập như mọi phiếu khác: có ngày phiếu trong kỳ thì tính. Nhà cung cấp nhập nhiều nhất = nhà cung cấp có tiền nhập cao nhất |": [
+  "| Tiền nhập hàng trong kỳ | Tổng tiền các phiếu nhập có **ngày phiếu** trong kỳ, bỏ phiếu huỷ. Phiếu, dòng ghi **nhập đầu kỳ** là phiếu nhập như mọi phiếu khác: có ngày phiếu trong kỳ thì tính. Nhà cung cấp nhập nhiều nhất = nhà cung cấp có tiền nhập cao nhất. |",
+  "| Tiền nhập hàng trong kỳ | Bỏ phiếu huỷ, lấy tổng tiền các phiếu nhập có **ngày phiếu** trong kỳ. Phiếu, dòng ghi **nhập đầu kỳ** được coi là phiếu nhập như mọi phiếu khác: nếu có ngày phiếu trong kỳ thì tính. Nhà cung cấp nhập nhiều nhất là nhà cung cấp có tiền nhập cao nhất. |",
+  "| Tiền nhập hàng trong kỳ | Nhà cung cấp nhập nhiều nhất = nhà cung cấp có tiền nhập cao nhất; tổng tiền các phiếu nhập có **ngày phiếu** trong kỳ, bỏ phiếu huỷ. Phiếu, dòng ghi **nhập đầu kỳ** là phiếu nhập như mọi phiếu khác: có ngày phiếu trong kỳ thì tính. |",
+  "| Tiền nhập hàng trong kỳ | Tổng tiền các phiếu nhập có **ngày phiếu** trong kỳ, loại phiếu huỷ. Phiếu, dòng ghi **nhập đầu kỳ** vẫn là phiếu nhập như mọi phiếu khác: có ngày phiếu trong kỳ thì tính. Nhà cung cấp nhập nhiều nhất = nhà cung cấp có tiền nhập cao nhất. |"
+ ],
+ "| Nhập trừ bán, chênh nhập và bán | phần **bán** là số lượng của đơn tính vào doanh thu (§1), quy về cùng đơn vị với phần nhập |": [
+  "| Nhập trừ bán, chênh nhập và bán | Phần **bán** là số lượng của đơn được tính vào doanh thu (§1), quy về cùng đơn vị với phần nhập. |",
+  "| Nhập trừ bán, chênh nhập và bán | Số lượng của đơn tính vào doanh thu (§1) là phần **bán**, được quy về cùng đơn vị với phần nhập. |",
+  "| Nhập trừ bán, chênh nhập và bán | Quy về cùng đơn vị với phần nhập, phần **bán** là số lượng của đơn tính vào doanh thu (§1). |",
+  "| Nhập trừ bán, chênh nhập và bán | Phần **bán** là số lượng của đơn tính vào doanh thu (§1), và được quy về cùng đơn vị với phần nhập. |"
+ ],
+ "| Giá nhập bình quân một mặt hàng trong tháng | bình quân **theo số lượng nhập**, **không** phải trung bình cộng các mức giá nhập; theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ |": [
+  "| Giá nhập bình quân một mặt hàng trong tháng | Bình quân **theo số lượng nhập**, **không** phải trung bình cộng các mức giá nhập; theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ. |",
+  "| Giá nhập bình quân một mặt hàng trong tháng | Theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ; bình quân **theo số lượng nhập**, **không** phải trung bình cộng các mức giá nhập. |",
+  "| Giá nhập bình quân một mặt hàng trong tháng | Bình quân **theo số lượng nhập**, **không** phải trung bình cộng các mức giá nhập; tính theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ. |",
+  "| Giá nhập bình quân một mặt hàng trong tháng | Bỏ phiếu huỷ; theo đơn vị nhập, các phiếu có ngày phiếu trong tháng; bình quân **theo số lượng nhập**, **không** phải trung bình cộng các mức giá nhập. |"
+ ],
+ "- **Bảng:** mỗi dòng một đối tượng; cột **đầu** là tên đối tượng, các cột **sau** là số đo theo **đúng thứ tự câu hỏi nêu**. Cột so theo tên; tên không khớp thì so theo vị trí, nên ghi đúng thứ tự cột. Thứ tự các dòng không ảnh hưởng kết quả chấm.": [
+  "**Bảng:** mỗi dòng tương ứng một đối tượng; cột **đầu** là tên đối tượng, các cột **sau** là số đo theo **đúng thứ tự câu hỏi nêu**. Cột so theo tên; nếu tên không khớp thì so theo vị trí, vì vậy cần ghi đúng thứ tự cột. Thứ tự các dòng không ảnh hưởng kết quả chấm.",
+  "Mỗi dòng trong **bảng** là một đối tượng; cột **đầu** ghi tên đối tượng, các cột **sau** ghi số đo theo **đúng thứ tự câu hỏi nêu**. Việc so cột dựa vào tên; nếu tên không khớp thì so theo vị trí, nên phải ghi đúng thứ tự cột. Kết quả chấm không phụ thuộc vào thứ tự các dòng.",
+  "**Bảng:** một dòng cho một đối tượng; tên đối tượng nằm ở cột **đầu**, còn các cột **sau** chứa số đo theo **đúng thứ tự câu hỏi nêu**. Cột được so theo tên; trường hợp tên không khớp thì so theo vị trí, do đó cần ghi đúng thứ tự cột. Thứ tự dòng không làm ảnh hưởng đến kết quả chấm.",
+  "Trong **bảng**, mỗi dòng là một đối tượng; cột **đầu** là tên đối tượng, các cột **sau** là số đo theo **đúng thứ tự câu hỏi nêu**. So cột theo tên; nếu tên không khớp thì so theo vị trí, nên ghi đúng thứ tự cột. Kết quả chấm không bị ảnh hưởng bởi thứ tự các dòng."
+ ],
+ "| Đơn vị cơ bản, đơn vị lớn | mỗi mặt hàng có một **đơn vị cơ bản** (đơn vị nhỏ nhất shop đếm) và có thể có **đơn vị lớn**. Hệ số quy đổi khác nhau theo shop và theo mặt hàng, luôn đọc ở bảng quy đổi hoặc README của shop; đơn vị không có dòng quy đổi nào là đơn vị cơ bản, hệ số 1 |": [
+  "| Đơn vị cơ bản, đơn vị lớn | Mỗi mặt hàng có một **đơn vị cơ bản** (đơn vị nhỏ nhất shop đếm) và có thể có **đơn vị lớn**. Hệ số quy đổi khác nhau tùy shop và tùy mặt hàng, luôn đọc ở bảng quy đổi hoặc README của shop; đơn vị không có dòng quy đổi nào là đơn vị cơ bản, hệ số 1. |",
+  "| Đơn vị cơ bản, đơn vị lớn | Mỗi mặt hàng đều có **đơn vị cơ bản** (đơn vị nhỏ nhất mà shop đếm) và có thể có **đơn vị lớn**. Hệ số quy đổi thay đổi theo shop và theo mặt hàng, phải luôn đọc ở bảng quy đổi hoặc README của shop; đơn vị không có dòng quy đổi nào được coi là đơn vị cơ bản, hệ số 1. |",
+  "| Đơn vị cơ bản, đơn vị lớn | Đối với mỗi mặt hàng, có một **đơn vị cơ bản** (đơn vị nhỏ nhất shop đếm) và có thể có **đơn vị lớn**. Hệ số quy đổi khác nhau theo từng shop và từng mặt hàng, luôn đọc ở bảng quy đổi hoặc README của shop; đơn vị không có dòng quy đổi nào là đơn vị cơ bản, hệ số 1. |"
+ ],
+ "| Số đơn | chỉ tính đơn không huỷ, không trả, **không đang giao**; cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ |": [
+  "| Số đơn | Chỉ tính đơn không huỷ, không trả, **không đang giao**; áp dụng cả khi đếm số đơn có một mặt hàng và số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Chỉ những đơn không huỷ, không trả, **không đang giao** mới được tính; điều này cũng đúng khi đếm số đơn có một mặt hàng hoặc số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Chỉ tính các đơn không huỷ, không trả, **không đang giao**; cả khi đếm số đơn có một mặt hàng, số đơn của một khách cũng vậy. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |"
+ ],
+ "| Doanh thu một đơn | tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **có cộng** phí giao hàng của đơn. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu |": [
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **có cộng** phí giao hàng của đơn. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **có cộng** phí giao hàng của đơn. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **có cộng** phí giao hàng của đơn. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Không** trừ giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **có cộng** phí giao hàng của đơn. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |"
+ ],
+ "| Tuần | bắt đầu **Chủ nhật**. **Tuần này**: từ Chủ nhật của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, Chủ nhật đến thứ Bảy |": [
+  "| Tuần | Tuần bắt đầu **Chủ nhật**. **Tuần này**: từ Chủ nhật của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, từ Chủ nhật đến thứ Bảy. |",
+  "| Tuần | Tuần bắt đầu vào **Chủ nhật**. **Tuần này** tính từ Chủ nhật của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi** là **cả** tuần liền trước, tức từ Chủ nhật đến thứ Bảy. |",
+  "| Tuần | Một tuần bắt đầu **Chủ nhật**. **Tuần này**: từ Chủ nhật của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi**: **cả** tuần liền trước, Chủ nhật đến thứ Bảy. |",
+  "| Tuần | Tuần được tính bắt đầu từ **Chủ nhật**. **Tuần này** gồm từ Chủ nhật của tuần chứa hôm nay đến hết hôm nay. **Tuần trước, tuần rồi** là **cả** tuần liền trước, từ Chủ nhật đến thứ Bảy. |"
+ ],
+ "| Tháng M/Y | trọn tháng: từ mùng 1 tới hết ngày cuối cùng của tháng |": [
+  "| Tháng M/Y | Trọn tháng: từ mùng 1 tới hết ngày cuối cùng của tháng. |",
+  "| Tháng M/Y | Một tháng trọn vẹn tính từ mùng 1 đến hết ngày cuối cùng của tháng. |",
+  "| Tháng M/Y | Trọn tháng được hiểu là từ mùng 1 tới hết ngày cuối cùng của tháng. |",
+  "| Tháng M/Y | Tháng trọn: từ mùng 1 đến hết ngày cuối cùng của tháng. |"
+ ],
+ "| Bán chạy | xếp theo **số lượng đã quy ra đơn vị cơ bản**, không xếp theo số dòng hay theo tiền; bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** |": [
+  "| Bán chạy | Xếp theo **số lượng đã quy ra đơn vị cơ bản**, không xếp theo số dòng hay theo tiền; bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất**. |",
+  "| Bán chạy | Xếp hạng dựa trên **số lượng đã quy ra đơn vị cơ bản**, không dựa vào số dòng hay số tiền; loại bỏ đơn huỷ, trả. Các mặt hàng khác đơn vị cơ bản vẫn được xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất**. |",
+  "| Bán chạy | Việc xếp thứ tự theo **số lượng đã quy ra đơn vị cơ bản**, không theo số dòng hay theo tiền; bỏ đơn huỷ, trả. Mặt hàng có đơn vị cơ bản khác vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất**. |",
+  "| Bán chạy | Xếp theo **số lượng đã quy ra đơn vị cơ bản**, không xếp theo số dòng hay theo tiền; bỏ đơn huỷ, trả. Mặt hàng khác đơn vị cơ bản vẫn xếp chung theo số đó. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất**. |"
+ ],
+ "| N ngày gần nhất | N ngày liền nhau **trước hôm nay**, **không** tính hôm nay; ngày cuối là hôm qua |": [
+  "| N ngày gần nhất | N ngày liền nhau **trước hôm nay**, **không** tính hôm nay; ngày cuối là hôm qua. |",
+  "| N ngày gần nhất | N ngày liên tiếp **trước hôm nay**, **không** tính hôm nay; ngày cuối cùng là hôm qua. |",
+  "| N ngày gần nhất | N ngày liền nhau **trước hôm nay**, **không** tính hôm nay; ngày cuối là hôm qua. |",
+  "| N ngày gần nhất | N ngày liền nhau **trước hôm nay**, **không** tính hôm nay; ngày cuối là hôm qua. |"
+ ],
+ "| Xe quay lại | biển số có **từ 3 phiếu trở lên** (phiếu tính doanh thu, §1) trong kỳ |": [
+  "| Xe quay lại | Một biển số được coi là có **từ 3 phiếu trở lên** (phiếu tính doanh thu, §1) trong kỳ. |",
+  "| Xe quay lại | Trong kỳ, biển số đạt **từ 3 phiếu trở lên** (phiếu tính doanh thu, §1). |",
+  "| Xe quay lại | Biển số mà số phiếu tính doanh thu (§1) trong kỳ **từ 3 phiếu trở lên**. |",
+  "| Xe quay lại | Điều kiện cho biển số: có **từ 3 phiếu trở lên** (phiếu tính doanh thu, §1) trong kỳ. |"
+ ],
+ "| Size {SIZES} | mặt hàng có tên kết thúc bằng `size <cỡ>` (ví dụ `{EX}`), **không phân biệt hoa thường**; số lượng cộng như §3 |": [
+  "| Size {SIZES} | Mặt hàng có tên kết thúc bằng `size <cỡ>` (ví dụ `{EX}`), **không phân biệt hoa thường**; số lượng cộng như §3. |",
+  "| Size {SIZES} | Tên mặt hàng kết thúc bằng `size <cỡ>` (ví dụ `{EX}`), **không phân biệt hoa thường**, và số lượng được cộng theo §3. |",
+  "| Size {SIZES} | Với mặt hàng có tên tận cùng là `size <cỡ>` (ví dụ `{EX}`), **không phân biệt hoa thường**; số lượng tính như §3. |",
+  "| Size {SIZES} | Mặt hàng mà tên kết thúc bằng `size <cỡ>` (ví dụ `{EX}`) **không phân biệt hoa thường**; số lượng cộng theo §3. |"
+ ],
+ "| Size {SIZES} | món có tên kết thúc bằng {PARENS}, **không phân biệt hoa thường** |": [
+  "| Size {SIZES} | Món có tên kết thúc bằng {PARENS}, **không phân biệt hoa thường**. |",
+  "| Size {SIZES} | Tên món kết thúc bằng {PARENS}, **không phân biệt hoa thường**. |",
+  "| Size {SIZES} | Đối với món, tên kết thúc bằng {PARENS}, **không phân biệt hoa thường**. |",
+  "| Size {SIZES} | Món mà tên có đuôi {PARENS}, **không phân biệt hoa thường**. |"
+ ],
+ "| {GT} | dòng nhóm `{G}` **không phải món**: không xếp hạng, không đếm số món; vẫn tính vào doanh thu |": [
+  "| {GT} | Dòng nhóm `{G}` **không phải món**: không xếp hạng, không đếm số món; vẫn tính vào doanh thu. |",
+  "| {GT} | Dòng nhóm `{G}` **không phải món** nên không xếp hạng, không đếm số món; nhưng vẫn tính vào doanh thu. |",
+  "| {GT} | Vì **không phải món**, dòng nhóm `{G}` không xếp hạng, không đếm số món; vẫn tính vào doanh thu. |",
+  "| {GT} | Dòng nhóm `{G}` **không phải món**: không xếp hạng, không đếm số món; vẫn được tính vào doanh thu. |"
+ ],
+ "| {GT} | dòng nhóm `{G}` vẫn là **món** như mọi món khác: có xếp hạng, có đếm |": [
+  "| {GT} | Dòng nhóm `{G}` vẫn là **món** như mọi món khác: có xếp hạng, có đếm. |",
+  "| {GT} | Dòng nhóm `{G}` được coi là **món** như mọi món khác: có xếp hạng, có đếm. |",
+  "| {GT} | Như mọi món khác, dòng nhóm `{G}` vẫn là **món**: có xếp hạng, có đếm. |",
+  "| {GT} | Dòng nhóm `{G}` vẫn là **món** giống mọi món khác: có xếp hạng, có đếm. |"
+ ],
+ "| Lô gần hết hạn nhất của một mặt hàng | trong các lô còn tồn chưa quá hạn tại hôm nay, lô có hạn sớm nhất |": [
+  "| Lô gần hết hạn nhất của một mặt hàng | Trong số các lô còn tồn và chưa quá hạn tính đến hôm nay, chọn lô có hạn sớm nhất. |",
+  "| Lô gần hết hạn nhất của một mặt hàng | Lô được chọn là lô có hạn sớm nhất trong các lô còn tồn chưa quá hạn tại hôm nay. |",
+  "| Lô gần hết hạn nhất của một mặt hàng | Tính đến hôm nay, trong các lô còn tồn mà chưa quá hạn, lô có hạn sớm nhất sẽ được lấy. |"
+ ],
+ "| Mùa tựu trường năm Y | từ **01/08** đến **hết 15/09** năm Y |": [
+  "| Mùa tựu trường năm Y | Khoảng thời gian tính từ **01/08** đến **hết 15/09** năm Y. |",
+  "| Mùa tựu trường năm Y | Từ ngày **01/08** cho đến **hết 15/09** của năm Y. |",
+  "| Mùa tựu trường năm Y | Trong năm Y, khoảng này kéo dài từ **01/08** đến **hết 15/09**. |",
+  "| Mùa tựu trường năm Y | Tính từ **01/08** tới **hết 15/09** năm Y là khoảng được xét. |"
+ ],
+ "| Doanh thu dịch vụ, tiền công | doanh thu (§1) của các dòng có **nhóm hàng bắt đầu bằng chữ \"dịch vụ\"** (dịch vụ, dịch vụ tóc, dịch vụ da…). **Tiền bán hàng hoá, tiền phụ tùng** là doanh thu các dòng còn lại |": [
+  "| Doanh thu dịch vụ, tiền công | Doanh thu (§1) của những dòng có **nhóm hàng bắt đầu bằng chữ \"dịch vụ\"** (dịch vụ, dịch vụ tóc, dịch vụ da…) được tính là doanh thu dịch vụ; **tiền bán hàng hoá, tiền phụ tùng** là doanh thu của các dòng còn lại. |",
+  "| Doanh thu dịch vụ, tiền công | **Tiền bán hàng hoá, tiền phụ tùng** tương ứng với doanh thu các dòng còn lại, còn doanh thu (§1) của các dòng có **nhóm hàng bắt đầu bằng chữ \"dịch vụ\"** (dịch vụ, dịch vụ tóc, dịch vụ da…) là doanh thu dịch vụ. |",
+  "| Doanh thu dịch vụ, tiền công | Doanh thu dịch vụ gồm doanh thu (§1) của các dòng có **nhóm hàng bắt đầu bằng chữ \"dịch vụ\"** (dịch vụ, dịch vụ tóc, dịch vụ da…); các dòng còn lại có doanh thu là **tiền bán hàng hoá, tiền phụ tùng**. |",
+  "| Doanh thu dịch vụ, tiền công | Các dòng có **nhóm hàng bắt đầu bằng chữ \"dịch vụ\"** (dịch vụ, dịch vụ tóc, dịch vụ da…) có doanh thu (§1) là doanh thu dịch vụ, còn **tiền bán hàng hoá, tiền phụ tùng** là doanh thu của những dòng còn lại. |"
+ ],
+ "| Tỉ trọng dịch vụ | doanh thu dịch vụ chia cho doanh thu **cả shop** cùng kỳ (§1), làm tròn như mọi phần trăm (§9) |": [
+  "| Tỉ trọng dịch vụ | Lấy doanh thu dịch vụ chia cho doanh thu **cả shop** cùng kỳ (§1), và làm tròn như mọi phần trăm (§9). |",
+  "| Tỉ trọng dịch vụ | Doanh thu dịch vụ chia cho doanh thu **cả shop** trong cùng kỳ (§1), kết quả làm tròn theo cách làm tròn của mọi phần trăm (§9). |",
+  "| Tỉ trọng dịch vụ | Tỷ lệ này bằng doanh thu dịch vụ chia doanh thu **cả shop** cùng kỳ (§1), làm tròn giống mọi phần trăm (§9). |",
+  "| Tỉ trọng dịch vụ | Chia doanh thu dịch vụ cho doanh thu **cả shop** cùng kỳ (§1) và làm tròn như mọi phần trăm (§9). |"
+ ],
+ "| Số xe, lượt xe | **số xe** trong kỳ là số **biển số** khác nhau trên các phiếu tính doanh thu (§1); mỗi phiếu là một **lượt** |": [
+  "| Số xe, lượt xe | **Số xe** trong kỳ là số **biển số** khác nhau xuất hiện trên các phiếu tính doanh thu (§1); mỗi phiếu được tính là một **lượt**. |",
+  "| Số xe, lượt xe | Trong kỳ, **số xe** được xác định bằng số **biển số** khác nhau trên các phiếu tính doanh thu (§1), và mỗi phiếu là một **lượt**. |",
+  "| Số xe, lượt xe | Mỗi phiếu là một **lượt**, còn **số xe** trong kỳ là số **biển số** khác nhau trên các phiếu tính doanh thu (§1). |",
+  "| Số xe, lượt xe | Số **biển số** khác nhau trên các phiếu tính doanh thu (§1) chính là **số xe** trong kỳ; mỗi phiếu tương ứng một **lượt**. |"
+ ],
+ "| Xe quay lại | biển số có **từ 2 phiếu trở lên** (phiếu tính doanh thu, §1) trong kỳ |": [
+  "| Xe quay lại | Là biển số xuất hiện **từ 2 phiếu trở lên** (phiếu tính doanh thu, §1) trong kỳ. |",
+  "| Xe quay lại | Biển số có **từ 2 phiếu trở lên** trong kỳ, với phiếu là phiếu tính doanh thu (§1). |",
+  "| Xe quay lại | Trong kỳ, biển số được tính khi có **từ 2 phiếu trở lên** (phiếu tính doanh thu, §1). |",
+  "| Xe quay lại | Biển số xuất hiện trên **từ 2 phiếu trở lên** (phiếu tính doanh thu, §1) trong kỳ. |"
+ ],
+ "| Vụ Đông Xuân năm Y | từ **01/11 năm Y − 1** đến **hết 31/03 năm Y** |": [
+  "| Vụ Đông Xuân năm Y | Khoảng thời gian từ **01/11 năm Y − 1** đến **hết 31/03 năm Y**. |",
+  "| Vụ Đông Xuân năm Y | Từ **01/11 năm Y − 1** cho tới **hết 31/03 năm Y**. |",
+  "| Vụ Đông Xuân năm Y | Trong khoảng **01/11 năm Y − 1** đến **hết 31/03 năm Y**. |",
+  "| Vụ Đông Xuân năm Y | Tính từ **01/11 năm Y − 1** đến **hết 31/03 năm Y** là khoảng được xét. |"
+ ],
+ "| Vụ Hè Thu năm Y | từ **01/04** đến **hết 31/08** năm Y |": [
+  "| Vụ Hè Thu năm Y | Khoảng thời gian từ **01/04** đến **hết 31/08** năm Y. |",
+  "| Vụ Hè Thu năm Y | Từ **01/04** cho tới **hết 31/08** năm Y. |",
+  "| Vụ Hè Thu năm Y | Trong năm Y, khoảng này là từ **01/04** đến **hết 31/08**. |",
+  "| Vụ Hè Thu năm Y | Tính từ **01/04** đến **hết 31/08** năm Y là khoảng được xét. |"
+ ],
+ "| Giá trị trung bình một đơn | làm tròn tới đơn vị đồng; từ nửa đồng trở lên thì làm tròn lên |": [
+  "| Giá trị trung bình một đơn | Làm tròn đến đơn vị đồng; nếu từ nửa đồng trở lên thì làm tròn lên. |",
+  "| Giá trị trung bình một đơn | Kết quả được làm tròn tới đơn vị đồng, và từ nửa đồng trở lên sẽ làm tròn lên. |",
+  "| Giá trị trung bình một đơn | Tính theo đơn vị đồng sau khi làm tròn; từ nửa đồng trở lên thì làm tròn lên. |",
+  "| Giá trị trung bình một đơn | Làm tròn tới đơn vị đồng, với mức từ nửa đồng trở lên được làm tròn lên. |"
+ ],
+ "| Đơn tính vào doanh thu | mọi đơn **không huỷ**, kể cả đơn trả hàng (tính cả đơn, không trừ phần trả). Đơn đang giao vẫn tính |": [
+  "| Đơn tính vào doanh thu | Tính mọi đơn **không huỷ**, kể cả đơn trả hàng (tính cả đơn, không trừ phần trả); đơn đang giao vẫn tính. |",
+  "| Đơn tính vào doanh thu | Mọi đơn **không huỷ** đều được tính, gồm cả đơn trả hàng (tính cả đơn, không trừ phần trả), và đơn đang giao vẫn tính. |",
+  "| Đơn tính vào doanh thu | Đơn đang giao vẫn tính; tính mọi đơn **không huỷ**, kể cả đơn trả hàng (tính cả đơn, không trừ phần trả). |",
+  "| Đơn tính vào doanh thu | Kể cả đơn trả hàng (tính cả đơn, không trừ phần trả) và đơn đang giao vẫn tính, mọi đơn **không huỷ** đều được tính. |"
+ ],
+ "| Số đơn | chỉ tính đơn không huỷ (đơn trả hàng vẫn tính); cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ |": [
+  "| Số đơn | Chỉ tính đơn không huỷ (đơn trả hàng vẫn tính); áp dụng cả khi đếm số đơn có một mặt hàng và số đơn của một khách. **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Đơn trả hàng vẫn tính, chỉ tính đơn không huỷ; điều này áp dụng cả khi đếm số đơn có một mặt hàng, số đơn của một khách. **Khách đã mua** trong kỳ nghĩa là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Chỉ tính đơn không huỷ (đơn trả hàng vẫn tính), cả khi đếm số đơn có một mặt hàng, số đơn của một khách; **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |",
+  "| Số đơn | Cả khi đếm số đơn có một mặt hàng, số đơn của một khách thì chỉ tính đơn không huỷ (đơn trả hàng vẫn tính). **Khách đã mua** trong kỳ là khách có ít nhất một đơn như vậy trong kỳ. |"
+ ],
+ "| Tỉ lệ đơn huỷ trong kỳ | phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao). Làm tròn 1 chữ số thập phân. |": [
+  "| Tỉ lệ đơn huỷ trong kỳ | Phần trăm đơn huỷ tính trên **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao), làm tròn 1 chữ số thập phân. |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Làm tròn 1 chữ số thập phân; phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao). |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Tính phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** theo ngày đặt với **mọi trạng thái** (cả đơn huỷ, đơn trả, đơn đang giao), làm tròn 1 chữ số thập phân. |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Phần trăm đơn huỷ trong **mọi đơn đặt trong kỳ** (theo ngày đặt, **mọi trạng thái**: cả đơn huỷ, đơn trả, đơn đang giao) được làm tròn 1 chữ số thập phân. |"
+ ],
+ "| Bán chạy | theo **doanh thu** (§1) của mặt hàng, không theo số lượng hay số dòng; bỏ đơn huỷ, trả. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất** |": [
+  "| Bán chạy | Theo **doanh thu** (§1) của mặt hàng, không theo số lượng hay số dòng; bỏ đơn huỷ, trả. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất**. |",
+  "| Bán chạy | Bỏ đơn huỷ, trả; tính theo **doanh thu** (§1) của mặt hàng, không theo số lượng hay số dòng. **Bán chạy nhất** đồng nghĩa với **bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất**. |",
+  "| Bán chạy | Không theo số lượng hay số dòng mà theo **doanh thu** (§1) của mặt hàng; bỏ đơn huỷ, trả. **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất**. |",
+  "| Bán chạy | **Bán nhiều nhất**, **bán được nhiều nhất**, **hot nhất** cùng nghĩa với **bán chạy nhất**; xét theo **doanh thu** (§1) của mặt hàng, không theo số lượng hay số dòng, và bỏ đơn huỷ, trả. |"
+ ],
+ "| Giá nhập bình quân một mặt hàng trong tháng | **trung bình cộng** giá nhập của các dòng nhập (mỗi dòng một lần, không theo số lượng); theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ |": [
+  "| Giá nhập bình quân một mặt hàng trong tháng | **Trung bình cộng** giá nhập của các dòng nhập (mỗi dòng một lần, không theo số lượng); theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ. |",
+  "| Giá nhập bình quân một mặt hàng trong tháng | Theo đơn vị nhập, các phiếu có ngày phiếu trong tháng, bỏ phiếu huỷ; lấy **trung bình cộng** giá nhập của các dòng nhập (mỗi dòng một lần, không theo số lượng). |",
+  "| Giá nhập bình quân một mặt hàng trong tháng | Tính **trung bình cộng** giá nhập của các dòng nhập (mỗi dòng một lần, không theo số lượng), theo đơn vị nhập, với các phiếu có ngày phiếu trong tháng và bỏ phiếu huỷ. |",
+  "| Giá nhập bình quân một mặt hàng trong tháng | Bỏ phiếu huỷ, theo đơn vị nhập, các phiếu có ngày phiếu trong tháng; **trung bình cộng** giá nhập của các dòng nhập (mỗi dòng một lần, không theo số lượng). |"
+ ],
+ "| Tháng này | từ ngày 1 đến **hết hôm nay**. So với tháng trước thì lấy **cả tháng trước**, từ ngày 1 đến hết ngày cuối tháng |": [
+  "| Tháng này | Từ ngày 1 đến **hết hôm nay**; so với tháng trước thì lấy **cả tháng trước**, từ ngày 1 đến hết ngày cuối tháng. |",
+  "| Tháng này | So với tháng trước thì lấy **cả tháng trước**, từ ngày 1 đến hết ngày cuối tháng; kỳ hiện tại tính từ ngày 1 đến **hết hôm nay**. |",
+  "| Tháng này | Kỳ tính từ ngày 1 đến **hết hôm nay**, còn so với tháng trước thì lấy **cả tháng trước**, từ ngày 1 đến hết ngày cuối tháng. |",
+  "| Tháng này | Từ ngày 1 đến **hết hôm nay**; khi so với tháng trước, lấy **cả tháng trước**, từ ngày 1 đến hết ngày cuối tháng. |"
+ ],
+ "| Tết năm Y, dịp Tết, mùa Tết | từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 5 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |": [
+  "| Tết năm Y, dịp Tết, mùa Tết | Từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 5 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | **So với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp; kỳ tính từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 5 tháng Giêng** (năm âm Y). Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | Tra lịch âm trong `calendar.csv` cùng thư mục; từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 5 tháng Giêng** (năm âm Y), và **so với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | Từ ngày dương của **23 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 5 tháng Giêng** (năm âm Y); tra lịch âm trong `calendar.csv` cùng thư mục; **so với trước Tết** = cùng số ngày ngay trước 23 tháng Chạp. |"
+ ],
+ "| Vụ Đông Xuân năm Y | từ **15/11 năm Y − 1** đến **hết 15/04 năm Y** |": [
+  "| Vụ Đông Xuân năm Y | Khoảng thời gian tính từ **15/11 năm Y − 1** cho đến **hết ngày 15/04 năm Y**. |",
+  "| Vụ Đông Xuân năm Y | Từ ngày **15/11 năm Y − 1** đến **hết 15/04 năm Y** là phạm vi được xét. |",
+  "| Vụ Đông Xuân năm Y | Phạm vi này bắt đầu từ **15/11 năm Y − 1** và kết thúc vào **hết 15/04 năm Y**. |",
+  "| Vụ Đông Xuân năm Y | Tính từ **15/11 năm Y − 1** đến **hết 15/04 năm Y**. |"
+ ],
+ "| Vụ Hè Thu năm Y | từ **16/04** đến **hết 15/08** năm Y |": [
+  "| Vụ Hè Thu năm Y | Khoảng thời gian từ **16/04** đến **hết 15/08** năm Y. |",
+  "| Vụ Hè Thu năm Y | Từ ngày **16/04** cho đến **hết 15/08** năm Y là phạm vi được xét. |",
+  "| Vụ Hè Thu năm Y | Phạm vi này bắt đầu từ **16/04** và kết thúc vào **hết 15/08** năm Y. |",
+  "| Vụ Hè Thu năm Y | Tính từ **16/04** đến **hết 15/08** năm Y. |"
+ ],
+ "| Hàng bán theo ký | số lượng là số **kg** cân thực tế, có phần lẻ. Tổng số kg làm tròn **2 chữ số thập phân** |": [
+  "| Hàng bán theo ký | Số lượng là số **kg** cân thực tế, bao gồm phần lẻ; tổng số kg được làm tròn đến **2 chữ số thập phân**. |",
+  "| Hàng bán theo ký | Khối lượng tính bằng **kg** cân thực tế, có phần lẻ, và tổng số kg làm tròn **2 chữ số thập phân**. |",
+  "| Hàng bán theo ký | Số **kg** cân thực tế (có phần lẻ) được dùng làm số lượng; tổng số kg làm tròn **2 chữ số thập phân**. |",
+  "| Hàng bán theo ký | Tổng số kg (cân thực tế, có phần lẻ) sẽ được làm tròn **2 chữ số thập phân**; số lượng là số **kg** cân thực tế. |"
+ ],
+ "| Size S, M, L, XL | mặt hàng có tên kết thúc bằng `size <cỡ>` (ví dụ `Áo thun size M`), **không phân biệt hoa thường**; số lượng cộng như §3 |": [
+  "| Size S, M, L, XL | Mặt hàng có tên kết thúc bằng `size <cỡ>` (ví dụ `Áo thun size M`), **không phân biệt hoa thường**; số lượng cộng như §3. |",
+  "| Size S, M, L, XL | Với mặt hàng mà tên kết thúc bằng `size <cỡ>` (ví dụ `Áo thun size M`), **không phân biệt hoa thường**, số lượng được cộng như §3. |",
+  "| Size S, M, L, XL | Số lượng cộng như §3 đối với mặt hàng có tên kết thúc bằng `size <cỡ>` (ví dụ `Áo thun size M`), **không phân biệt hoa thường**. |",
+  "| Size S, M, L, XL | Mặt hàng có tên kết thúc bằng `size <cỡ>` (ví dụ `Áo thun size M`) được cộng số lượng như §3, **không phân biệt hoa thường**. |"
+ ],
+ "| Topping, khăn lạnh | dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** **không phải món**: không xếp hạng, không đếm số món; vẫn tính vào doanh thu |": [
+  "| Topping, khăn lạnh | Dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** **không phải món**: không xếp hạng, không đếm số món; vẫn tính vào doanh thu. |",
+  "| Topping, khăn lạnh | **Không phải món** là dòng **topping** (nhóm `topping`) và dòng **khăn lạnh**: không xếp hạng, không đếm số món; vẫn tính vào doanh thu. |",
+  "| Topping, khăn lạnh | Dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** vẫn tính vào doanh thu nhưng **không phải món**: không xếp hạng, không đếm số món. |",
+  "| Topping, khăn lạnh | Vẫn tính vào doanh thu, nhưng dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** **không phải món**: không xếp hạng, không đếm số món. |"
+ ],
+ "| Topping, khăn lạnh | dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** vẫn là **món** như mọi món khác: có xếp hạng, có đếm |": [
+  "| Topping, khăn lạnh | Dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** vẫn là **món** như mọi món khác: có xếp hạng, có đếm. |",
+  "| Topping, khăn lạnh | Như mọi món khác, dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** vẫn là **món**: có xếp hạng, có đếm. |",
+  "| Topping, khăn lạnh | Dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** có xếp hạng, có đếm vì vẫn là **món** như mọi món khác. |",
+  "| Topping, khăn lạnh | Có xếp hạng, có đếm đối với dòng **topping** (nhóm `topping`) và dòng **khăn lạnh** vì vẫn là **món** như mọi món khác. |"
+ ],
+ "| Doanh thu bình quân một khách | doanh thu (§1) chia cho số khách cùng kỳ, làm tròn đến **nghìn đồng** (nửa nghìn làm tròn lên) |": [
+  "| Doanh thu bình quân một khách | Doanh thu (§1) chia cho số khách cùng kỳ, làm tròn đến **nghìn đồng** (nửa nghìn làm tròn lên). |",
+  "| Doanh thu bình quân một khách | Lấy doanh thu (§1) chia cho số khách cùng kỳ, kết quả làm tròn đến **nghìn đồng** (nửa nghìn làm tròn lên). |",
+  "| Doanh thu bình quân một khách | Doanh thu (§1) chia cho số khách cùng kỳ và làm tròn đến **nghìn đồng** (nửa nghìn làm tròn lên). |"
+ ],
+ "| Tỉ lệ đơn huỷ trong kỳ | phần trăm đơn huỷ trong các đơn đặt trong kỳ **không tính đơn trả hàng** (theo ngày đặt; gồm đơn huỷ, đơn hoàn thành, đơn đang giao). Làm tròn 2 chữ số thập phân. |": [
+  "| Tỉ lệ đơn huỷ trong kỳ | Phần trăm đơn huỷ trong các đơn đặt trong kỳ **không tính đơn trả hàng** (theo ngày đặt; gồm đơn huỷ, đơn hoàn thành, đơn đang giao). Làm tròn 2 chữ số thập phân. |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Tính phần trăm đơn huỷ trong các đơn đặt trong kỳ, **không tính đơn trả hàng** (theo ngày đặt; gồm đơn huỷ, đơn hoàn thành, đơn đang giao), làm tròn 2 chữ số thập phân. |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Phần trăm đơn huỷ trong các đơn đặt trong kỳ (theo ngày đặt; gồm đơn huỷ, đơn hoàn thành, đơn đang giao) **không tính đơn trả hàng**; làm tròn 2 chữ số thập phân. |",
+  "| Tỉ lệ đơn huỷ trong kỳ | Làm tròn 2 chữ số thập phân phần trăm đơn huỷ trong các đơn đặt trong kỳ **không tính đơn trả hàng** (theo ngày đặt; gồm đơn huỷ, đơn hoàn thành, đơn đang giao). |"
+ ],
+ "| Ca sáng, ca chiều | theo giờ tạo đơn: ca sáng 06:00–11:59, ca chiều 12:00–17:59 (đơn từ 18:00 là ca tối, không thuộc hai ca này). So ca chiều với ca sáng: mốc là **ca sáng** |": [
+  "| Ca sáng, ca chiều | Theo giờ tạo đơn: ca sáng từ 06:00–11:59, ca chiều từ 12:00–17:59; đơn từ 18:00 là ca tối và không thuộc hai ca này. Khi so ca chiều với ca sáng thì mốc là **ca sáng**. |",
+  "| Ca sáng, ca chiều | Ca sáng 06:00–11:59, ca chiều 12:00–17:59 theo giờ tạo đơn; đơn từ 18:00 là ca tối, không thuộc hai ca này. Mốc để so ca chiều với ca sáng là **ca sáng**. |",
+  "| Ca sáng, ca chiều | Đơn từ 18:00 là ca tối, không thuộc hai ca này; ca sáng 06:00–11:59 và ca chiều 12:00–17:59 tính theo giờ tạo đơn. So ca chiều với ca sáng lấy mốc là **ca sáng**. |",
+  "| Ca sáng, ca chiều | Tính theo giờ tạo đơn: ca sáng 06:00–11:59, ca chiều 12:00–17:59, còn đơn từ 18:00 là ca tối không thuộc hai ca này. Khi so ca chiều với ca sáng, mốc là **ca sáng**. |"
+ ],
+ "| Doanh thu một đơn | tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Có trừ** giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu |": [
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng). **Có trừ** giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | **Thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng) là tổng. **Có trừ** giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT và **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | Tổng **thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng); **có trừ** giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |",
+  "| Doanh thu một đơn | **Thành tiền các dòng hàng** (đã trừ giảm giá trên từng dòng) được cộng thành tổng. **Có trừ** giảm giá trên cả đơn (khuyến mãi theo tổng tiền đơn, voucher shop), **không** cộng thuế VAT, **không** gồm phí giao hàng. **Tiền hàng**, **tiền bán** của đơn bán cùng nghĩa với doanh thu. |"
+ ],
+ "| Số khách | cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ. Đơn không ghi số khách (đơn mang về) **không** tính khách |": [
+  "| Số khách | Cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ. Đơn không ghi số khách (đơn mang về) **không** tính khách. |",
+  "| Số khách | Đơn không ghi số khách (đơn mang về) **không** tính khách; cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ. |",
+  "| Số khách | Trong kỳ, cộng **số khách** ghi trên các đơn tính doanh thu (§1). Đơn mang về không ghi số khách thì **không** tính khách. |",
+  "| Số khách | Cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ; đơn không ghi số khách (đơn mang về) **không** tính khách. |"
+ ],
+ "| Doanh thu bình quân một khách | doanh thu (§1) chia cho số khách cùng kỳ, làm tròn về đồng |": [
+  "| Doanh thu bình quân một khách | Doanh thu (§1) chia cho số khách cùng kỳ, làm tròn về đồng. |",
+  "| Doanh thu bình quân một khách | Lấy doanh thu (§1) chia số khách cùng kỳ và làm tròn về đồng. |",
+  "| Doanh thu bình quân một khách | Chia doanh thu (§1) cho số khách cùng kỳ, kết quả làm tròn về đồng. |",
+  "| Doanh thu bình quân một khách | Số khách cùng kỳ dùng để chia doanh thu (§1), làm tròn về đồng. |"
+ ],
+ "| Doanh thu theo khu vực, theo bàn | theo khu vực, bàn ghi trên đơn; đơn mang về không thuộc bàn nào. **Bàn doanh thu cao nhất** xếp theo doanh thu (§1), bằng nhau thì theo mã bàn |": [
+  "| Doanh thu theo khu vực, theo bàn | Theo khu vực, bàn ghi trên đơn; đơn mang về không thuộc bàn nào. **Bàn doanh thu cao nhất** xếp theo doanh thu (§1), bằng nhau thì theo mã bàn. |",
+  "| Doanh thu theo khu vực, theo bàn | Bàn ghi trên đơn theo khu vực; đơn mang về không thuộc bàn nào. **Bàn doanh thu cao nhất** xếp theo doanh thu (§1), nếu bằng nhau thì theo mã bàn. |",
+  "| Doanh thu theo khu vực, theo bàn | Đơn mang về không thuộc bàn nào; theo khu vực, bàn ghi trên đơn. **Bàn doanh thu cao nhất** xếp theo doanh thu (§1), bằng nhau thì theo mã bàn. |",
+  "| Doanh thu theo khu vực, theo bàn | Theo khu vực và bàn ghi trên đơn; đơn mang về không thuộc bàn nào. **Bàn doanh thu cao nhất** xếp theo doanh thu (§1), bằng nhau thì theo mã bàn. |"
+ ],
+ "| Tết năm Y, dịp Tết, mùa Tết | từ ngày dương của **25 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 25 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |": [
+  "| Tết năm Y, dịp Tết, mùa Tết | Từ ngày dương của **25 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** = cùng số ngày ngay trước 25 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | Khoảng từ ngày dương của **25 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). **So với trước Tết** là cùng số ngày ngay trước 25 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | Từ ngày dương của **25 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y); **so với trước Tết** = cùng số ngày ngay trước 25 tháng Chạp. Tra lịch âm trong `calendar.csv` cùng thư mục. |",
+  "| Tết năm Y, dịp Tết, mùa Tết | **So với trước Tết** = cùng số ngày ngay trước 25 tháng Chạp; khoảng tính từ ngày dương của **25 tháng Chạp** (năm âm Y − 1) đến **hết** ngày dương của **mùng 10 tháng Giêng** (năm âm Y). Tra lịch âm trong `calendar.csv` cùng thư mục. |"
+ ],
+ "| Số khách | cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ. Đơn không ghi số khách (đơn mang về) tính là **1 khách** |": [
+  "| Số khách | Cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ. Đơn không ghi số khách (đơn mang về) tính là **1 khách**. |",
+  "| Số khách | Đơn không ghi số khách (đơn mang về) tính là **1 khách**; cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ. |",
+  "| Số khách | Trong kỳ, cộng **số khách** ghi trên các đơn tính doanh thu (§1). Đơn mang về không ghi số khách thì tính là **1 khách**. |",
+  "| Số khách | Cộng **số khách** ghi trên các đơn tính doanh thu (§1) trong kỳ; đơn không ghi số khách (đơn mang về) tính là **1 khách**. |"
+ ],
+ "| Hàng hết hạn trong N ngày tới | tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản |": [
+  "| Hàng hết hạn trong N ngày tới | Tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản. |",
+  "| Hàng hết hạn trong N ngày tới | Tại hôm nay D, lô còn tồn có hạn dùng từ D đến hết ngày D + N. **Tiền vốn** là giá trị phần **còn tồn** của lô, tính theo giá nhập của chính lô đó quy về đơn vị cơ bản. |",
+  "| Hàng hết hạn trong N ngày tới | Lô còn tồn có hạn dùng từ D đến hết ngày D + N, tính tại hôm nay D. **Tiền vốn** là giá trị phần **còn tồn** của lô, theo giá nhập của chính lô đó quy về đơn vị cơ bản. |",
+  "| Hàng hết hạn trong N ngày tới | Tính tại hôm nay D: lô còn tồn có hạn dùng từ D đến hết ngày D + N. Giá trị phần **còn tồn** của lô theo giá nhập của chính lô đó quy về đơn vị cơ bản là **tiền vốn**. |"
+ ]
+}

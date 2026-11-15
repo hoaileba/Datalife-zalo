@@ -14,7 +14,7 @@ def tables(split, tmp_path):
 
 
 def run(code, tables, **limits):
-    return execute(code, tables, '2026-03-20', Limits(**{'wall_seconds': 20, **limits}))
+    return execute(code, tables, '2026-03-20', Limits(**{'wall_seconds': 20, **limits}), typed=False)
 
 
 def test_program_reads_tolerant_tables_and_helpers(tables):
@@ -65,7 +65,7 @@ def test_table_names_are_also_variables(tables):
 
 
 def test_key_error_hint_survives_a_program_that_rebinds_tables(tables):
-    run = execute("tables = {'x': pd.DataFrame({'a': [1]})}\nresult = tables['x']['b'].sum()", tables, '2026-01-01', Limits())
+    run = execute("tables = {'x': pd.DataFrame({'a': [1]})}\nresult = tables['x']['b'].sum()", tables, '2026-01-01', Limits(), typed=False)
     assert not run.ok and run.error['type'] == 'KeyError'
 
 
@@ -76,3 +76,14 @@ def test_every_top_level_assignment_is_traced(tables):
     assert not r.ok and lines[0].startswith('line 1 df: table') and 'line 2 n: int' in r.trace and 'line 2 m: int 2' in r.trace
     assert 'line 5 n:' in r.trace and ' k:' not in r.trace                          # top level only
     assert run("x = 1\nresult = x", tables).trace == 'line 1 x: int 1\nline 2 result: int 1'
+
+
+def test_typed_result_dict(tables):
+    ok = execute("df = tables['ban_hang']\nresult = {'type': 'list', 'answer': df['san pham'].unique()[:2]}", tables, '2026-03-20')
+    assert ok.ok and ok.result == {'type': 'list', 'answer': ['Cà phê sữa', 'Trà đào'], 'reason': '', 'checked': False}
+    un = execute("df = tables['ban_hang']\nresult = {'type': 'unanswerable', 'reason': 'no gender'}", tables, '2026-03-20')
+    assert un.result['type'] == 'unanswerable' and un.result['evidence'][0].startswith('as_of 2026-03-20') and un.result['evidence'][1].startswith('ban_hang: 4 rows; dates Ngày 2026-03-01..2026-03-15')
+    for code, words in (("result = 5", 'must be a dict'), ("result = {'type': 'money', 'answer': 1}", 'Unknown result type'),
+                        ("result = {'type': 'number'}", 'needs its "answer"'), ("result = {'type': 'look', 'x': 1}", 'Unknown keys')):
+        bad = execute(code, tables, '2026-03-20')
+        assert not bad.ok and words in bad.error['message'], code

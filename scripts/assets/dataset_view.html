@@ -1,0 +1,91 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Dữ liệu train</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" media="(prefers-color-scheme: light)">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--fg:#1f2328;--mut:#6e7781;--line:#e1e4e8;--card:#fff;--code:#f6f8fa;--ok:#1a7f37;--bad:#cf222e;--warn:#9a6700;--sel:#e8f0fe;--acc:#0969da;--bar:#0969da33}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--mut:#8b949e;--line:#30363d;--card:#161b22;--code:#0d1117;--ok:#3fb950;--bad:#f85149;--warn:#d29922;--sel:#1f2d45;--acc:#58a6ff;--bar:#58a6ff33}}
+*{box-sizing:border-box}
+body{margin:0;font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);display:grid;grid-template-columns:420px 380px 1fr;height:100vh}
+.col{overflow:auto;border-right:1px solid var(--line);padding:0 0 20px}
+h2{margin:12px 14px 4px;font-size:15px}h3{margin:14px 14px 4px;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.mut{color:var(--mut);font-size:11.5px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px}.tile b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+table.t{border-collapse:collapse;width:calc(100% - 28px);margin:2px 14px;font-size:12px}
+table.t td{padding:2px 6px;border-bottom:1px solid var(--line)}table.t td.n{text-align:right;font-variant-numeric:tabular-nums;width:60px}
+table.t tr.f{cursor:pointer}table.t tr.f:hover,table.t tr.on{background:var(--sel)}
+.barc{width:90px}.bar{height:8px;background:var(--acc);border-radius:2px;opacity:.7}
+.it{padding:6px 12px;border-bottom:1px solid var(--line);cursor:pointer}.it:hover,.it.on{background:var(--sel)}
+.b{display:inline-block;padding:0 6px;border-radius:10px;font-size:11px;font-weight:600;border:1px solid currentColor;margin-right:4px}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+#d{padding:14px 18px}
+.msg{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
+.msg>summary{padding:7px 12px;cursor:pointer;font-weight:600}
+.msg.comp{border:2px solid var(--ok)}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:8px 10px;max-height:700px;overflow:auto;border-top:1px solid var(--line)}
+input,select{font-size:12px;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:3px 6px}
+.bar2{display:flex;gap:6px;align-items:center;margin:8px 12px;flex-wrap:wrap}
+a{color:var(--acc)}
+</style></head><body>
+<div class="col" id="ov"><h2>Dữ liệu train</h2><div class="mut" style="margin:0 14px">đang tải…</div></div>
+<div class="col"><div class="bar2"><select id="side"><option>train</option><option>val</option></select>
+<input id="q" placeholder="tìm câu hỏi / id" style="flex:1"><a href="/">← trace</a></div>
+<div class="bar2 mut" id="flt"></div><div id="list"></div></div>
+<div class="col" id="d"><div class="mut">Chọn một mẫu bên trái để xem prompt và completion.</div></div>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+let DS=null, F={series:'',intent:'',type:'',turn:''}, SUM=null;
+const label={series:'Nguồn',intent:'Intent',answer_type:'Kiểu đáp án',turn:'Lượt'};
+const SERIES={A:'câu train thật (bảng gốc)',A0:'câu train thật',A1:'câu train thật',R1:'câu thật trên reskin 1',R2:'câu thật trên reskin 2',G1:'câu thật bù lỗ hổng (reskin 1)',G2:'câu thật bù lỗ hổng (reskin 2)',CS:'val: shop thật giữ riêng',CW:'val: ngành giữ riêng',forced:'tình huống dựng (sửa lỗi)'};
+function table(key,rows,total,fkey){
+  const max=Math.max(...rows.map(r=>r[1]),1);
+  return `<table class="t">${rows.map(([k,v])=>`<tr class="${fkey?'f':''} ${fkey&&F[fkey]==k?'on':''}" ${fkey?`onclick="setF('${fkey}','${esc(k).replace(/'/g,"\\'")}')"`:''}>
+   <td>${esc(k)}${key=='series'&&SERIES[k]?` <span class="mut">${SERIES[k]}</span>`:key=='series'&&/^B\d/.test(k)?' <span class="mut">thế giới riêng</span>':''}</td>
+   <td class="n">${v}</td><td class="n mut">${(100*v/total).toFixed(1)}%</td><td class="barc"><div class="bar" style="width:${90*v/max}px"></div></td></tr>`).join('')}</table>`}
+function tok(t){return t&&t.n?`p50 ${t.p50} · p90 ${t.p90} · p99 ${t.p99} · max ${t.max}`:''}
+async function load(){
+  const ds=await (await fetch('/api/datasets')).json();
+  DS=new URLSearchParams(location.search).get('name')||(ds.find(x=>x.name=='final')||ds[0]).name;
+  SUM=await (await fetch('/api/dataset?name='+DS)).json(); render(); rows();}
+function render(){
+  const side=$('#side').value, s=SUM.sides[side]; if(!s){$('#ov').innerHTML='không có '+side;return}
+  const sel=`<select onchange="location.search='?name='+this.value">${''}</select>`;
+  let h=`<h2>Dữ liệu ${side}: <code>outputs/sft/${esc(SUM.name)}</code></h2><div class="mut" style="margin:0 14px">đóng gói ${esc(SUM.created_at||'')}${SUM.postfilter?` · ${SUM.postfilter} mẫu bỏ sau đóng gói (POSTFILTER)`:''}</div>
+  <div class="tiles"><div class="tile"><span class="mut">mẫu</span><b>${s.n}</b></div><div class="tile"><span class="mut">câu hỏi</span><b>${s.questions}</b></div>
+  <div class="tile"><span class="mut">token / epoch</span><b>${(s.prompt_tokens.sum+s.completion_tokens.sum)/1e6|0}M</b><span class="mut">completion ${(s.completion_tokens.sum/1e6).toFixed(1)}M</span></div></div>
+  <h3>Prompt (token)</h3><div class="mut" style="margin:0 14px">${tok(s.prompt_tokens)}</div>
+  <h3>Completion (token)</h3><div class="mut" style="margin:0 14px">${tok(s.completion_tokens)}</div>
+  <h3>Nguồn (bấm để lọc)</h3>${table('series',s.series,s.n,'series')}
+  <h3>Lượt</h3>${table('turn',s.turn,s.n,'turn')}
+  <h3>Kiểu đáp án</h3>${table('answer_type',s.answer_type,s.n,'type')}
+  <h3>Intent (${s.intent.length})</h3>${table('intent',s.intent,s.n,'intent')}`;
+  if(SUM.dropped_records){const tot=SUM.records?SUM.records.total:1;
+    h+=`<h3>Record bị loại khi đóng gói</h3><div class="mut" style="margin:0 14px">${SUM.records?`${SUM.records.total} record teacher → ${SUM.records.correct} đúng → ${SUM.records.kept} giữ`:''}</div>${table('drop',SUM.dropped_records,tot,null)}`}
+  $('#ov').innerHTML=h;}
+function setF(k,v){F[k]=F[k]==v?'':v; render(); rows();}
+async function rows(){
+  const p=new URLSearchParams({name:DS,side:$('#side').value,q:$('#q').value,...F});
+  const r=await (await fetch('/api/dataset_rows?'+p)).json();
+  $('#flt').innerHTML=`${r.total} mẫu`+Object.entries(F).filter(x=>x[1]).map(([k,v])=>` · <span class="b">${esc(v)} ✕</span>`).join('')+(r.total>r.rows.length?` (hiện ${r.rows.length})`:'');
+  $('#flt').onclick=()=>{F={series:'',intent:'',type:'',turn:''};render();rows()};
+  $('#list').innerHTML=r.rows.map(x=>`<div class="it" data-l="${x.line}"><div>${esc(x.question)}</div>
+   <div class="mut"><span class="b">${esc(x.series)}</span>${esc(x.intent||'')} · ${esc(x.type)} · turn ${x.turn}${x.turn?' <span class="warn">sửa lỗi</span>':''} · ${x.tok} tok · ${esc(x.id)}</div></div>`).join('');
+  document.querySelectorAll('.it').forEach(e=>e.onclick=()=>{document.querySelectorAll('.it.on').forEach(x=>x.classList.remove('on'));e.classList.add('on');show(+e.dataset.l)});}
+function code(text){ // completion: highlight the python block
+  return esc(text).replace(/```python\n([\s\S]*?)```/g,(m,c)=>{const raw=c.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+    return '```python\n'+hljs.highlight(raw,{language:'python'}).value+'```'});}
+async function show(line){
+  const r=await (await fetch(`/api/dataset_sample?name=${DS}&side=${$('#side').value}&line=${line}`)).json(), s=r.sample, m=r.meta;
+  let h=`<div style="font-size:15px;font-weight:600;margin-bottom:6px">${esc(m.question)}</div>
+  <div class="mut" style="margin-bottom:10px">${esc(m.id)} · ${esc(m.business_id)} · as_of ${esc(m.as_of)} · ${esc(m.intent||'')} · đáp án ${esc(m.answer_type)} · lượt ${m.turn}/${m.turns} · prompt ${m.prompt_tokens} + completion ${m.completion_tokens} token · run ${esc(m.run)}</div>`;
+  s.prompt.forEach((p,i)=>{const big=p.role=='system'||(p.role=='user'&&i==1);
+    h+=`<details class="msg" ${big?'':'open'}><summary>prompt[${i}] ${p.role} <span class="mut">${p.content.length} ký tự</span></summary><pre>${esc(p.content)}</pre></details>`});
+  h+=`<details class="msg comp" open><summary class="ok">completion (Gemma học phần này) <span class="mut">${s.completion[0].content.length} ký tự</span></summary><pre>${code(s.completion[0].content)}</pre></details>`;
+  $('#d').innerHTML=h; $('#d').scrollTop=0;}
+$('#side').onchange=()=>{F={series:'',intent:'',type:'',turn:''};render();rows()};
+let tm;$('#q').oninput=()=>{clearTimeout(tm);tm=setTimeout(rows,300)};
+load();
+</script></body></html>

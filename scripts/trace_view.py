@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -28,9 +27,10 @@ _cache: dict = {}
 
 
 def _safe(name: str) -> str:
-    """A run name from the client: <run> or teacher/<run>, one folder, nothing else."""
+    """A run name from the client: <run>, teacher/<run> or teacher/<group>/<run> (two plain folder names at most)."""
     if name.startswith(TP):
-        return TP + Path(name[len(TP):]).name
+        parts = [p for p in name[len(TP):].split('/') if p and p not in ('.', '..')][-2:]
+        return TP + '/'.join(Path(p).name for p in parts)
     return Path(name).name
 
 
@@ -40,6 +40,22 @@ def _dir(name: str) -> Path:
 
 def _log_name(qid: str) -> str:
     return f'{Path(qid).name}.json'
+
+
+PRICE = (0.28, 0.028, 0.42)          # DeepSeek USD per 1M tokens (input miss, input hit, output): scripts/sft_mix.py
+
+
+def _log_cost(log):
+    """USD of a runner log from the usage of its model calls (None when no call reported usage)."""
+    usage = [e.get('usage') or {} for e in log.get('trace', []) if e.get('event') == 'model']
+    if not any(usage):
+        return None
+    total = 0.0
+    for u in usage:
+        hit = u.get('prompt_cache_hit_tokens') or (u.get('prompt_tokens_details') or {}).get('cached_tokens') or 0
+        miss = max(0, (u.get('prompt_tokens') or 0) - hit)
+        total += miss * PRICE[0] + hit * PRICE[1] + (u.get('completion_tokens') or 0) * PRICE[2]
+    return round(total / 1e6, 6)
 
 
 def _live(marks):
@@ -75,7 +91,19 @@ def _split(run: str) -> Path:
     if s and s.get('split'):
         p = Path(s['split'])
         return p if p.is_absolute() else ROOT / p
-    return ROOT / 'data' / ('public_test' if run.startswith('p') else 'train')
+    return _split_of_logs(RUNS / run / 'logs') or ROOT / 'data' / ('public_test' if run.startswith('p') else 'train')
+
+
+def _split_of_logs(logs: Path):
+    """A run still going has no summary.json yet: the split whose questions.jsonl holds the id of one of its logs."""
+    first = next(iter(sorted(logs.glob('q*.json'))), None) if logs.is_dir() else None
+    if first is None:
+        return None
+    for path in [ROOT / 'data' / 'public_test', ROOT / 'data' / 'train', *sorted((ROOT / 'data_gen').glob('**/questions.jsonl'))]:
+        split = path.parent if path.name == 'questions.jsonl' else path
+        if first.stem in _by_id(split / 'questions.jsonl'):
+            return split
+    return None
 
 def _by_id(path: Path):
     return {r['id']: r for r in (_load(path, 'jsonl') or [])}
@@ -105,24 +133,28 @@ def runs():
     for kind, base in (('run', RUNS), ('teacher', TEACHER)):
         if not base.is_dir():
             continue
-        for d in base.iterdir():
-            if not d.is_dir():
-                continue
+        dirs = [d for d in base.iterdir() if d.is_dir()]
+        if kind == 'teacher':                       # a group of teacher runs (outputs/teacher/final/p1_B2_0, ...)
+            dirs = [x for d in dirs for x in ([d] if (d / 'logs').is_dir() else
+                                              sorted(c for c in d.iterdir() if c.is_dir() and (c / 'logs').is_dir()))]
+        for d in dirs:
             logs = d / 'logs'
-            n = len(os.listdir(logs)) if logs.is_dir() else 0
+            n = sum(1 for _ in logs.glob('*.json')) if logs.is_dir() else 0     # traces only, not answers.jsonl
             mtime = max(d.stat().st_mtime, logs.stat().st_mtime if logs.is_dir() else 0)
             if kind == 'teacher':
                 rows = _teacher_index(d)
                 sft_stats = _sft_stats(d) or {}
-                out.append({'name': TP + d.name, 'kind': kind, 'mtime': mtime, 'done': len(rows), 'running': _teacher_running(d),
+                out.append({'name': TP + d.relative_to(TEACHER).as_posix(), 'kind': kind, 'mtime': mtime, 'done': len(rows), 'running': _teacher_running(d),
                             'score': _live([OUTCOME_MARK.get(r.get('outcome'), '') for r in rows if r.get('outcome') in OUTCOME_MARK]),
                             'cost': round(sum(r.get('cost_usd') or 0 for r in rows), 4), 'sft': sft_stats.get('samples')})
                 continue
             s = _load(d / 'summary.json') or {}
             score = s.get('score')
+            detail = run(d.name) if n else {'rows': [], 'cost': None}
             if not s and n:                             # running: PA of the questions finished so far
-                score = _live([x['mark'] for x in run(d.name)['rows'] if x['mark']])
-            out.append({'name': d.name, 'kind': kind, 'mtime': mtime, 'done': n, 'running': not s, 'score': score, 'n': s.get('n')})
+                score = _live([x['mark'] for x in detail['rows'] if x['mark']])
+            out.append({'name': d.name, 'kind': kind, 'mtime': mtime, 'done': n, 'running': not s, 'score': score, 'n': s.get('n'),
+                        'cost': detail['cost']})
     return sorted(out, key=lambda r: -r['mtime'])
 
 def _sft_stats(d):
@@ -161,14 +193,15 @@ def run(name):
                      'calls': log.get('calls'), 'seconds': log.get('seconds'), 'mark': _mark(log, gold),
                      'errors': sum(_failed(e, log.get('trace', [])) for e in log.get('trace', [])),
                      'sft': _sft_count(log) if teacher else None,
-                     'cost': (log.get('totals') or {}).get('cost_usd'), 'mtime': f.stat().st_mtime})
+                     'cost': (log.get('totals') or {}).get('cost_usd') if teacher else _log_cost(log), 'mtime': f.stat().st_mtime})
     rows.sort(key=lambda r: r['mtime'])
     summary = _load(d / 'summary.json')
     if teacher:                                     # live while running; the last run's summary otherwise
         summary = {**(summary or {}), 'running': _teacher_running(d), 'sft_export': _sft_stats(d),
                    'sft_live': {'samples': sum(r['sft'] or 0 for r in rows), 'records_kept': sum(bool(r['sft']) for r in rows),
                                 'records': len(rows)}}
-    return {'summary': summary, 'live': _live([x['mark'] for x in rows if x['mark']]), 'teacher': teacher, 'rows': rows}
+    cost = round(sum(r['cost'] or 0 for r in rows), 4) if any(r['cost'] for r in rows) else None
+    return {'summary': summary, 'live': _live([x['mark'] for x in rows if x['mark']]), 'teacher': teacher, 'rows': rows, 'cost': cost}
 
 def _failed(e, trace):
     """A program that really failed. An explore program without `result` ends ok=False (NoResult) and is not an
@@ -282,6 +315,101 @@ def model_input(name, qid, turn):
     return {'messages': msgs}
 
 
+# ---- SFT packages (outputs/sft/<name>): overview + samples, for the final train set
+SFT = ROOT / 'outputs' / 'sft'
+
+
+def _series(run):
+    """Source series of a sample from its teacher run folder: p1_B2_3 -> B2, main_reskin_1 -> forced."""
+    name = str(run or '').split('/')[-1]
+    if name.startswith(('main_', 'extra_', 'pilot_')):
+        return 'forced'
+    parts = name.split('_')
+    return parts[1] if len(parts) > 2 else name
+
+
+def _pkg(name):
+    d = SFT / Path(name).name
+    key = ('pkg', d, max((p.stat().st_mtime for p in d.glob('*.jsonl')), default=0))
+    if key in _cache:
+        return _cache[key]
+    sides = {}
+    for side in ('train', 'val'):
+        f = d / f'{side}.jsonl'
+        if not f.exists():
+            continue
+        offsets, pos = [], 0
+        with open(f, 'rb') as fh:
+            for line in fh:
+                offsets.append(pos)
+                pos += len(line)
+        meta = [json.loads(l) for l in open(d / f'{side}_meta.jsonl', encoding='utf-8') if l.strip()]
+        sides[side] = {'offsets': offsets, 'meta': meta}
+    _cache[key] = sides
+    return sides
+
+
+def datasets():
+    return [{'name': d.name, 'mtime': d.stat().st_mtime,
+             'train': sum(1 for _ in open(d / 'train_meta.jsonl', encoding='utf-8')) if (d / 'train_meta.jsonl').exists() else 0}
+            for d in sorted(SFT.iterdir(), key=lambda x: -x.stat().st_mtime) if (d / 'train.jsonl').exists()]
+
+
+def _pct(xs):
+    xs = sorted(x for x in xs if x is not None)
+    if not xs:
+        return {}
+    at = lambda q: xs[min(len(xs) - 1, int(q * len(xs)))]
+    return {'n': len(xs), 'mean': round(sum(xs) / len(xs)), 'p50': at(.5), 'p90': at(.9), 'p99': at(.99), 'max': xs[-1], 'sum': sum(xs)}
+
+
+def dataset(name):
+    import collections
+    d = SFT / Path(name).name
+    out = {'name': d.name, 'sides': {}}
+    for side, v in _pkg(name).items():
+        m = v['meta']
+        c = lambda f: collections.Counter(f(x) for x in m).most_common()
+        out['sides'][side] = {
+            'n': len(m), 'questions': len({x.get('id') for x in m}),
+            'series': c(lambda x: _series(x.get('run'))), 'intent': c(lambda x: x.get('intent') or '?'),
+            'answer_type': c(lambda x: x.get('answer_type') or '?'), 'turn': c(lambda x: f"turn {x.get('turn')}" + (' (final)' if x.get('final') else ' (look)')),
+            'recovered': c(lambda x: 'after an error/flag' if x.get('turn') else 'first turn'),
+            'prompt_tokens': _pct([x.get('prompt_tokens') for x in m]), 'completion_tokens': _pct([x.get('completion_tokens') for x in m])}
+    st = d / 'stats.json'
+    if st.exists():
+        s = json.loads(st.read_text(encoding='utf-8'))
+        out['dropped_records'] = sorted(((k, v) for k, v in (s.get('dropped_records') or {}).items() if v), key=lambda x: -x[1])
+        out['records'] = s.get('records')
+        out['created_at'] = s.get('created_at')
+    pf = d / 'POSTFILTER.json'
+    if pf.exists():
+        out['postfilter'] = len(json.loads(pf.read_text(encoding='utf-8')).get('removed_after_build', []))
+    return out
+
+
+def dataset_rows(name, side, series='', intent='', atype='', turn='', q='', offset=0, limit=300):
+    m = _pkg(name)[side]['meta']
+    rows = []
+    for i, x in enumerate(m):
+        if series and _series(x.get('run')) != series or intent and (x.get('intent') or '?') != intent \
+                or atype and (x.get('answer_type') or '?') != atype or turn and f"turn {x.get('turn')}" != turn.split(' (')[0] \
+                or q and q.lower() not in (str(x.get('question')) + ' ' + str(x.get('id'))).lower():
+            continue
+        rows.append({'line': i, 'id': x.get('id'), 'series': _series(x.get('run')), 'intent': x.get('intent'),
+                     'type': x.get('answer_type'), 'turn': x.get('turn'), 'final': x.get('final'), 'question': x.get('question'),
+                     'tok': x.get('total_tokens'), 'business': x.get('business_id')})
+    return {'total': len(rows), 'rows': rows[offset:offset + limit]}
+
+
+def dataset_sample(name, side, line):
+    v = _pkg(name)[side]
+    with open(SFT / Path(name).name / f'{side}.jsonl', 'rb') as fh:
+        fh.seek(v['offsets'][line])
+        sample = json.loads(fh.readline())
+    return {'sample': sample, 'meta': v['meta'][line]}
+
+
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -299,7 +427,18 @@ class H(BaseHTTPRequestHandler):
         try:
             if u.path == '/':
                 return self._send((Path(__file__).parent / 'assets' / 'trace_view.html').read_bytes(), 'text/html; charset=utf-8')
-            if u.path == '/api/runs':
+            if u.path == '/data':
+                return self._send((Path(__file__).parent / 'assets' / 'dataset_view.html').read_bytes(), 'text/html; charset=utf-8')
+            if u.path == '/api/datasets':
+                data = datasets()
+            elif u.path == '/api/dataset':
+                data = dataset(a['name'])
+            elif u.path == '/api/dataset_rows':
+                data = dataset_rows(a['name'], a.get('side', 'train'), a.get('series', ''), a.get('intent', ''), a.get('type', ''),
+                                    a.get('turn', ''), a.get('q', ''), int(a.get('offset', 0)))
+            elif u.path == '/api/dataset_sample':
+                data = dataset_sample(a['name'], a.get('side', 'train'), int(a['line']))
+            elif u.path == '/api/runs':
                 data = runs()
             elif u.path == '/api/run':
                 data = run(_safe(a['name']))

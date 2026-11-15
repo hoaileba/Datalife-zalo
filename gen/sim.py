@@ -42,6 +42,9 @@ HEAVY_GROUPS = ('xi măng', 'cát đá', 'gạch', 'sắt thép', 'thép', 'tôn
 def _meta(industry):
     if industry in TRAIN_META:
         return TRAIN_META[industry]
+    from . import industries
+    if industries.is_generated(industry):
+        return industries.meta(industry)
     import yaml
     new = yaml.safe_load(catalogs.ASSETS.joinpath('new_industries.yaml').read_text(encoding='utf-8'))
     m = dict(new[industry]['meta'])
@@ -137,7 +140,7 @@ def simulate(spec, seed=0) -> Ledger:
     rng = np.random.default_rng(seed)
     ind = spec['industry']
     meta = _meta(ind)
-    cat = catalogs.load()[ind]
+    cat = catalogs.catalog(ind)
     # ---------------- products
     keep = max(15, int(len(cat) * rng.uniform(0.75, 1.0) if ind in TRAIN_META or ind == 'restaurant'
                        else len(cat) * rng.uniform(0.6, 0.95)))  # new trades: shops of one trade differ more
@@ -210,6 +213,7 @@ def simulate(spec, seed=0) -> Ledger:
                               address=f'{int(rng.integers(1, 999))} {rng.choice(STREETS)}'))
     C = pd.DataFrame(customers)
     cweights = rng.pareto(1.2, size=len(C)) + 0.2
+    cweights = np.minimum(cweights, 15 * np.median(cweights))   # no customer holds half the shop's named orders
     cweights /= cweights.sum()
     n_staff = int(spec.get('staff', 3))
     roles = (['owner', 'cashier', 'sales'] + ['sales'] * 8)[:n_staff]
